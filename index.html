@@ -1,0 +1,2897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f8f4ed">
+<title>Lumio</title>
+<link rel="manifest" href="manifest.json">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=Space+Grotesk:wght@500;600&display=swap');
+
+:root {
+  --bg:        #f8f4ed;
+  --surface:   #fffdf5;
+  --surface2:  #f2ede4;
+  --border:    #e4d8b8;
+  --border2:   #d4c8a0;
+  --text:      #1e1a10;
+  --text2:     #6a6050;
+  --text3:     #a09880;
+  --accent:    #b87820;
+  --accent-bg: #fdf0d0;
+  --accent2:   #3a7a5a;
+  --accent2-bg:#e4f0e8;
+  --danger:    #c04830;
+  --danger-bg: #faeae6;
+  --rad:       10px;
+  --rad-lg:    14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ── */
+#app { max-width: 480px; margin: 0 auto; padding-bottom: 110px; }
+
+/* ── iOS Pill Nav ── */
+.nav-wrap {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 100; width: calc(100% - 32px); max-width: 448px;
+}
+nav {
+  display: flex; align-items: center;
+  background: rgba(30,26,16,0.88);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 100px;
+  padding: 6px;
+  gap: 2px;
+  box-shadow: 0 8px 32px rgba(30,26,16,0.18), 0 2px 8px rgba(30,26,16,0.12);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px; gap: 3px;
+  border: none; background: none; cursor: pointer;
+  font-size: 9px; color: rgba(255,255,255,0.45); font-family: inherit;
+  border-radius: 100px; transition: color 0.2s, background 0.2s;
+  letter-spacing: 0.2px;
+}
+.nav-btn.active {
+  color: #1e1a10;
+  background: #fffdf5;
+}
+.nav-btn svg { width: 18px; height: 18px; }
+
+/* ── Pages ── */
+.page { display: none; padding: 0 16px; }
+.page.active { display: block; }
+
+/* ── Page header ── */
+.page-header {
+  padding: 20px 0 12px;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.page-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 600; color: var(--text);
+}
+.page-sub { font-size: 13px; color: var(--text3); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--rad-lg);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.card-label {
+  font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+  color: var(--text3); font-weight: 500; margin-bottom: 10px;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--rad);
+  border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.btn:hover { background: var(--surface2); }
+.btn:active { transform: scale(0.97); }
+.btn-accent {
+  background: var(--accent); color: var(--surface);
+  border-color: var(--accent);
+}
+.btn-accent:hover { opacity: 0.88; background: var(--accent); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 6px; border-radius: 8px; }
+
+/* ── Inputs ── */
+input[type=text], input[type=number], textarea, select {
+  width: 100%; padding: 9px 12px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--rad);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 14px;
+  outline: none; transition: border-color 0.15s;
+}
+input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+select { appearance: none; }
+.input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.input-row input { flex: 1; }
+label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block; font-size: 11px; padding: 2px 8px;
+  border-radius: 100px; font-weight: 500;
+}
+.badge-accent { background: var(--accent-bg); color: var(--accent); }
+.badge-green  { background: var(--accent2-bg); color: var(--accent2); }
+.badge-red    { background: var(--danger-bg); color: var(--danger); }
+.badge-muted  { background: var(--surface2); color: var(--text3); }
+
+/* ── Tag pills ── */
+.tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 100px; background: var(--surface2); color: var(--text2); border: 0.5px solid var(--border); margin: 2px 3px 2px 0; }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 10px 0; }
+
+/* ── Stats row ── */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.stat-box { background: var(--surface2); border-radius: var(--rad); padding: 10px; text-align: center; }
+.stat-num { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; }
+.stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ── Streak dots ── */
+.streak-row { display: flex; gap: 5px; margin-top: 10px; }
+.s-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.s-dot.done { background: var(--accent); }
+.s-dot.partial { background: var(--accent-bg); border: 1.5px solid var(--accent); }
+
+/* ── Habit checkbox ── */
+.habit-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 0.5px solid var(--border);
+}
+.habit-row:last-child { border-bottom: none; }
+.h-check {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--border2);
+  background: var(--surface); cursor: pointer;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.h-check.checked { background: var(--accent); border-color: var(--accent); }
+.h-check svg { display: none; }
+.h-check.checked svg { display: block; }
+.h-info { flex: 1; }
+.h-name { font-size: 14px; font-weight: 500; }
+.h-meta { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.h-streak { font-size: 12px; color: var(--accent); font-weight: 500; }
+
+/* ── Progress bars ── */
+.prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.prog-label { font-size: 13px; color: var(--text2); width: 110px; flex-shrink: 0; }
+.prog-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 5px; border-radius: 3px; background: var(--accent); transition: width 0.4s; }
+.prog-fill.green { background: var(--accent2); }
+.prog-pct { font-size: 12px; color: var(--text3); width: 30px; text-align: right; }
+
+/* ── Focus box ── */
+.focus-box {
+  background: var(--accent-bg);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--rad);
+  padding: 12px 14px;
+}
+.focus-label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; margin-bottom: 4px; }
+.focus-text { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; }
+
+/* ── KB entry ── */
+.kb-entry { padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.kb-entry:last-child { border-bottom: none; }
+.kb-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+.kb-source { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+.kb-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.kb-bullet { display: flex; gap: 8px; margin: 4px 0; font-size: 13px; color: var(--text2); }
+.kb-bullet::before { content: '—'; color: var(--text3); flex-shrink: 0; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(30,26,16,0.4); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 20px 20px 40px; width: 100%; max-width: 480px;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--text2);
+}
+.form-group { margin-bottom: 14px; }
+
+/* ── Weekly review ── */
+.review-section { margin-bottom: 20px; }
+.review-q {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  margin-bottom: 8px; line-height: 1.5;
+}
+.review-q span { color: var(--accent); }
+
+/* ── Empty state ── */
+.empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--text3); font-size: 14px; line-height: 1.8;
+}
+.empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+/* ── Heatmap ── */
+.heatmap { display: flex; gap: 3px; flex-wrap: wrap; }
+.hm-cell { width: 12px; height: 12px; border-radius: 3px; background: var(--border); }
+.hm-cell.l1 { background: var(--accent-bg); }
+.hm-cell.l2 { background: #deba70; }
+.hm-cell.l3 { background: var(--accent); }
+
+/* ── Search ── */
+.search-wrap { position: relative; margin-bottom: 12px; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text3); }
+.search-wrap input { padding-left: 34px; }
+
+/* ── Pill tabs ── */
+.pill-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.pill-tab {
+  padding: 5px 12px; border-radius: 100px;
+  border: 0.5px solid var(--border); background: var(--surface);
+  font-size: 12px; color: var(--text2); cursor: pointer; font-family: inherit;
+}
+.pill-tab.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+
+/* ── Goal card ── */
+.goal-card { padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.goal-card:last-child { border-bottom: none; }
+.goal-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.goal-title { font-size: 14px; font-weight: 500; }
+.goal-area { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+.milestone-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; color: var(--text2); }
+.m-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border2); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.m-check.done { background: var(--accent2); border-color: var(--accent2); }
+.m-check.done svg { display: block; }
+.m-check svg { display: none; width: 10px; height: 10px; }
+
+/* ── Reflection ── */
+.reflection-card { background: var(--accent2-bg); border: 0.5px solid #b8d8c0; border-radius: var(--rad); padding: 12px 14px; margin-bottom: 8px; }
+.reflection-date { font-size: 11px; color: var(--accent2); margin-bottom: 4px; }
+.reflection-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+/* ── Loading dots ── */
+.ldots { display: inline-flex; gap: 4px; align-items: center; }
+.ldots span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: lbounce 1.2s infinite; }
+.ldots span:nth-child(2) { animation-delay: 0.2s; }
+.ldots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes lbounce { 0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)} }
+
+/* ── RSS feed in Knowledge ── */
+.rss-ep { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+.rss-ep:last-child { border-bottom: none; }
+.rss-ep-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+.rss-ep-meta { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+
+/* ── Daily quote ── */
+.quote-card {
+  background: var(--accent-bg);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--rad-lg);
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.quote-mark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px; line-height: 1;
+  color: var(--border2);
+  position: absolute; top: 8px; left: 14px;
+  pointer-events: none; user-select: none;
+}
+.quote-text {
+  font-size: 14px; line-height: 1.7; color: var(--text);
+  font-style: italic; padding-left: 14px; margin-bottom: 10px;
+  position: relative; z-index: 1;
+}
+.quote-author {
+  font-size: 12px; font-weight: 500; color: var(--accent);
+  padding-left: 14px;
+}
+.quote-role { font-size: 11px; color: var(--text3); padding-left: 14px; margin-top: 1px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-gap { display: flex; align-items: center; gap: 8px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mb-12 { margin-bottom: 12px; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--text3); }
+.fw-500 { font-weight: 500; }
+
+/* ── Auth screen ── */
+#auth-screen {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 32px 24px;
+  max-width: 400px; margin: 0 auto;
+}
+#auth-screen.visible { display: flex; }
+.auth-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 36px; font-weight: 600; color: var(--text);
+  margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.auth-logo span { color: var(--accent); }
+.auth-tagline { font-size: 14px; color: var(--text3); margin-bottom: 40px; }
+.auth-card {
+  width: 100%; background: var(--surface);
+  border: 0.5px solid var(--border); border-radius: var(--rad-lg);
+  padding: 24px;
+}
+.auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 0.5px solid var(--border); }
+.auth-tab {
+  flex: 1; padding: 8px; font-size: 14px; font-weight: 500;
+  border: none; background: none; cursor: pointer; font-family: inherit;
+  color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+  transition: color 0.15s;
+}
+.auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.auth-error {
+  font-size: 13px; color: var(--danger); background: var(--danger-bg);
+  border-radius: var(--rad); padding: 8px 12px; margin-bottom: 12px; display: none;
+}
+.auth-success {
+  font-size: 13px; color: var(--accent2); background: var(--accent2-bg);
+  border-radius: var(--rad); padding: 8px 12px; margin-bottom: 12px; display: none;
+}
+
+/* ── Update banner ── */
+#update-banner {
+  display: none; background: var(--accent-bg);
+  border-bottom: 0.5px solid var(--border2);
+  padding: 10px 16px;
+  max-width: 480px; margin: 0 auto;
+}
+.update-banner-inner { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.update-banner-text { font-size: 13px; color: var(--text); }
+.update-banner-text strong { color: var(--accent); }
+
+/* ── User bar ── */
+#user-bar {
+  max-width: 480px; margin: 0 auto;
+  padding: 10px 16px 0;
+  display: none; align-items: center; justify-content: space-between;
+}
+#user-bar.visible { display: flex; }
+.user-email { font-size: 11px; color: var(--text3); }
+.signout-btn {
+  font-size: 11px; color: var(--text3); border: none; background: none;
+  cursor: pointer; font-family: inherit; padding: 0; text-decoration: underline;
+}
+.signout-btn:hover { color: var(--danger); }
+/* ── Pomodoro ── */
+.pomo-card { overflow: hidden; }
+.pomo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.pomo-mode-pills { display: flex; gap: 4px; }
+.pomo-mode-pill {
+  font-size: 11px; padding: 3px 10px; border-radius: 100px;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  color: var(--text3); cursor: pointer; font-family: inherit;
+  transition: all 0.15s;
+}
+.pomo-mode-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.pomo-mode-pill.break-active { background: var(--accent2); color: var(--surface); border-color: var(--accent2); }
+.pomo-ring-wrap { display: flex; justify-content: center; margin: 4px 0 16px; position: relative; }
+.pomo-ring-wrap svg { transform: rotate(-90deg); }
+.pomo-ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+.pomo-ring-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
+.pomo-time-overlay {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  text-align: center; pointer-events: none;
+}
+.pomo-time {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 36px; font-weight: 600; color: var(--text);
+  letter-spacing: -1px; line-height: 1;
+}
+.pomo-phase { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.8px; }
+.pomo-controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.pomo-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s;
+}
+.pomo-btn:hover { background: var(--border); }
+.pomo-btn.primary {
+  width: 56px; height: 56px;
+  background: var(--accent); border-color: var(--accent);
+}
+.pomo-btn.primary.break { background: var(--accent2); border-color: var(--accent2); }
+.pomo-btn.primary:hover { opacity: 0.88; }
+.pomo-btn svg { width: 18px; height: 18px; }
+.pomo-btn.primary svg { width: 22px; height: 22px; }
+.pomo-rounds { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 0.5px solid var(--border); }
+.pomo-round-dots { display: flex; gap: 6px; }
+.pomo-round-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--border); transition: background 0.3s;
+}
+.pomo-round-dot.done { background: var(--accent); }
+.pomo-round-dot.current { background: var(--accent-bg); border: 1.5px solid var(--accent); }
+.pomo-stats { font-size: 12px; color: var(--text3); }
+.pomo-stats strong { color: var(--accent); }
+.pomo-settings { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); display: none; }
+.pomo-settings.open { display: block; }
+.pomo-setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.pomo-setting-label { font-size: 13px; color: var(--text2); }
+.pomo-setting-val { display: flex; align-items: center; gap: 8px; }
+.pomo-stepper {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text); font-family: inherit;
+}
+.pomo-stepper:hover { background: var(--border); }
+.pomo-setting-num { font-size: 14px; font-weight: 500; color: var(--text); min-width: 32px; text-align: center; }
+
+/* ── Routine timeline ── */
+.routine-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.routine-day-pills { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+.routine-day-pills::-webkit-scrollbar { display: none; }
+.day-pill {
+  font-size: 11px; padding: 3px 9px; border-radius: 100px; flex-shrink: 0;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  color: var(--text3); cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.day-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.timeline-wrap { position: relative; padding-left: 52px; }
+.timeline-now-line {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: var(--danger); z-index: 10; pointer-events: none;
+}
+.timeline-now-dot {
+  position: absolute; left: 44px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--danger); margin-top: -3.75px;
+  z-index: 11;
+}
+.timeline-now-time {
+  position: absolute; left: 0; font-size: 10px; font-weight: 500;
+  color: var(--danger); margin-top: -8px; width: 42px; text-align: right;
+}
+.timeline-hour-row {
+  display: flex; align-items: flex-start; margin-bottom: 0;
+  min-height: 40px; position: relative;
+}
+.timeline-hour-label {
+  position: absolute; left: -52px; width: 44px; text-align: right;
+  font-size: 10px; color: var(--text3); padding-top: 0; top: 0; line-height: 1;
+}
+.timeline-line {
+  position: absolute; left: -4px; top: 0; bottom: 0;
+  width: 0.5px; background: var(--border);
+}
+.routine-block {
+  position: absolute; left: 4px; right: 0;
+  border-radius: 8px; padding: 5px 9px;
+  cursor: pointer; transition: opacity 0.15s;
+  border-left: 3px solid transparent;
+  overflow: hidden;
+}
+.routine-block:hover { opacity: 0.85; }
+.routine-block.done { opacity: 0.5; }
+.routine-block.done .rb-title { text-decoration: line-through; }
+.rb-title { font-size: 12px; font-weight: 500; line-height: 1.3; }
+.rb-time { font-size: 10px; opacity: 0.7; margin-top: 1px; }
+.rb-note { font-size: 11px; opacity: 0.75; margin-top: 2px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.routine-empty { text-align: center; padding: 24px 0; color: var(--text3); font-size: 13px; }
+
+/* Block category colours */
+.rb-work    { background: #eef2ff; border-left-color: #6674cc; }
+.rb-work    .rb-title { color: #3d47a0; }
+.rb-work    .rb-time  { color: #6674cc; }
+.rb-commute { background: #fff4e6; border-left-color: #e08030; }
+.rb-commute .rb-title { color: #b05a10; }
+.rb-commute .rb-time  { color: #e08030; }
+.rb-health  { background: var(--accent2-bg); border-left-color: var(--accent2); }
+.rb-health  .rb-title { color: #1e5c3a; }
+.rb-health  .rb-time  { color: var(--accent2); }
+.rb-personal{ background: var(--accent-bg); border-left-color: var(--accent); }
+.rb-personal .rb-title { color: #7a4e10; }
+.rb-personal .rb-time  { color: var(--accent); }
+.rb-learning{ background: #f3eeff; border-left-color: #8855cc; }
+.rb-learning .rb-title { color: #5c3490; }
+.rb-learning .rb-time  { color: #8855cc; }
+.rb-rest    { background: #f0f8ff; border-left-color: #5599cc; }
+.rb-rest    .rb-title { color: #2a5f8a; }
+.rb-rest    .rb-time  { color: #5599cc; }
+.rb-food    { background: #fff0f0; border-left-color: #cc5566; }
+.rb-food    .rb-title { color: #8a2a38; }
+.rb-food    .rb-time  { color: #cc5566; }
+
+/* Routine block modal */
+.cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 4px; }
+.cat-opt {
+  padding: 6px 4px; border-radius: 8px; text-align: center;
+  font-size: 11px; font-weight: 500; cursor: pointer; border: 1.5px solid transparent;
+  transition: all 0.15s;
+}
+.cat-opt.selected { border-color: var(--accent); }
+.cat-opt.work     { background:#eef2ff; color:#3d47a0; }
+.cat-opt.commute  { background:#fff4e6; color:#b05a10; }
+.cat-opt.health   { background:var(--accent2-bg); color:#1e5c3a; }
+.cat-opt.personal { background:var(--accent-bg); color:#7a4e10; }
+.cat-opt.learning { background:#f3eeff; color:#5c3490; }
+.cat-opt.rest     { background:#f0f8ff; color:#2a5f8a; }
+.cat-opt.food     { background:#fff0f0; color:#8a2a38; }
+.time-row { display: flex; gap: 8px; align-items: center; }
+.time-row span { font-size: 13px; color: var(--text3); }
+.time-row input { flex: 1; }
+</style>
+<body>
+<!-- ══════════════════════════════ AUTH SCREEN ══════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-logo">lumio<span>.</span></div>
+  <div class="auth-tagline">your personal operating system</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Sign in</button>
+      <button class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Create account</button>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="text" id="auth-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="form-group" id="auth-confirm-wrap" style="display:none">
+      <label>Confirm password</label>
+      <input type="password" id="auth-confirm" placeholder="••••••••">
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn" onclick="handleAuth()">Sign in</button>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:inherit" id="forgot-link">Forgot password?</button>
+    </div>
+  </div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 15 Apr 2026 8:10 PM AEDT</div>
+</div>
+
+<!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
+<div id="user-bar">
+  <div class="user-email" id="user-email-display"></div>
+  <button class="signout-btn" onclick="handleSignOut()">Sign out</button>
+</div>
+
+<!-- ══════════════════════════════ UPDATE BANNER ══════════════════════════════ -->
+<div id="update-banner">
+  <div class="update-banner-inner">
+    <span class="update-banner-text"><strong>Update available</strong> — a new version of Lumio is ready</span>
+    <button class="btn btn-accent btn-sm" onclick="doUpdate()">Update now</button>
+    <button class="btn btn-sm" onclick="dismissUpdate()">Later</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+  <!-- ═══════════════════════════════ TODAY ═══════════════════════════════ -->
+  <div id="page-today" class="page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="today-greeting">Good morning</div>
+        <div class="page-sub" id="today-date"></div>
+      </div>
+      <div id="today-streak-badge"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-streak" style="color:var(--accent)">0</div>
+        <div class="stat-lbl">day streak</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-habits" style="color:var(--accent2)">0</div>
+        <div class="stat-lbl">habits done</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-kb" style="color:#7a5a9a">0</div>
+        <div class="stat-lbl">insights</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-pomo" style="color:var(--accent2)">0</div>
+        <div class="stat-lbl">pomodoros</div>
+      </div>
+    </div>
+
+    <div class="quote-card" id="daily-quote-card">
+      <div class="quote-mark">"</div>
+      <div class="quote-text" id="daily-quote-text">Loading today's quote…</div>
+      <div class="quote-author" id="daily-quote-author"></div>
+      <div class="quote-role" id="daily-quote-role"></div>
+    </div>
+
+    <div class="card mb-12">
+      <div class="card-label">Today's focus</div>
+      <div id="focus-display">
+        <div class="focus-box" id="focus-box-content">
+          <div class="focus-label">Single focus</div>
+          <div class="focus-text" id="focus-text-display">Tap to set your focus for today</div>
+        </div>
+        <button class="btn btn-sm mt-8" onclick="openModal('modal-focus')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h5v5M13 3l-8 8M5 6H3v7h7v-2"/></svg>
+          Edit focus
+        </button>
+      </div>
+    </div>
+
+    <div class="card pomo-card">
+      <div class="pomo-header">
+        <div class="card-label" style="margin-bottom:0">Pomodoro</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div class="pomo-mode-pills">
+            <button class="pomo-mode-pill active" id="pill-focus" onclick="setPomoMode('focus')">Focus</button>
+            <button class="pomo-mode-pill" id="pill-short" onclick="setPomoMode('short')">Short break</button>
+            <button class="pomo-mode-pill" id="pill-long" onclick="setPomoMode('long')">Long break</button>
+          </div>
+          <button onclick="togglePomoSettings()" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:2px 4px;font-size:16px;line-height:1" title="Settings">⚙</button>
+        </div>
+      </div>
+
+      <div class="pomo-ring-wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle class="pomo-ring-bg" cx="80" cy="80" r="68"/>
+          <circle class="pomo-ring-fill" id="pomo-ring" cx="80" cy="80" r="68"
+            stroke="#b87820"
+            stroke-dasharray="427.26"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="pomo-time-overlay">
+          <div class="pomo-time" id="pomo-display">25:00</div>
+          <div class="pomo-phase" id="pomo-phase">Focus</div>
+        </div>
+      </div>
+
+      <div class="pomo-controls">
+        <button class="pomo-btn" onclick="resetPomo()" title="Reset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <button class="pomo-btn primary" id="pomo-play-btn" onclick="togglePomo()">
+          <svg id="pomo-play-icon" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="pomo-btn" onclick="skipPomo()" title="Skip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4l10 8-10 8V4z"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+      </div>
+
+      <div class="pomo-rounds">
+        <div class="pomo-round-dots" id="pomo-dots"></div>
+        <div class="pomo-stats">Today: <strong id="pomo-today-count">0</strong> sessions</div>
+      </div>
+
+      <div class="pomo-settings" id="pomo-settings">
+        <div class="pomo-setting-row">
+          <div class="pomo-setting-label">Focus duration</div>
+          <div class="pomo-setting-val">
+            <button class="pomo-stepper" onclick="adjustPomo('focus',-1)">−</button>
+            <div class="pomo-setting-num" id="set-focus-val">25</div>
+            <button class="pomo-stepper" onclick="adjustPomo('focus',1)">+</button>
+            <span style="font-size:12px;color:var(--text3)">min</span>
+          </div>
+        </div>
+        <div class="pomo-setting-row">
+          <div class="pomo-setting-label">Short break</div>
+          <div class="pomo-setting-val">
+            <button class="pomo-stepper" onclick="adjustPomo('short',-1)">−</button>
+            <div class="pomo-setting-num" id="set-short-val">5</div>
+            <button class="pomo-stepper" onclick="adjustPomo('short',1)">+</button>
+            <span style="font-size:12px;color:var(--text3)">min</span>
+          </div>
+        </div>
+        <div class="pomo-setting-row">
+          <div class="pomo-setting-label">Long break</div>
+          <div class="pomo-setting-val">
+            <button class="pomo-stepper" onclick="adjustPomo('long',-1)">−</button>
+            <div class="pomo-setting-num" id="set-long-val">15</div>
+            <button class="pomo-stepper" onclick="adjustPomo('long',1)">+</button>
+            <span style="font-size:12px;color:var(--text3)">min</span>
+          </div>
+        </div>
+        <div class="pomo-setting-row" style="border-top:0.5px solid var(--border);padding-top:10px;margin-top:2px">
+          <div class="pomo-setting-label">Rounds before long break</div>
+          <div class="pomo-setting-val">
+            <button class="pomo-stepper" onclick="adjustPomo('rounds',-1)">−</button>
+            <div class="pomo-setting-num" id="set-rounds-val">4</div>
+            <button class="pomo-stepper" onclick="adjustPomo('rounds',1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Today's habits</div>
+        <button class="btn btn-sm" onclick="showPage('habits')">All habits</button>
+      </div>
+      <div id="today-habits-list"></div>
+    </div>
+
+    <!-- Routine timeline -->
+    <div class="card" id="routine-card">
+      <div class="routine-header">
+        <div class="card-label" style="margin-bottom:0">Daily routine</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="openModal('modal-routine-block')">+ Add block</button>
+        </div>
+      </div>
+      <div class="routine-day-pills" id="routine-day-pills">
+        <button class="day-pill" data-day="1" onclick="selectRoutineDay(1,this)">Mon</button>
+        <button class="day-pill" data-day="2" onclick="selectRoutineDay(2,this)">Tue</button>
+        <button class="day-pill" data-day="3" onclick="selectRoutineDay(3,this)">Wed</button>
+        <button class="day-pill" data-day="4" onclick="selectRoutineDay(4,this)">Thu</button>
+        <button class="day-pill" data-day="5" onclick="selectRoutineDay(5,this)">Fri</button>
+        <button class="day-pill" data-day="6" onclick="selectRoutineDay(6,this)">Sat</button>
+        <button class="day-pill" data-day="0" onclick="selectRoutineDay(0,this)">Sun</button>
+      </div>
+      <div style="margin-top:12px" id="routine-timeline"></div>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Quick reflection</div>
+      </div>
+      <div class="form-group">
+        <label>One thing that went well today</label>
+        <textarea id="reflect-win" rows="2" placeholder="e.g. Ran a great discovery session…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>One thing to improve tomorrow</label>
+        <textarea id="reflect-improve" rows="2" placeholder="e.g. Speak up earlier in the standup…"></textarea>
+      </div>
+      <button class="btn btn-accent" onclick="saveReflection()">Save reflection</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ HABITS ═══════════════════════════════ -->
+  <div id="page-habits" class="page">
+    <div class="page-header">
+      <div class="page-title">Habits</div>
+      <button class="btn btn-accent btn-sm" onclick="openModal('modal-habit')">+ New habit</button>
+    </div>
+
+    <div class="pill-tabs" id="habit-filter-tabs">
+      <button class="pill-tab active" onclick="filterHabits('all',this)">All</button>
+      <button class="pill-tab" onclick="filterHabits('physical',this)">Physical</button>
+      <button class="pill-tab" onclick="filterHabits('mental',this)">Mental</button>
+      <button class="pill-tab" onclick="filterHabits('work',this)">Work</button>
+    </div>
+
+    <div class="card" id="habits-list-card">
+      <div id="habits-full-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">This week at a glance</div>
+      <div id="habits-heatmap"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ GROWTH ═══════════════════════════════ -->
+  <div id="page-growth" class="page">
+    <div class="page-header">
+      <div class="page-title">Growth</div>
+      <button class="btn btn-accent btn-sm" onclick="openModal('modal-goal')">+ New goal</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">PO skill progress</div>
+      <div id="skills-list">
+        <div class="prog-row">
+          <div class="prog-label">Discovery</div>
+          <div class="prog-track"><div class="prog-fill" style="width:72%"></div></div>
+          <div class="prog-pct">72%</div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-label">Backlog mgmt</div>
+          <div class="prog-track"><div class="prog-fill" style="width:85%"></div></div>
+          <div class="prog-pct">85%</div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-label">Stakeholder mgmt</div>
+          <div class="prog-track"><div class="prog-fill" style="width:50%"></div></div>
+          <div class="prog-pct">50%</div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-label">Product strategy</div>
+          <div class="prog-track"><div class="prog-fill" style="width:38%"></div></div>
+          <div class="prog-pct">38%</div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-label">Data & metrics</div>
+          <div class="prog-track"><div class="prog-fill" style="width:60%"></div></div>
+          <div class="prog-pct">60%</div>
+        </div>
+      </div>
+      <button class="btn btn-sm mt-8" onclick="openModal('modal-skill')">Edit skills</button>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Goals & milestones</div>
+      </div>
+      <div id="goals-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Work reflections & wins</div>
+        <button class="btn btn-sm" onclick="openModal('modal-reflection')">+ Add</button>
+      </div>
+      <div id="reflections-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ KNOWLEDGE ═══════════════════════════════ -->
+  <div id="page-knowledge" class="page">
+    <div class="page-header">
+      <div class="page-title">Knowledge</div>
+      <button class="btn btn-accent btn-sm" onclick="openModal('modal-kb-add')">+ Add insight</button>
+    </div>
+
+    <div class="search-wrap">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3 3"/></svg>
+      <input type="text" id="kb-search" placeholder="Search insights…" oninput="renderKB()">
+    </div>
+
+    <div class="pill-tabs" id="kb-tag-tabs">
+      <button class="pill-tab active" data-tag="all" onclick="filterKB('all',this)">All</button>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Podcast episodes</div>
+        <button class="btn btn-sm" onclick="openModal('modal-rss')">Load feed</button>
+      </div>
+      <div id="rss-episodes-list">
+        <div class="empty" style="padding:16px 0">
+          <div class="text-muted text-sm">Paste an RSS feed to load episodes</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="kb-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ WEEKLY ═══════════════════════════════ -->
+  <div id="page-weekly" class="page">
+    <div class="page-header">
+      <div class="page-title">Weekly review</div>
+      <div class="page-sub" id="week-range"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">This week's habits</div>
+      <div id="weekly-habits-summary"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Guided reflection</div>
+      <div class="review-section">
+        <div class="review-q">What was your <span>biggest win</span> this week?</div>
+        <textarea id="wr-win" rows="3" placeholder="What are you proud of?"></textarea>
+      </div>
+      <div class="review-section">
+        <div class="review-q">What <span>challenged you</span> most?</div>
+        <textarea id="wr-challenge" rows="3" placeholder="What was hard?"></textarea>
+      </div>
+      <div class="review-section">
+        <div class="review-q">What did you <span>learn</span> this week?</div>
+        <textarea id="wr-learn" rows="3" placeholder="From a podcast, conversation, or experience…"></textarea>
+      </div>
+      <div class="review-section">
+        <div class="review-q">What's your <span>one intention</span> for next week?</div>
+        <textarea id="wr-intention" rows="2" placeholder="One clear thing to focus on…"></textarea>
+      </div>
+      <button class="btn btn-accent" onclick="saveWeeklyReview()">Save review</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Past reviews</div>
+      <div id="past-reviews-list"></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ══════════════════════════════ NAV ══════════════════════════════ -->
+<div class="nav-wrap">
+<nav>
+  <button class="nav-btn active" id="nav-today" onclick="showPage('today')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Today
+  </button>
+  <button class="nav-btn" id="nav-habits" onclick="showPage('habits')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>
+    Habits
+  </button>
+  <button class="nav-btn" id="nav-growth" onclick="showPage('growth')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Growth
+  </button>
+  <button class="nav-btn" id="nav-knowledge" onclick="showPage('knowledge')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    Knowledge
+  </button>
+  <button class="nav-btn" id="nav-weekly" onclick="showPage('weekly')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Weekly
+  </button>
+</nav>
+</div>
+
+<!-- ══════════════════════════════ MODALS ══════════════════════════════ -->
+
+<!-- Focus modal -->
+<div class="modal-overlay" id="modal-focus" onclick="closeModalOutside(event,'modal-focus')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Set today's focus</div>
+      <button class="modal-close" onclick="closeModal('modal-focus')">×</button>
+    </div>
+    <div class="form-group">
+      <label>What's the one thing that matters most today?</label>
+      <input type="text" id="focus-input" placeholder="e.g. Run discovery session for BFR-2652">
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveFocus()">Set focus</button>
+  </div>
+</div>
+
+<!-- Habit modal -->
+<div class="modal-overlay" id="modal-habit" onclick="closeModalOutside(event,'modal-habit')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New habit</div>
+      <button class="modal-close" onclick="closeModal('modal-habit')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Habit name</label>
+      <input type="text" id="habit-name-input" placeholder="e.g. Gym session">
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="habit-cat-input">
+        <option value="physical">Physical</option>
+        <option value="mental">Mental</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Target (days per week)</label>
+      <select id="habit-target-input">
+        <option value="7">Every day</option>
+        <option value="5" selected>5 days</option>
+        <option value="4">4 days</option>
+        <option value="3">3 days</option>
+        <option value="2">2 days</option>
+        <option value="1">1 day</option>
+      </select>
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveHabit()">Add habit</button>
+  </div>
+</div>
+
+<!-- Goal modal -->
+<div class="modal-overlay" id="modal-goal" onclick="closeModalOutside(event,'modal-goal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New goal</div>
+      <button class="modal-close" onclick="closeModal('modal-goal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Goal title</label>
+      <input type="text" id="goal-title-input" placeholder="e.g. Land a PO role externally">
+    </div>
+    <div class="form-group">
+      <label>Area</label>
+      <select id="goal-area-input">
+        <option value="Career">Career</option>
+        <option value="Personal">Personal</option>
+        <option value="Health">Health</option>
+        <option value="Finance">Finance</option>
+        <option value="Learning">Learning</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Milestones (one per line)</label>
+      <textarea id="goal-milestones-input" placeholder="Update LinkedIn profile&#10;Apply to 3 roles&#10;Complete a discovery workshop"></textarea>
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveGoal()">Add goal</button>
+  </div>
+</div>
+
+<!-- Skill modal -->
+<div class="modal-overlay" id="modal-skill" onclick="closeModalOutside(event,'modal-skill')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit PO skills</div>
+      <button class="modal-close" onclick="closeModal('modal-skill')">×</button>
+    </div>
+    <div id="skill-edit-list"></div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label>Add new skill</label>
+      <div class="input-row">
+        <input type="text" id="new-skill-name" placeholder="Skill name">
+        <input type="number" id="new-skill-pct" placeholder="%" min="0" max="100" style="width:70px">
+      </div>
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveSkills()">Save skills</button>
+  </div>
+</div>
+
+<!-- Reflection modal -->
+<div class="modal-overlay" id="modal-reflection" onclick="closeModalOutside(event,'modal-reflection')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Work reflection</div>
+      <button class="modal-close" onclick="closeModal('modal-reflection')">×</button>
+    </div>
+    <div class="form-group">
+      <label>What happened / what did you learn?</label>
+      <textarea id="reflection-input" rows="4" placeholder="e.g. Led my first discovery session solo today. Learned that silence in a room is okay — give users space to think."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Tags (comma separated)</label>
+      <input type="text" id="reflection-tags-input" placeholder="e.g. discovery, leadership">
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveWorkReflection()">Save</button>
+  </div>
+</div>
+
+<!-- KB add modal -->
+<div class="modal-overlay" id="modal-kb-add" onclick="closeModalOutside(event,'modal-kb-add')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add insight</div>
+      <button class="modal-close" onclick="closeModal('modal-kb-add')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="kb-title-input" placeholder="e.g. Why discovery beats delivery speed">
+    </div>
+    <div class="form-group">
+      <label>Source</label>
+      <input type="text" id="kb-source-input" placeholder="e.g. Lenny's Podcast, Book: Continuous Discovery">
+    </div>
+    <div class="form-group">
+      <label>Insight / notes</label>
+      <textarea id="kb-body-input" rows="4" placeholder="What did you learn? What will you apply?"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Tags (comma separated)</label>
+      <input type="text" id="kb-tags-input" placeholder="e.g. product, discovery, agile">
+    </div>
+    <button class="btn btn-accent" style="width:100%" onclick="saveKBEntry()">Save insight</button>
+  </div>
+</div>
+
+<!-- RSS modal -->
+<div class="modal-overlay" id="modal-rss" onclick="closeModalOutside(event,'modal-rss')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Load podcast feed</div>
+      <button class="modal-close" onclick="closeModal('modal-rss')">×</button>
+    </div>
+    <div class="form-group">
+      <label>RSS feed URL</label>
+      <input type="text" id="rss-url-input" placeholder="https://api.substack.com/feed/podcast/…" value="https://api.substack.com/feed/podcast/10845.rss">
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-bottom:8px" onclick="loadRSSFeed()">Load episodes</button>
+    <div id="rss-load-status" style="font-size:13px;color:var(--text3);text-align:center"></div>
+  </div>
+</div>
+
+<!-- Routine block modal (add/edit) -->
+<div class="modal-overlay" id="modal-routine-block" onclick="closeModalOutside(event,'modal-routine-block')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="routine-modal-title">Add routine block</div>
+      <button class="modal-close" onclick="closeModal('modal-routine-block')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Block title</label>
+      <input type="text" id="rb-title-input" placeholder="e.g. Morning commute">
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <div class="cat-grid">
+        <div class="cat-opt work selected" data-cat="work" onclick="selectRBCat('work',this)">Work</div>
+        <div class="cat-opt commute" data-cat="commute" onclick="selectRBCat('commute',this)">Commute</div>
+        <div class="cat-opt health" data-cat="health" onclick="selectRBCat('health',this)">Health</div>
+        <div class="cat-opt personal" data-cat="personal" onclick="selectRBCat('personal',this)">Personal</div>
+        <div class="cat-opt learning" data-cat="learning" onclick="selectRBCat('learning',this)">Learning</div>
+        <div class="cat-opt rest" data-cat="rest" onclick="selectRBCat('rest',this)">Rest</div>
+        <div class="cat-opt food" data-cat="food" onclick="selectRBCat('food',this)">Food</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Time</label>
+      <div class="time-row">
+        <input type="time" id="rb-start-input" value="09:00">
+        <span>to</span>
+        <input type="time" id="rb-end-input" value="10:00">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Days</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="rb-days-wrap">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="1" checked> Mon</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="2" checked> Tue</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="3" checked> Wed</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="4" checked> Thu</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="5" checked> Fri</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="6"> Sat</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="rb-day-cb" value="0"> Sun</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Link to habit (optional)</label>
+      <select id="rb-habit-link">
+        <option value="">None</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note (optional)</label>
+      <input type="text" id="rb-note-input" placeholder="e.g. Podcast on the way in">
+    </div>
+    <input type="hidden" id="rb-edit-id">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-accent" style="flex:1" onclick="saveRoutineBlock()">Save block</button>
+      <button class="btn" id="rb-delete-btn" style="display:none;color:var(--danger)" onclick="deleteRoutineBlock()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ SCRIPTS ══════════════════════════════ -->
+<script>
+const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
+const TABLE = 'lumio_data';
+const BUILD = 'v1.4 · 15 Apr 2026 8:10 PM AEDT';
+const BUILD_VERSION = 'v1.4';
+const BUILD_DISPLAY = '15 Apr 2026 8:10 PM AEDT';
+
+let currentUser = null;
+let authToken = null;
+
+const PROXIES = [
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
+// ── State ──
+let state = {
+  focus: '',
+  habits: [],
+  habitLog: {},
+  goals: [],
+  skills: [
+    {name:'Discovery', pct:72},
+    {name:'Backlog mgmt', pct:85},
+    {name:'Stakeholder mgmt', pct:50},
+    {name:'Product strategy', pct:38},
+    {name:'Data & metrics', pct:60},
+  ],
+  kb: [],
+  reflections: [],
+  weeklyReviews: [],
+  rssEpisodes: [],
+  rssSummaries: {},
+  rssUrl: '',
+  pomoSettings: { focus: 25, short: 5, long: 15, rounds: 4 },
+  pomoLog: {},
+  routine: [],        // array of block objects
+  routineDone: {},    // { 'YYYY-MM-DD': { blockId: true } }
+};
+
+// ── Auth ──
+function authHeaders(useUserToken = false) {
+  const token = useUserToken && authToken ? authToken : SUPABASE_KEY;
+  return { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const isSignup = document.getElementById('auth-tab-signup').classList.contains('active');
+  const errEl = document.getElementById('auth-error');
+  const sucEl = document.getElementById('auth-success');
+  const btn = document.getElementById('auth-submit-btn');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
+  if (isSignup) {
+    const confirm = document.getElementById('auth-confirm').value;
+    if (password !== confirm) { showAuthError('Passwords do not match.'); return; }
+    if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  }
+  btn.disabled = true; btn.textContent = isSignup ? 'Creating account…' : 'Signing in…';
+  try {
+    const endpoint = isSignup ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+    const res = await fetch(SUPABASE_URL + endpoint, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.error || data.error_description || data.msg) {
+      throw new Error(data.error_description || data.msg || data.error || 'Authentication failed');
+    }
+    if (isSignup && !data.access_token) {
+      sucEl.textContent = 'Account created! Please check your email to confirm, then sign in.';
+      sucEl.style.display = 'block';
+      switchAuthTab('login');
+      btn.disabled = false; btn.textContent = 'Sign in';
+      return;
+    }
+    authToken = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem('lumio_token', authToken);
+    localStorage.setItem('lumio_user', JSON.stringify(currentUser));
+    await onAuthSuccess();
+  } catch(e) {
+    showAuthError(e.message || 'Something went wrong. Please try again.');
+    btn.disabled = false; btn.textContent = isSignup ? 'Create account' : 'Sign in';
+  }
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { showAuthError('Enter your email address first.'); return; }
+  try {
+    await fetch(SUPABASE_URL + '/auth/v1/recover', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const sucEl = document.getElementById('auth-success');
+    sucEl.textContent = 'Password reset email sent — check your inbox.';
+    sucEl.style.display = 'block';
+  } catch(e) { showAuthError('Could not send reset email. Try again.'); }
+}
+
+async function handleSignOut() {
+  try {
+    await fetch(SUPABASE_URL + '/auth/v1/logout', {
+      method: 'POST', headers: authHeaders(true)
+    });
+  } catch(e) {}
+  authToken = null; currentUser = null;
+  localStorage.removeItem('lumio_token');
+  localStorage.removeItem('lumio_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('user-bar').classList.remove('visible');
+  document.getElementById('update-banner').style.display = 'none';
+  document.getElementById('auth-screen').classList.add('visible');
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function switchAuthTab(tab) {
+  const isSignup = tab === 'signup';
+  document.getElementById('auth-tab-login').classList.toggle('active', !isSignup);
+  document.getElementById('auth-tab-signup').classList.toggle('active', isSignup);
+  document.getElementById('auth-confirm-wrap').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('auth-submit-btn').textContent = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('forgot-link').style.display = isSignup ? 'none' : 'inline';
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+async function onAuthSuccess() {
+  document.getElementById('auth-screen').classList.remove('visible');
+  document.getElementById('user-email-display').textContent = currentUser.email;
+  document.getElementById('user-bar').classList.add('visible');
+  document.getElementById('app').style.display = 'block';
+  await loadFromSupabase();
+  await checkForUpdate();
+  renderQuote();
+  renderToday();
+  initPomo();
+  initRoutine();
+  if (state.rssEpisodes.length) renderRSSEpisodes();
+}
+
+// ── Update checker ──
+async function checkForUpdate() {
+  try {
+    const res = await fetch(SUPABASE_URL + `/rest/v1/lumio_meta?id=eq.version`, {
+      headers: authHeaders()
+    });
+    const rows = await res.json();
+    if (rows && rows.length && rows[0].value && rows[0].value !== BUILD_VERSION) {
+      document.getElementById('update-banner').style.display = 'block';
+    }
+  } catch(e) {}
+}
+
+function doUpdate() {
+  window.location.reload(true);
+}
+
+function dismissUpdate() {
+  document.getElementById('update-banner').style.display = 'none';
+}
+
+// ── Supabase data ──
+async function loadFromSupabase() {
+  if (!authToken || !currentUser) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?user_id=eq.${currentUser.id}`, {
+      headers: authHeaders(true)
+    });
+    const rows = await res.json();
+    if (rows && rows.length && rows[0].data) {
+      const saved = rows[0].data;
+      Object.keys(saved).forEach(k => { if (k in state) state[k] = saved[k]; });
+    }
+  } catch(e) { console.warn('Supabase load failed', e); }
+}
+
+async function saveToSupabase() {
+  if (!authToken || !currentUser) return;
+  const payload = { user_id: currentUser.id, data: state, updated_at: new Date().toISOString() };
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: { ...authHeaders(true), Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.warn('Supabase save failed', e); }
+}
+
+// ── Navigation ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'habits') renderHabits();
+  if (name === 'growth') renderGrowth();
+  if (name === 'knowledge') renderKB();
+  if (name === 'weekly') renderWeekly();
+}
+
+// ── Modals ──
+// openModal is defined in the Routine section above (handles routine block pre-fill)
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-routine-block') routineEditId = null;
+}
+function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
+
+// ── Today ──
+function renderToday() {
+  const now = new Date();
+  const hour = now.getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('today-greeting').textContent = greet;
+  document.getElementById('today-date').textContent = now.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'});
+
+  const todayKey = todayDateKey();
+  const log = state.habitLog[todayKey] || {};
+  const doneCount = state.habits.filter(h => log[h.id]).length;
+  const streak = calcStreak();
+
+  document.getElementById('stat-streak').textContent = streak;
+  document.getElementById('stat-habits').textContent = doneCount + '/' + state.habits.length;
+  document.getElementById('stat-kb').textContent = state.kb.length;
+  document.getElementById('stat-pomo').textContent = state.pomoLog[todayKey] || 0;
+
+  const focusEl = document.getElementById('focus-text-display');
+  focusEl.textContent = state.focus || 'Tap to set your focus for today';
+  if (state.focus) document.getElementById('focus-input').value = state.focus;
+
+  const listEl = document.getElementById('today-habits-list');
+  if (!state.habits.length) {
+    listEl.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No habits yet — add some in the Habits tab</div></div>';
+    return;
+  }
+  listEl.innerHTML = state.habits.slice(0,5).map(h => habitRowHTML(h, log[h.id], 'toggleTodayHabit')).join('');
+}
+
+function habitRowHTML(h, checked, fn) {
+  const streak = calcHabitStreak(h.id);
+  return `<div class="habit-row">
+    <div class="h-check ${checked ? 'checked' : ''}" onclick="${fn}('${h.id}')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+    </div>
+    <div class="h-info">
+      <div class="h-name">${h.name}</div>
+      <div class="h-meta">${h.category} · ${h.target}x/week ${streak > 1 ? '· <span class="h-streak">' + streak + ' day streak</span>' : ''}</div>
+    </div>
+  </div>`;
+}
+
+function toggleTodayHabit(id) {
+  const key = todayDateKey();
+  if (!state.habitLog[key]) state.habitLog[key] = {};
+  state.habitLog[key][id] = !state.habitLog[key][id];
+  saveToSupabase();
+  renderToday();
+  renderHabits();
+}
+
+function saveFocus() {
+  state.focus = document.getElementById('focus-input').value.trim();
+  closeModal('modal-focus');
+  saveToSupabase();
+  renderToday();
+}
+
+function saveReflection() {
+  const win = document.getElementById('reflect-win').value.trim();
+  const improve = document.getElementById('reflect-improve').value.trim();
+  if (!win && !improve) return;
+  state.reflections.unshift({
+    id: Date.now(), date: todayDateKey(), dateLabel: new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short'}),
+    win, improve, tags: [], source: 'daily'
+  });
+  document.getElementById('reflect-win').value = '';
+  document.getElementById('reflect-improve').value = '';
+  saveToSupabase();
+  alert('Reflection saved!');
+}
+
+// ── Habits ──
+function saveHabit() {
+  const name = document.getElementById('habit-name-input').value.trim();
+  if (!name) return;
+  state.habits.push({
+    id: 'h' + Date.now(),
+    name,
+    category: document.getElementById('habit-cat-input').value,
+    target: parseInt(document.getElementById('habit-target-input').value),
+    createdAt: todayDateKey()
+  });
+  document.getElementById('habit-name-input').value = '';
+  closeModal('modal-habit');
+  saveToSupabase();
+  renderHabits();
+  renderToday();
+}
+
+let habitFilter = 'all';
+function filterHabits(cat, el) {
+  habitFilter = cat;
+  document.querySelectorAll('#habit-filter-tabs .pill-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderHabits();
+}
+
+function renderHabits() {
+  const key = todayDateKey();
+  const log = state.habitLog[key] || {};
+  const filtered = habitFilter === 'all' ? state.habits : state.habits.filter(h => h.category === habitFilter);
+  const listEl = document.getElementById('habits-full-list');
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="empty"><div class="text-muted text-sm">No habits here yet</div></div>';
+  } else {
+    listEl.innerHTML = filtered.map(h => {
+      const row = habitRowHTML(h, log[h.id], 'toggleHabitFromList');
+      return row.replace('toggleHabitFromList', 'toggleHabitFromList');
+    }).join('');
+  }
+  renderHeatmap();
+}
+
+function toggleHabitFromList(id) {
+  toggleTodayHabit(id);
+}
+
+function renderHeatmap() {
+  const el = document.getElementById('habits-heatmap');
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(dateKey(d));
+  }
+  el.innerHTML = '<div style="display:flex;gap:12px;overflow-x:auto;padding:4px 0">' +
+    days.map(dk => {
+      const log = state.habitLog[dk] || {};
+      const done = Object.values(log).filter(Boolean).length;
+      const total = state.habits.length || 1;
+      const ratio = done / total;
+      const cls = ratio === 0 ? '' : ratio < 0.4 ? 'l1' : ratio < 0.8 ? 'l2' : 'l3';
+      const label = new Date(dk).toLocaleDateString('en-AU',{weekday:'short'});
+      return `<div style="text-align:center;flex-shrink:0">
+        <div class="hm-cell ${cls}" style="margin:0 auto 4px"></div>
+        <div style="font-size:10px;color:var(--text3)">${label}</div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+// ── Growth ──
+function renderGrowth() {
+  renderSkillBars();
+  renderGoals();
+  renderWorkReflections();
+}
+
+function renderSkillBars() {
+  const el = document.getElementById('skills-list');
+  el.innerHTML = state.skills.map(s => `
+    <div class="prog-row">
+      <div class="prog-label">${s.name}</div>
+      <div class="prog-track"><div class="prog-fill" style="width:${s.pct}%"></div></div>
+      <div class="prog-pct">${s.pct}%</div>
+    </div>`).join('');
+}
+
+function renderSkillEditor() {
+  const el = document.getElementById('skill-edit-list');
+  el.innerHTML = state.skills.map((s,i) => `
+    <div class="flex-gap mb-12">
+      <input type="text" value="${s.name}" id="sk-name-${i}" style="flex:1">
+      <input type="number" value="${s.pct}" id="sk-pct-${i}" min="0" max="100" style="width:70px">
+    </div>`).join('');
+}
+
+function saveSkills() {
+  const newName = document.getElementById('new-skill-name').value.trim();
+  const newPct = parseInt(document.getElementById('new-skill-pct').value) || 0;
+  state.skills = state.skills.map((s,i) => ({
+    name: document.getElementById('sk-name-'+i).value.trim() || s.name,
+    pct: Math.min(100, Math.max(0, parseInt(document.getElementById('sk-pct-'+i).value) || 0))
+  }));
+  if (newName) state.skills.push({name: newName, pct: Math.min(100, newPct)});
+  document.getElementById('new-skill-name').value = '';
+  document.getElementById('new-skill-pct').value = '';
+  closeModal('modal-skill');
+  saveToSupabase();
+  renderSkillBars();
+}
+
+function saveGoal() {
+  const title = document.getElementById('goal-title-input').value.trim();
+  if (!title) return;
+  const raw = document.getElementById('goal-milestones-input').value;
+  const milestones = raw.split('\n').map(s => s.trim()).filter(Boolean).map(m => ({text: m, done: false, id: 'm'+Date.now()+Math.random()}));
+  state.goals.push({ id: 'g'+Date.now(), title, area: document.getElementById('goal-area-input').value, milestones, createdAt: todayDateKey() });
+  document.getElementById('goal-title-input').value = '';
+  document.getElementById('goal-milestones-input').value = '';
+  closeModal('modal-goal');
+  saveToSupabase();
+  renderGoals();
+}
+
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  if (!state.goals.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No goals yet — add your first one above</div></div>';
+    return;
+  }
+  el.innerHTML = state.goals.map(g => {
+    const done = g.milestones.filter(m => m.done).length;
+    const total = g.milestones.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    return `<div class="goal-card">
+      <div class="goal-top">
+        <div>
+          <div class="goal-title">${g.title}</div>
+          <div class="goal-area">${g.area} · ${done}/${total} milestones</div>
+        </div>
+        <div class="badge ${pct===100?'badge-green':'badge-accent'}">${pct}%</div>
+      </div>
+      <div class="prog-track mb-12" style="margin-bottom:10px"><div class="prog-fill ${pct===100?'green':''}" style="width:${pct}%"></div></div>
+      ${g.milestones.map(m => `
+        <div class="milestone-row">
+          <div class="m-check ${m.done?'done':''}" onclick="toggleMilestone('${g.id}','${m.id}')">
+            <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,5 4,8 8.5,2"/></svg>
+          </div>
+          <span style="${m.done?'text-decoration:line-through;color:var(--text3)':''}">${m.text}</span>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function toggleMilestone(gid, mid) {
+  const g = state.goals.find(g => g.id === gid);
+  if (!g) return;
+  const m = g.milestones.find(m => m.id === mid);
+  if (m) m.done = !m.done;
+  saveToSupabase();
+  renderGoals();
+}
+
+function saveWorkReflection() {
+  const text = document.getElementById('reflection-input').value.trim();
+  if (!text) return;
+  const tags = document.getElementById('reflection-tags-input').value.split(',').map(t => t.trim()).filter(Boolean);
+  state.reflections.unshift({ id: Date.now(), date: todayDateKey(), dateLabel: new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}), text, tags, source: 'manual' });
+  document.getElementById('reflection-input').value = '';
+  document.getElementById('reflection-tags-input').value = '';
+  closeModal('modal-reflection');
+  saveToSupabase();
+  renderWorkReflections();
+}
+
+function renderWorkReflections() {
+  const el = document.getElementById('reflections-list');
+  const manual = state.reflections.filter(r => r.source === 'manual');
+  if (!manual.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No reflections yet</div></div>';
+    return;
+  }
+  el.innerHTML = manual.slice(0,5).map(r => `
+    <div class="reflection-card">
+      <div class="reflection-date">${r.dateLabel}</div>
+      <div class="reflection-text">${r.text}</div>
+      ${r.tags.length ? '<div style="margin-top:6px">' + r.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : ''}
+    </div>`).join('');
+}
+
+// ── Knowledge base ──
+let kbTagFilter = 'all';
+
+function filterKB(tag, el) {
+  kbTagFilter = tag;
+  document.querySelectorAll('#kb-tag-tabs .pill-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderKB();
+}
+
+function renderKB() {
+  const query = (document.getElementById('kb-search')?.value || '').toLowerCase();
+  const allTags = [...new Set(state.kb.flatMap(e => e.tags || []))];
+  const tabsEl = document.getElementById('kb-tag-tabs');
+  tabsEl.innerHTML = ['all', ...allTags].map(t =>
+    `<button class="pill-tab ${kbTagFilter===t?'active':''}" data-tag="${t}" onclick="filterKB('${t}',this)">${t==='all'?'All':t}</button>`
+  ).join('');
+
+  const filtered = state.kb.filter(e => {
+    const mt = kbTagFilter === 'all' || (e.tags||[]).includes(kbTagFilter);
+    const mq = !query || (e.title||'').toLowerCase().includes(query) || (e.body||'').toLowerCase().includes(query) || (e.bullets||[]).some(b => b.toLowerCase().includes(query));
+    return mt && mq;
+  });
+
+  const listEl = document.getElementById('kb-list');
+  if (!filtered.length) {
+    listEl.innerHTML = state.kb.length ? '' : `<div class="card"><div class="empty"><div class="text-muted text-sm">No insights yet — add one above or summarise a podcast episode</div></div></div>`;
+    return;
+  }
+  listEl.innerHTML = filtered.map(e => `
+    <div class="card">
+      <div class="flex-between mb-12" style="align-items:flex-start">
+        <div style="flex:1">
+          <div class="fw-500" style="font-size:14px;margin-bottom:3px">${e.title}</div>
+          <div class="text-sm text-muted">${e.source || ''} · ${e.dateLabel || ''}</div>
+        </div>
+        <button onclick="deleteKB(${e.id})" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0;margin-left:8px">Remove</button>
+      </div>
+      <div class="kb-body" style="margin-bottom:8px">${e.body || ''}</div>
+      ${(e.bullets||[]).map(b => `<div class="kb-bullet">${b}</div>`).join('')}
+      ${(e.tags||[]).length ? '<div style="margin-top:8px">' + e.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : ''}
+    </div>`).join('');
+}
+
+function saveKBEntry() {
+  const title = document.getElementById('kb-title-input').value.trim();
+  if (!title) return;
+  const tags = document.getElementById('kb-tags-input').value.split(',').map(t => t.trim()).filter(Boolean);
+  state.kb.unshift({
+    id: Date.now(),
+    title,
+    source: document.getElementById('kb-source-input').value.trim(),
+    body: document.getElementById('kb-body-input').value.trim(),
+    tags,
+    dateLabel: new Date().toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'})
+  });
+  ['kb-title-input','kb-source-input','kb-body-input','kb-tags-input'].forEach(id => document.getElementById(id).value = '');
+  closeModal('modal-kb-add');
+  saveToSupabase();
+  renderKB();
+  document.getElementById('stat-kb').textContent = state.kb.length;
+}
+
+function deleteKB(id) {
+  state.kb = state.kb.filter(e => e.id !== id);
+  saveToSupabase();
+  renderKB();
+  document.getElementById('stat-kb').textContent = state.kb.length;
+}
+
+// ── RSS + AI summariser ──
+async function loadRSSFeed() {
+  const url = document.getElementById('rss-url-input').value.trim();
+  if (!url) return;
+  const statusEl = document.getElementById('rss-load-status');
+  statusEl.innerHTML = '<span class="ldots"><span></span><span></span><span></span></span>';
+  let text = null;
+  for (const makeUrl of PROXIES) {
+    try {
+      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const ct = res.headers.get('content-type') || '';
+      let t = ct.includes('json') ? (await res.json()).contents : await res.text();
+      if (t && (t.includes('<rss') || t.includes('<feed') || t.includes('<item'))) { text = t; break; }
+    } catch(e) { continue; }
+  }
+  if (!text) { statusEl.textContent = 'Could not load feed. Try again.'; return; }
+  try {
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const items = Array.from(xml.querySelectorAll('item')).slice(0, 30);
+    state.rssUrl = url;
+    state.rssEpisodes = items.map((item, i) => {
+      const raw = item.querySelector('description')?.textContent || item.getElementsByTagNameNS('*','summary')?.[0]?.textContent || '';
+      const clean = raw.replace(/<[^>]*>/g,'').trim();
+      const dateStr = item.querySelector('pubDate')?.textContent || '';
+      const date = dateStr ? new Date(dateStr).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}) : '';
+      const durEl = item.getElementsByTagNameNS('*','duration')?.[0];
+      return {
+        id: 'ep'+i, title: item.querySelector('title')?.textContent?.trim() || 'Episode '+(i+1),
+        description: clean.slice(0,300), date, duration: formatDur(durEl?.textContent||''), fullDesc: clean.slice(0,4000)
+      };
+    });
+    statusEl.textContent = state.rssEpisodes.length + ' episodes loaded';
+    setTimeout(() => { closeModal('modal-rss'); renderRSSEpisodes(); }, 800);
+    saveToSupabase();
+  } catch(e) { statusEl.textContent = 'Error parsing feed.'; }
+}
+
+function formatDur(d) {
+  if (!d) return '';
+  if (d.includes(':')) { const p = d.split(':').map(Number); return p.length===3?`${p[0]}h ${p[1]}m`:`${p[0]}m`; }
+  const s = parseInt(d); if (!s) return '';
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function renderRSSEpisodes() {
+  const el = document.getElementById('rss-episodes-list');
+  if (!state.rssEpisodes.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No episodes loaded</div></div>';
+    return;
+  }
+  el.innerHTML = state.rssEpisodes.map(ep => `
+    <div class="rss-ep" id="rss-${ep.id}">
+      <div class="flex-between" style="align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div class="rss-ep-title">${ep.title}</div>
+          <div class="rss-ep-meta">${[ep.date,ep.duration].filter(Boolean).join(' · ')}</div>
+        </div>
+        <button class="btn btn-sm" id="sum-btn-${ep.id}" onclick="summariseEpisode('${ep.id}')" style="flex-shrink:0">Summarise</button>
+      </div>
+      <div id="sum-result-${ep.id}"></div>
+    </div>`).join('');
+
+  Object.keys(state.rssSummaries).forEach(id => {
+    if (state.rssSummaries[id]) renderEpSummary(id);
+  });
+}
+
+async function summariseEpisode(id) {
+  if (state.rssSummaries[id]) return;
+  const ep = state.rssEpisodes.find(e => e.id === id);
+  if (!ep) return;
+  const btn = document.getElementById('sum-btn-'+id);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ldots"><span></span><span></span><span></span></span>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        messages: [{ role: 'user', content: `Summarise this podcast episode. Return JSON only, no markdown: {"summary":"2-3 sentence overview","bullets":["key point 1","key point 2","key point 3","key point 4"],"tags":["tag1","tag2","tag3"]}\n\nTitle: ${ep.title}\nDescription: ${ep.fullDesc||ep.description}` }]
+      })
+    });
+    const data = await res.json();
+    const parsed = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+    state.rssSummaries[id] = parsed;
+    renderEpSummary(id);
+    saveToSupabase();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Summarise';
+  }
+}
+
+function renderEpSummary(id) {
+  const s = state.rssSummaries[id];
+  const ep = state.rssEpisodes.find(e => e.id === id);
+  const btn = document.getElementById('sum-btn-'+id);
+  if (btn) { btn.textContent = 'Re-summarise'; btn.disabled = false; }
+  const resultEl = document.getElementById('sum-result-'+id);
+  if (!resultEl || !s) return;
+  resultEl.innerHTML = `
+    <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:13px;color:var(--text2);line-height:1.7">
+      <p style="margin-bottom:6px">${s.summary||''}</p>
+      ${(s.bullets||[]).map(b=>`<div class="kb-bullet">${b}</div>`).join('')}
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center">
+        ${(s.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+        <button class="btn btn-accent btn-sm" onclick="saveEpToKB('${id}')">Save to knowledge base</button>
+      </div>
+    </div>`;
+}
+
+function saveEpToKB(id) {
+  const s = state.rssSummaries[id];
+  const ep = state.rssEpisodes.find(e => e.id === id);
+  if (!s || !ep) return;
+  state.kb.unshift({
+    id: Date.now(), title: ep.title, source: 'Podcast',
+    body: s.summary, bullets: s.bullets, tags: s.tags||[],
+    dateLabel: ep.date || new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})
+  });
+  saveToSupabase();
+  renderKB();
+  document.getElementById('stat-kb').textContent = state.kb.length;
+  const resultEl = document.getElementById('sum-result-'+id);
+  if (resultEl) {
+    const saveBtn = resultEl.querySelector('.btn-accent');
+    if (saveBtn) saveBtn.textContent = 'Saved!', saveBtn.disabled = true;
+  }
+}
+
+// ── Weekly review ──
+function renderWeekly() {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now); monday.setDate(now.getDate() - ((day+6)%7));
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  document.getElementById('week-range').textContent =
+    monday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' – ' +
+    sunday.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+
+  const days = [];
+  for (let i=0; i<7; i++) { const d = new Date(monday); d.setDate(monday.getDate()+i); days.push(dateKey(d)); }
+  const summaryEl = document.getElementById('weekly-habits-summary');
+  if (!state.habits.length) {
+    summaryEl.innerHTML = '<div class="text-muted text-sm">No habits tracked yet</div>';
+  } else {
+    summaryEl.innerHTML = state.habits.map(h => {
+      const done = days.filter(dk => state.habitLog[dk]?.[h.id]).length;
+      const pct = Math.round(done/7*100);
+      return `<div class="prog-row">
+        <div class="prog-label" style="font-size:13px">${h.name}</div>
+        <div class="prog-track"><div class="prog-fill ${done>=h.target?'green':''}" style="width:${pct}%"></div></div>
+        <div class="prog-pct">${done}/7</div>
+      </div>`;
+    }).join('');
+  }
+
+  const pastEl = document.getElementById('past-reviews-list');
+  if (!state.weeklyReviews.length) {
+    pastEl.innerHTML = '<div class="text-muted text-sm" style="padding:8px 0">No past reviews yet</div>';
+  } else {
+    pastEl.innerHTML = state.weeklyReviews.slice(0,3).map(r => `
+      <div style="padding:12px 0;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:12px;color:var(--accent);margin-bottom:6px;font-weight:500">${r.weekLabel}</div>
+        ${r.win ? `<div style="font-size:13px;color:var(--text2);margin-bottom:4px"><strong>Win:</strong> ${r.win}</div>` : ''}
+        ${r.intention ? `<div style="font-size:13px;color:var(--text2)"><strong>Intention:</strong> ${r.intention}</div>` : ''}
+      </div>`).join('');
+  }
+}
+
+function saveWeeklyReview() {
+  const win = document.getElementById('wr-win').value.trim();
+  const challenge = document.getElementById('wr-challenge').value.trim();
+  const learn = document.getElementById('wr-learn').value.trim();
+  const intention = document.getElementById('wr-intention').value.trim();
+  if (!win && !intention) return;
+  const now = new Date();
+  state.weeklyReviews.unshift({ id: Date.now(), weekLabel: 'Week of ' + now.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}), win, challenge, learn, intention });
+  ['wr-win','wr-challenge','wr-learn','wr-intention'].forEach(id => document.getElementById(id).value='');
+  saveToSupabase();
+  renderWeekly();
+  alert('Weekly review saved!');
+}
+
+// ── Helpers ──
+function todayDateKey() { return dateKey(new Date()); }
+function dateKey(d) { return d.toISOString().split('T')[0]; }
+
+function calcStreak() {
+  let streak = 0, d = new Date();
+  for (let i=0; i<365; i++) {
+    const key = dateKey(d);
+    const log = state.habitLog[key] || {};
+    const done = Object.values(log).filter(Boolean).length;
+    if (done > 0) streak++;
+    else if (i > 0) break;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+
+function calcHabitStreak(id) {
+  let streak = 0, d = new Date();
+  for (let i=0; i<365; i++) {
+    const key = dateKey(d);
+    if (state.habitLog[key]?.[id]) streak++;
+    else if (i > 0) break;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+
+// ── Routine ──
+let routineSelectedDay = new Date().getDay();
+let routineEditId = null;
+let routineNowInterval = null;
+let rbSelectedCat = 'work';
+
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const CAT_LABELS = { work:'Work', commute:'Commute', health:'Health', personal:'Personal', learning:'Learning', rest:'Rest', food:'Food' };
+
+function initRoutine() {
+  routineSelectedDay = new Date().getDay();
+  highlightRoutineDayPill();
+  renderRoutineTimeline();
+  startRoutineNowLine();
+}
+
+function selectRoutineDay(day, el) {
+  routineSelectedDay = parseInt(day);
+  highlightRoutineDayPill();
+  renderRoutineTimeline();
+}
+
+function highlightRoutineDayPill() {
+  document.querySelectorAll('.day-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.day) === routineSelectedDay);
+  });
+}
+
+function blocksForDay(day) {
+  return (state.routine || []).filter(b => (b.days || []).includes(day))
+    .sort((a,b) => a.startMins - b.startMins);
+}
+
+function timeToMins(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(m) {
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+
+function fmtTime(t) {
+  const [h,m] = t.split(':').map(Number);
+  const ampm = h < 12 ? 'am' : 'pm';
+  const h12 = h % 12 || 12;
+  return h12 + (m ? ':' + String(m).padStart(2,'0') : '') + ampm;
+}
+
+function renderRoutineTimeline() {
+  const el = document.getElementById('routine-timeline');
+  if (!el) return;
+  const blocks = blocksForDay(routineSelectedDay);
+  if (!blocks.length) {
+    el.innerHTML = `<div class="routine-empty">No blocks for ${DAY_NAMES[routineSelectedDay]} yet.<br>Tap <strong>+ Add block</strong> to build your routine.</div>`;
+    return;
+  }
+
+  const todayKey = todayDateKey();
+  const doneMap = (state.routineDone || {})[todayKey] || {};
+  const isToday = routineSelectedDay === new Date().getDay();
+
+  // determine visible hour range with padding
+  const minStart = Math.min(...blocks.map(b => b.startMins));
+  const maxEnd   = Math.max(...blocks.map(b => b.endMins));
+  const hourStart = Math.max(0,  Math.floor(minStart / 60) - 0);
+  const hourEnd   = Math.min(24, Math.ceil(maxEnd   / 60) + 0);
+  const totalMins = (hourEnd - hourStart) * 60;
+  const PX_PER_MIN = 1.6;
+  const totalPx = totalMins * PX_PER_MIN;
+
+  let html = `<div class="timeline-wrap" style="height:${totalPx + 20}px;position:relative">`;
+  html += `<div class="timeline-line" style="top:0;height:${totalPx + 20}px"></div>`;
+
+  // Hour labels + tick marks
+  for (let h = hourStart; h <= hourEnd; h++) {
+    const top = (h - hourStart) * 60 * PX_PER_MIN;
+    const lbl = h === 0 ? '12am' : h < 12 ? h+'am' : h === 12 ? '12pm' : (h-12)+'pm';
+    html += `<div style="position:absolute;top:${top}px;left:-52px;right:0">
+      <span style="position:absolute;left:0;width:44px;text-align:right;font-size:10px;color:var(--text3);line-height:1">${lbl}</span>
+      <div style="position:absolute;left:48px;right:0;height:0.5px;background:var(--border);opacity:0.6"></div>
+    </div>`;
+  }
+
+  // Blocks
+  blocks.forEach(b => {
+    const top    = (b.startMins - hourStart * 60) * PX_PER_MIN;
+    const height = Math.max(24, (b.endMins - b.startMins) * PX_PER_MIN);
+    const isDone = !!doneMap[b.id];
+    const noteHtml = b.note ? `<div class="rb-note">${b.note}</div>` : '';
+    html += `<div class="routine-block rb-${b.category} ${isDone?'done':''}"
+      style="position:absolute;top:${top}px;left:4px;right:0;height:${height}px"
+      onclick="handleBlockTap('${b.id}')">
+      <div class="rb-title">${b.title}</div>
+      <div class="rb-time">${fmtTime(b.startTime)} – ${fmtTime(b.endTime)}</div>
+      ${height > 40 ? noteHtml : ''}
+    </div>`;
+  });
+
+  // Current time indicator (only if today)
+  if (isToday) {
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    if (nowMins >= hourStart * 60 && nowMins <= hourEnd * 60) {
+      const top = (nowMins - hourStart * 60) * PX_PER_MIN;
+      const h = now.getHours(), m = now.getMinutes();
+      const ampm = h < 12 ? 'am' : 'pm';
+      const h12 = h % 12 || 12;
+      const label = h12 + ':' + String(m).padStart(2,'0') + ampm;
+      html += `<div id="routine-now-indicator" style="position:absolute;top:${top}px;left:0;right:0;z-index:10">
+        <span style="position:absolute;left:-52px;width:44px;text-align:right;font-size:10px;font-weight:500;color:var(--danger);line-height:1;margin-top:-6px">${label}</span>
+        <div style="position:absolute;left:48px;right:0;height:1.5px;background:var(--danger)"></div>
+        <div style="position:absolute;left:44px;width:9px;height:9px;border-radius:50%;background:var(--danger);margin-top:-3.75px"></div>
+      </div>`;
+    }
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function startRoutineNowLine() {
+  clearInterval(routineNowInterval);
+  routineNowInterval = setInterval(() => {
+    if (routineSelectedDay === new Date().getDay()) renderRoutineTimeline();
+  }, 60000);
+}
+
+function handleBlockTap(id) {
+  // If today — offer mark done / edit
+  const isToday = routineSelectedDay === new Date().getDay();
+  const todayKey = todayDateKey();
+  const doneMap = (state.routineDone[todayKey] || {});
+  if (isToday) {
+    // Toggle done then open edit on long press — for simplicity, tap = toggle done
+    if (!state.routineDone[todayKey]) state.routineDone[todayKey] = {};
+    state.routineDone[todayKey][id] = !doneMap[id];
+    // Auto-tick linked habit
+    const block = (state.routine || []).find(b => b.id === id);
+    if (block && block.habitId && state.routineDone[todayKey][id]) {
+      if (!state.habitLog[todayKey]) state.habitLog[todayKey] = {};
+      state.habitLog[todayKey][block.habitId] = true;
+      renderToday();
+    }
+    saveToSupabase();
+    renderRoutineTimeline();
+  } else {
+    openEditRoutineBlock(id);
+  }
+}
+
+function openEditRoutineBlock(id) {
+  const b = (state.routine || []).find(b => b.id === id);
+  if (!b) return;
+  routineEditId = id;
+  document.getElementById('routine-modal-title').textContent = 'Edit block';
+  document.getElementById('rb-title-input').value = b.title;
+  document.getElementById('rb-start-input').value = b.startTime;
+  document.getElementById('rb-end-input').value = b.endTime;
+  document.getElementById('rb-note-input').value = b.note || '';
+  document.getElementById('rb-edit-id').value = id;
+  document.getElementById('rb-delete-btn').style.display = 'inline-flex';
+  selectRBCat(b.category);
+  document.querySelectorAll('.rb-day-cb').forEach(cb => {
+    cb.checked = (b.days || []).includes(parseInt(cb.value));
+  });
+  populateHabitLinkSelect(b.habitId || '');
+  openModal('modal-routine-block');
+}
+
+function openModal(id) {
+  if (id === 'modal-routine-block' && !routineEditId) {
+    document.getElementById('routine-modal-title').textContent = 'Add routine block';
+    document.getElementById('rb-title-input').value = '';
+    document.getElementById('rb-start-input').value = '09:00';
+    document.getElementById('rb-end-input').value = '10:00';
+    document.getElementById('rb-note-input').value = '';
+    document.getElementById('rb-edit-id').value = '';
+    document.getElementById('rb-delete-btn').style.display = 'none';
+    rbSelectedCat = 'work';
+    document.querySelectorAll('.cat-opt').forEach(o => o.classList.toggle('selected', o.dataset.cat === 'work'));
+    document.querySelectorAll('.rb-day-cb').forEach(cb => { cb.checked = [1,2,3,4,5].includes(parseInt(cb.value)); });
+    populateHabitLinkSelect('');
+  }
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-skill') renderSkillEditor();
+}
+
+function populateHabitLinkSelect(selectedId) {
+  const sel = document.getElementById('rb-habit-link');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">None</option>' +
+    (state.habits || []).map(h => `<option value="${h.id}" ${h.id === selectedId ? 'selected' : ''}>${h.name}</option>`).join('');
+}
+
+function selectRBCat(cat, el) {
+  rbSelectedCat = cat;
+  document.querySelectorAll('.cat-opt').forEach(o => o.classList.toggle('selected', o.dataset.cat === cat));
+}
+
+function saveRoutineBlock() {
+  const title = document.getElementById('rb-title-input').value.trim();
+  if (!title) return;
+  const startTime = document.getElementById('rb-start-input').value;
+  const endTime   = document.getElementById('rb-end-input').value;
+  const startMins = timeToMins(startTime);
+  const endMins   = timeToMins(endTime);
+  if (endMins <= startMins) { alert('End time must be after start time.'); return; }
+  const days = Array.from(document.querySelectorAll('.rb-day-cb:checked')).map(cb => parseInt(cb.value));
+  if (!days.length) { alert('Select at least one day.'); return; }
+  const habitId = document.getElementById('rb-habit-link').value;
+  const note    = document.getElementById('rb-note-input').value.trim();
+  const editId  = document.getElementById('rb-edit-id').value;
+
+  if (!state.routine) state.routine = [];
+
+  if (editId) {
+    const idx = state.routine.findIndex(b => b.id === editId);
+    if (idx > -1) state.routine[idx] = { ...state.routine[idx], title, category: rbSelectedCat, startTime, endTime, startMins, endMins, days, habitId, note };
+  } else {
+    state.routine.push({ id: 'rb' + Date.now(), title, category: rbSelectedCat, startTime, endTime, startMins, endMins, days, habitId, note });
+  }
+  routineEditId = null;
+  closeModal('modal-routine-block');
+  saveToSupabase();
+  renderRoutineTimeline();
+}
+
+function deleteRoutineBlock() {
+  const id = document.getElementById('rb-edit-id').value;
+  if (!id) return;
+  state.routine = (state.routine || []).filter(b => b.id !== id);
+  routineEditId = null;
+  closeModal('modal-routine-block');
+  saveToSupabase();
+  renderRoutineTimeline();
+}
+
+// ── Pomodoro ──
+const POMO_CIRCUMFERENCE = 2 * Math.PI * 68; // r=68
+let pomoState = {
+  mode: 'focus',       // focus | short | long
+  running: false,
+  secondsLeft: 0,
+  totalSeconds: 0,
+  round: 0,            // 0-3 within a set
+  interval: null,
+  settingsOpen: false,
+};
+
+function pomoMins() {
+  const s = state.pomoSettings;
+  return { focus: s.focus, short: s.short, long: s.long, rounds: s.rounds };
+}
+
+function initPomo() {
+  const m = pomoMins();
+  pomoState.totalSeconds = m.focus * 60;
+  pomoState.secondsLeft = pomoState.totalSeconds;
+  pomoState.mode = 'focus';
+  pomoState.running = false;
+  clearInterval(pomoState.interval);
+  updatePomoDisplay();
+  updatePomoDots();
+  updatePomoSettings();
+  updatePomoTodayCount();
+}
+
+function togglePomo() {
+  if (pomoState.running) {
+    pausePomo();
+  } else {
+    startPomo();
+  }
+}
+
+function startPomo() {
+  if (pomoState.secondsLeft <= 0) return;
+  pomoState.running = true;
+  updatePlayBtn();
+  pomoState.interval = setInterval(() => {
+    pomoState.secondsLeft--;
+    updatePomoDisplay();
+    if (pomoState.secondsLeft <= 0) {
+      clearInterval(pomoState.interval);
+      pomoState.running = false;
+      onPomoComplete();
+    }
+  }, 1000);
+}
+
+function pausePomo() {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  updatePlayBtn();
+}
+
+function resetPomo() {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  const m = pomoMins();
+  const secs = { focus: m.focus, short: m.short, long: m.long }[pomoState.mode] * 60;
+  pomoState.secondsLeft = secs;
+  pomoState.totalSeconds = secs;
+  updatePomoDisplay();
+  updatePlayBtn();
+}
+
+function skipPomo() {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  onPomoComplete();
+}
+
+function onPomoComplete() {
+  const m = pomoMins();
+  if (pomoState.mode === 'focus') {
+    pomoState.round++;
+    logPomoSession();
+    if (pomoState.round >= m.rounds) {
+      pomoState.round = 0;
+      setPomoMode('long');
+      playPomoSound('long');
+      showPomoAlert('Great work! Time for a long break — ' + m.long + ' minutes.');
+    } else {
+      setPomoMode('short');
+      playPomoSound('break');
+      showPomoAlert('Nice focus session! Take a ' + m.short + ' min break.');
+    }
+  } else {
+    setPomoMode('focus');
+    playPomoSound('focus');
+    showPomoAlert('Break over — ready for the next focus session?');
+  }
+  updatePomoDots();
+  updatePomoTodayCount();
+}
+
+function logPomoSession() {
+  const key = todayDateKey();
+  if (!state.pomoLog[key]) state.pomoLog[key] = 0;
+  state.pomoLog[key]++;
+  saveToSupabase();
+  // also tick any habit named "pomodoro" or "deep work" or "focus"
+  const focusKeywords = ['pomodoro','deep work','focus','deep','work block'];
+  state.habits.forEach(h => {
+    const name = h.name.toLowerCase();
+    if (focusKeywords.some(k => name.includes(k))) {
+      if (!state.habitLog[key]) state.habitLog[key] = {};
+      state.habitLog[key][h.id] = true;
+    }
+  });
+  renderToday();
+}
+
+function setPomoMode(mode) {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  pomoState.mode = mode;
+  const m = pomoMins();
+  const secs = { focus: m.focus, short: m.short, long: m.long }[mode] * 60;
+  pomoState.secondsLeft = secs;
+  pomoState.totalSeconds = secs;
+
+  document.querySelectorAll('.pomo-mode-pill').forEach(p => { p.classList.remove('active','break-active'); });
+  const pill = document.getElementById('pill-' + mode);
+  if (pill) pill.classList.add(mode === 'focus' ? 'active' : 'break-active');
+
+  const ring = document.getElementById('pomo-ring');
+  if (ring) ring.style.stroke = mode === 'focus' ? '#b87820' : '#3a7a5a';
+  const playBtn = document.getElementById('pomo-play-btn');
+  if (playBtn) playBtn.classList.toggle('break', mode !== 'focus');
+
+  updatePomoDisplay();
+  updatePlayBtn();
+  updatePomoDots();
+}
+
+function updatePomoDisplay() {
+  const m = Math.floor(pomoState.secondsLeft / 60);
+  const s = pomoState.secondsLeft % 60;
+  const display = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  const el = document.getElementById('pomo-display');
+  if (el) el.textContent = display;
+
+  const phaseEl = document.getElementById('pomo-phase');
+  const phases = { focus: 'Focus', short: 'Short break', long: 'Long break' };
+  if (phaseEl) phaseEl.textContent = phases[pomoState.mode] || '';
+
+  const ring = document.getElementById('pomo-ring');
+  if (ring) {
+    const pct = pomoState.totalSeconds > 0 ? pomoState.secondsLeft / pomoState.totalSeconds : 1;
+    const offset = POMO_CIRCUMFERENCE * (1 - pct);
+    ring.style.strokeDasharray = POMO_CIRCUMFERENCE;
+    ring.style.strokeDashoffset = offset;
+  }
+}
+
+function updatePlayBtn() {
+  const btn = document.getElementById('pomo-play-btn');
+  const icon = document.getElementById('pomo-play-icon');
+  if (!btn || !icon) return;
+  if (pomoState.running) {
+    icon.innerHTML = '<rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/>';
+    icon.setAttribute('fill','white');
+  } else {
+    icon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+    icon.setAttribute('fill','white');
+  }
+}
+
+function updatePomoDots() {
+  const el = document.getElementById('pomo-dots');
+  if (!el) return;
+  const m = pomoMins();
+  el.innerHTML = Array.from({length: m.rounds}, (_,i) => {
+    let cls = 'pomo-round-dot';
+    if (i < pomoState.round) cls += ' done';
+    else if (i === pomoState.round && pomoState.mode === 'focus') cls += ' current';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+}
+
+function updatePomoTodayCount() {
+  const key = todayDateKey();
+  const count = state.pomoLog[key] || 0;
+  const el = document.getElementById('pomo-today-count');
+  if (el) el.textContent = count;
+}
+
+function updatePomoSettings() {
+  const s = state.pomoSettings;
+  const ids = { focus:'set-focus-val', short:'set-short-val', long:'set-long-val', rounds:'set-rounds-val' };
+  Object.entries(ids).forEach(([k,id]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = s[k];
+  });
+}
+
+function adjustPomo(key, delta) {
+  const min = { focus:5, short:1, long:5, rounds:2 }[key];
+  const max = { focus:60, short:30, long:60, rounds:8 }[key];
+  state.pomoSettings[key] = Math.min(max, Math.max(min, (state.pomoSettings[key] || 0) + delta));
+  updatePomoSettings();
+  if (!pomoState.running) {
+    const m = pomoMins();
+    if ((key === 'focus' && pomoState.mode === 'focus') ||
+        (key === 'short' && pomoState.mode === 'short') ||
+        (key === 'long' && pomoState.mode === 'long')) {
+      pomoState.secondsLeft = state.pomoSettings[key] * 60;
+      pomoState.totalSeconds = pomoState.secondsLeft;
+      updatePomoDisplay();
+    }
+  }
+  saveToSupabase();
+}
+
+function togglePomoSettings() {
+  pomoState.settingsOpen = !pomoState.settingsOpen;
+  const el = document.getElementById('pomo-settings');
+  if (el) el.classList.toggle('open', pomoState.settingsOpen);
+}
+
+function showPomoAlert(msg) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Lumio · Pomodoro', { body: msg, icon: '' });
+  }
+  // Fallback: gentle inline flash on the phase label
+  const el = document.getElementById('pomo-phase');
+  if (el) {
+    const orig = el.textContent;
+    el.textContent = '✓ Done!';
+    setTimeout(() => { el.textContent = orig; }, 2000);
+  }
+}
+
+function playPomoSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = type === 'focus' ? [523, 659] : type === 'break' ? [784, 659] : [784, 880, 784];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.18);
+      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.18 + 0.02);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.18 + 0.25);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.3);
+    });
+  } catch(e) {}
+}
+
+// ── Daily Quotes ──
+const QUOTES = [
+  {q:"The only way to do great work is to love what you do.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"It is not the strongest of the species that survives, nor the most intelligent. It is the one most adaptable to change.",a:"Charles Darwin",r:"Naturalist & biologist"},
+  {q:"Success is not final, failure is not fatal: it is the courage to continue that counts.",a:"Winston Churchill",r:"Former UK Prime Minister"},
+  {q:"Your time is limited, so don't waste it living someone else's life.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"The secret of getting ahead is getting started.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"Don't watch the clock; do what it does. Keep going.",a:"Sam Levenson",r:"Author & humorist"},
+  {q:"Whether you think you can or you think you can't, you're right.",a:"Henry Ford",r:"Founder, Ford Motor Company"},
+  {q:"The best time to plant a tree was 20 years ago. The second best time is now.",a:"Chinese Proverb",r:"Ancient wisdom"},
+  {q:"An investment in knowledge pays the best interest.",a:"Benjamin Franklin",r:"Founding Father & polymath"},
+  {q:"I find that the harder I work, the more luck I seem to have.",a:"Thomas Jefferson",r:"3rd US President"},
+  {q:"Talent is cheaper than table salt. What separates the talented individual from the successful one is a lot of hard work.",a:"Stephen King",r:"Author"},
+  {q:"The difference between ordinary and extraordinary is that little extra.",a:"Jimmy Johnson",r:"Football coach"},
+  {q:"Do one thing every day that scares you.",a:"Eleanor Roosevelt",r:"Former US First Lady"},
+  {q:"Opportunities don't happen. You create them.",a:"Chris Grosser",r:"Entrepreneur & photographer"},
+  {q:"Don't be afraid to give up the good to go for the great.",a:"John D. Rockefeller",r:"Business magnate"},
+  {q:"I wake up every morning and think to myself, 'how far can I push this company in the next 24 hours?'",a:"Leah Busque",r:"Founder, TaskRabbit"},
+  {q:"If people are doubting how far you can go, go so far that you can't hear them anymore.",a:"Michele Ruiz",r:"Entrepreneur & speaker"},
+  {q:"We need to accept that we won't always make the right decisions, that we'll screw up royally sometimes — understanding that failure is not the opposite of success, it's part of success.",a:"Arianna Huffington",r:"Founder, HuffPost & Thrive Global"},
+  {q:"Would you like me to give you a formula for success? It's quite simple, really: Double your rate of failure.",a:"Thomas Watson",r:"Former CEO, IBM"},
+  {q:"There are no secrets to success. It is the result of preparation, hard work, and learning from failure.",a:"Colin Powell",r:"Former US Secretary of State"},
+  {q:"I attribute my success to this: I never gave or took any excuse.",a:"Florence Nightingale",r:"Founder of modern nursing"},
+  {q:"You miss 100% of the shots you don't take.",a:"Wayne Gretzky",r:"NHL legend"},
+  {q:"The most common way people give up their power is by thinking they don't have any.",a:"Alice Walker",r:"Author & activist"},
+  {q:"The mind is everything. What you think you become.",a:"Buddha",r:"Spiritual teacher"},
+  {q:"Eighty percent of success is showing up.",a:"Woody Allen",r:"Filmmaker"},
+  {q:"Your life does not get better by chance, it gets better by change.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Life is 10% what happens to me and 90% of how I react to it.",a:"Charles Swindoll",r:"Pastor & author"},
+  {q:"If you are not willing to risk the usual, you will have to settle for the ordinary.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"All our dreams can come true if we have the courage to pursue them.",a:"Walt Disney",r:"Co-founder, The Walt Disney Company"},
+  {q:"Don't let yesterday take up too much of today.",a:"Will Rogers",r:"Actor & humorist"},
+  {q:"You learn more from failure than from success. Don't let it stop you. Failure builds character.",a:"Unknown",r:""},
+  {q:"It's not whether you get knocked down, it's whether you get up.",a:"Vince Lombardi",r:"NFL coach"},
+  {q:"People who are crazy enough to think they can change the world are the ones who do.",a:"Rob Siltanen",r:"Creative director, Apple's Think Different"},
+  {q:"Failure will never overtake me if my determination to succeed is strong enough.",a:"Og Mandino",r:"Author"},
+  {q:"We may encounter many defeats but we must not be defeated.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"Knowing is not enough; we must apply. Wishing is not enough; we must do.",a:"Johann Wolfgang Von Goethe",r:"Philosopher & writer"},
+  {q:"Imagine your life is perfect in every respect; what would it look like?",a:"Brian Tracy",r:"Author & speaker"},
+  {q:"We generate fears while we sit. We overcome them by action.",a:"Dr. Henry Link",r:"Psychologist"},
+  {q:"Whether you think you can or think you can't, you're right.",a:"Henry Ford",r:"Founder, Ford Motor Company"},
+  {q:"The man who has confidence in himself gains the confidence of others.",a:"Hasidic Proverb",r:"Ancient wisdom"},
+  {q:"The only way to achieve the impossible is to believe it is possible.",a:"Charles Kingsleigh",r:"Alice in Wonderland character"},
+  {q:"When you have a dream, you've got to grab it and never let go.",a:"Carol Burnett",r:"Comedian & actress"},
+  {q:"Do not go where the path may lead, go instead where there is no path and leave a trail.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"You don't have to be great to start, but you have to start to be great.",a:"Zig Ziglar",r:"Author & motivational speaker"},
+  {q:"Real change, enduring change, happens one step at a time.",a:"Ruth Bader Ginsburg",r:"Former US Supreme Court Justice"},
+  {q:"The secret to living the life of your dreams is to start living the life of your dreams today.",a:"Mike Dooley",r:"Author & speaker"},
+  {q:"Start where you are. Use what you have. Do what you can.",a:"Arthur Ashe",r:"Tennis champion"},
+  {q:"You are never too old to set another goal or to dream a new dream.",a:"C.S. Lewis",r:"Author & theologian"},
+  {q:"To succeed in life, you need two things: ignorance and confidence.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"Success usually comes to those who are too busy to be looking for it.",a:"Henry David Thoreau",r:"Author & philosopher"},
+  {q:"Never give in except to convictions of honour and good sense.",a:"Winston Churchill",r:"Former UK Prime Minister"},
+  {q:"Try not to become a man of success. Rather become a man of value.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"A person who never made a mistake never tried anything new.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"The real test is not whether you avoid failure, because you won't. It's whether you let it harden you or shame you into inaction, or whether you learn from it.",a:"Barack Obama",r:"44th US President"},
+  {q:"I have not failed. I've just found 10,000 ways that won't work.",a:"Thomas A. Edison",r:"Inventor"},
+  {q:"The way to get started is to quit talking and begin doing.",a:"Walt Disney",r:"Co-founder, The Walt Disney Company"},
+  {q:"In order to succeed, we must first believe that we can.",a:"Nikos Kazantzakis",r:"Author"},
+  {q:"It does not matter how slowly you does not matter how slowly you go as long as you do not stop.",a:"Confucius",r:"Chinese philosopher"},
+  {q:"Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.",a:"Thomas A. Edison",r:"Inventor"},
+  {q:"You become what you believe.",a:"Oprah Winfrey",r:"Media executive & philanthropist"},
+  {q:"The question isn't who is going to let me; it's who is going to stop me.",a:"Ayn Rand",r:"Philosopher & author"},
+  {q:"If opportunity doesn't knock, build a door.",a:"Milton Berle",r:"Comedian"},
+  {q:"I am not a product of my circumstances. I am a product of my decisions.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"Every child is an artist. The problem is how to remain an artist once we grow up.",a:"Pablo Picasso",r:"Artist"},
+  {q:"You can never cross the ocean until you have the courage to lose sight of the shore.",a:"Christopher Columbus",r:"Explorer"},
+  {q:"Either you run the day or the day runs you.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Whether you think you can or you think you can't, you're right.",a:"Henry Ford",r:"Founder, Ford Motor Company"},
+  {q:"The two most important days in your life are the day you are born and the day you find out why.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"Whatever the mind can conceive and believe, it can achieve.",a:"Napoleon Hill",r:"Author, Think and Grow Rich"},
+  {q:"The only place where success comes before work is in the dictionary.",a:"Vidal Sassoon",r:"Hairstylist & businessman"},
+  {q:"Nothing will work unless you do.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"I never dreamed about success, I worked for it.",a:"Estée Lauder",r:"Founder, Estée Lauder"},
+  {q:"Build your own dreams, or someone else will hire you to build theirs.",a:"Farrah Gray",r:"Entrepreneur & author"},
+  {q:"The starting point of all achievement is desire.",a:"Napoleon Hill",r:"Author, Think and Grow Rich"},
+  {q:"Definiteness of purpose is the starting point from which you must begin.",a:"W. Clement Stone",r:"Businessman & philanthropist"},
+  {q:"Success is walking from failure to failure with no loss of enthusiasm.",a:"Winston Churchill",r:"Former UK Prime Minister"},
+  {q:"When I dare to be powerful, to use my strength in the service of my vision, then it becomes less and less important whether I am afraid.",a:"Audre Lorde",r:"Writer & activist"},
+  {q:"Believe you can and you're halfway there.",a:"Theodore Roosevelt",r:"26th US President"},
+  {q:"The only limit to our realization of tomorrow is our doubts of today.",a:"Franklin D. Roosevelt",r:"32nd US President"},
+  {q:"Act as if what you do makes a difference. It does.",a:"William James",r:"Philosopher & psychologist"},
+  {q:"Success is not how high you have climbed, but how you make a positive difference to the world.",a:"Roy T. Bennett",r:"Author, The Light in the Heart"},
+  {q:"What you get by achieving your goals is not as important as what you become by achieving your goals.",a:"Zig Ziglar",r:"Author & motivational speaker"},
+  {q:"Too many of us are not living our dreams because we are living our fears.",a:"Les Brown",r:"Motivational speaker"},
+  {q:"If you want to achieve greatness stop asking for permission.",a:"Anonymous",r:""},
+  {q:"Things work out best for those who make the best of how things work out.",a:"John Wooden",r:"NBA coach"},
+  {q:"To live a creative life, we must lose our fear of being wrong.",a:"Joseph Chilton Pearce",r:"Author & scholar"},
+  {q:"If you are not willing to risk the usual you will have to settle for the ordinary.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Trust because you are willing to accept the risk, not because it's safe or certain.",a:"Anonymous",r:""},
+  {q:"Take up one idea. Make that one idea your life — think of it, dream of it, live on that idea.",a:"Swami Vivekananda",r:"Hindu monk & philosopher"},
+  {q:"All progress takes place outside the comfort zone.",a:"Michael John Bobak",r:"Author"},
+  {q:"What seems to us as bitter trials are often blessings in disguise.",a:"Oscar Wilde",r:"Playwright & poet"},
+  {q:"The distance between insanity and genius is measured only by success.",a:"Bruce Feirstein",r:"Screenwriter"},
+  {q:"Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.",a:"Roy T. Bennett",r:"Author, The Light in the Heart"},
+  {q:"I believe that the only courage anybody ever needs is the courage to follow your own dreams.",a:"Oprah Winfrey",r:"Media executive & philanthropist"},
+  {q:"No matter what people tell you, words and ideas can change the world.",a:"Robin Williams",r:"Actor & comedian"},
+  {q:"One of the lessons that I grew up with was to always stay true to yourself and never let what somebody else says distract you from your goals.",a:"Michelle Obama",r:"Former US First Lady"},
+  {q:"Today's accomplishments were yesterday's impossibilities.",a:"Robert H. Schuller",r:"Author & televangelist"},
+  {q:"The only way to do great work is to love what you do.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"If you can dream it, you can achieve it.",a:"Zig Ziglar",r:"Author & motivational speaker"},
+  {q:"You've got to get up every morning with determination if you're going to go to bed with satisfaction.",a:"George Lorimer",r:"Author & editor"},
+  {q:"The only person you are destined to become is the person you decide to be.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"I've learned that people will forget what you said, people will forget what you did, but people will never forget how you made them feel.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"Strength does not come from physical capacity. It comes from an indomitable will.",a:"Mahatma Gandhi",r:"Leader of Indian independence"},
+  {q:"Perfection is not attainable, but if we chase perfection we can catch excellence.",a:"Vince Lombardi",r:"NFL coach"},
+  {q:"Life is what we make it, always has been, always will be.",a:"Grandma Moses",r:"Folk artist"},
+  {q:"The best revenge is massive success.",a:"Frank Sinatra",r:"Singer & actor"},
+  {q:"People often say that motivation doesn't last. Well, neither does bathing — that's why we recommend it daily.",a:"Zig Ziglar",r:"Author & motivational speaker"},
+  {q:"Life shrinks or expands in proportion to one's courage.",a:"Anaïs Nin",r:"Author"},
+  {q:"If you want to lift yourself up, lift up someone else.",a:"Booker T. Washington",r:"Educator & author"},
+  {q:"Entrepreneurs are great at dealing with uncertainty and also very good at minimizing risk. That's the classic entrepreneur.",a:"Mohnish Pabrai",r:"Investor & author"},
+  {q:"I have stood on a mountain of no's for one yes.",a:"B. Smith",r:"Restaurateur & model"},
+  {q:"Keep your eyes on the stars, and your feet on the ground.",a:"Theodore Roosevelt",r:"26th US President"},
+  {q:"The next step always seems impossible until you're already there.",a:"Marcus Aurelius",r:"Roman Emperor & philosopher"},
+  {q:"When something is important enough, you do it even if the odds are not in your favor.",a:"Elon Musk",r:"CEO, Tesla & SpaceX"},
+  {q:"Don't limit your challenges. Challenge your limits.",a:"Anonymous",r:""},
+  {q:"Be stubborn about your goals, and flexible about your methods.",a:"Anonymous",r:""},
+  {q:"If you are working on something that you really care about, you don't have to be pushed. The vision pulls you.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"The successful warrior is the average man with laser-like focus.",a:"Bruce Lee",r:"Martial artist & actor"},
+  {q:"Motivation is what gets you started. Habit is what keeps you going.",a:"Jim Ryun",r:"Olympic runner"},
+  {q:"Your passion is waiting for your courage to catch up.",a:"Isabelle Lafleche",r:"Author"},
+  {q:"Magic is believing in yourself. If you can make that happen, you can make anything happen.",a:"Johann Wolfgang Von Goethe",r:"Philosopher & writer"},
+  {q:"If you believe it will work out, you'll see opportunities. If you believe it won't, you will see obstacles.",a:"Wayne Dyer",r:"Author & speaker"},
+  {q:"We become what we repeatedly do.",a:"Sean Covey",r:"Author"},
+  {q:"Be not afraid of greatness. Some are born great, some achieve greatness, and others have greatness thrust upon them.",a:"William Shakespeare",r:"Playwright & poet"},
+  {q:"Don't wait. The time will never be just right.",a:"Napoleon Hill",r:"Author, Think and Grow Rich"},
+  {q:"If you do what you've always done, you'll get what you've always gotten.",a:"Tony Robbins",r:"Author & life coach"},
+  {q:"Dreaming, after all, is a form of planning.",a:"Gloria Steinem",r:"Activist & journalist"},
+  {q:"It's your place in the world; it's your life. Go on and do all you can with it.",a:"Mae Jemison",r:"First African-American female astronaut"},
+  {q:"You may be disappointed if you fail, but you are doomed if you don't try.",a:"Beverly Sills",r:"Opera singer"},
+  {q:"Remember that not getting what you want is sometimes a wonderful stroke of luck.",a:"Dalai Lama",r:"Tibetan Buddhist leader"},
+  {q:"You can't use up creativity. The more you use, the more you have.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"Dream big and dare to fail.",a:"Norman Vaughan",r:"Explorer"},
+  {q:"You don't need to be better than everyone else. You just need to be better than you were yesterday.",a:"Anonymous",r:""},
+  {q:"Don't raise your voice, improve your argument.",a:"Desmond Tutu",r:"Archbishop & activist"},
+  {q:"No masterpiece was ever created by a lazy artist.",a:"Anonymous",r:""},
+  {q:"Happiness is not something ready-made. It comes from your own actions.",a:"Dalai Lama",r:"Tibetan Buddhist leader"},
+  {q:"If you want something you've never had, you must be willing to do something you've never done.",a:"Thomas Jefferson",r:"3rd US President"},
+  {q:"The man who moves a mountain begins by carrying away small stones.",a:"Confucius",r:"Chinese philosopher"},
+  {q:"You don't have to see the whole staircase, just take the first step.",a:"Martin Luther King Jr.",r:"Civil rights leader"},
+  {q:"The secret of success is to know something nobody else knows.",a:"Aristotle Onassis",r:"Shipping magnate"},
+  {q:"I find that when you have a real interest in life and a curious life, that sleep is not the most important thing.",a:"Martha Stewart",r:"Businesswoman & author"},
+  {q:"The power of imagination makes us infinite.",a:"John Muir",r:"Naturalist & author"},
+  {q:"Every strike brings me closer to the next home run.",a:"Babe Ruth",r:"Baseball legend"},
+  {q:"Believe in yourself! Have faith in your abilities! Without a humble but reasonable confidence in your own powers you cannot be successful or happy.",a:"Norman Vincent Peale",r:"Author, The Power of Positive Thinking"},
+  {q:"I can't change the direction of the wind, but I can adjust my sails to always reach my destination.",a:"Jimmy Dean",r:"Singer & businessman"},
+  {q:"The longer I live, the more I realize the impact of attitude on life.",a:"Charles R. Swindoll",r:"Author & pastor"},
+  {q:"Limitations live only in our minds. But if we use our imaginations, our possibilities become limitless.",a:"Jamie Paolinetti",r:"Filmmaker"},
+  {q:"What you do speaks so loudly that I cannot hear what you say.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"What lies behind us and what lies before us are tiny matters compared to what lies within us.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"I did not fail the test. I just found 100 ways to do it wrong.",a:"Benjamin Franklin",r:"Founding Father & polymath"},
+  {q:"In the middle of every difficulty lies opportunity.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"We know what we are, but know not what we may be.",a:"William Shakespeare",r:"Playwright & poet"},
+  {q:"Tis better to have tried and failed than to live life wondering what would've happened if I had tried.",a:"Alfred Lord Tennyson",r:"Poet"},
+  {q:"Life is not measured by the number of breaths we take, but by the moments that take our breath away.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"If not us, who? If not now, when?",a:"John F. Kennedy",r:"35th US President"},
+  {q:"The future belongs to those who believe in the beauty of their dreams.",a:"Eleanor Roosevelt",r:"Former US First Lady"},
+  {q:"Twenty years from now you will be more disappointed by the things that you didn't do than by the ones you did do.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"Change your thoughts and you change your world.",a:"Norman Vincent Peale",r:"Author, The Power of Positive Thinking"},
+  {q:"Carry out a random act of kindness, with no expectation of reward, safe in the knowledge that one day someone might do the same for you.",a:"Princess Diana",r:"Princess of Wales"},
+  {q:"Work hard, be kind, and amazing things will happen.",a:"Conan O'Brien",r:"TV host & comedian"},
+  {q:"Everything you've ever wanted is on the other side of fear.",a:"George Addair",r:"Real estate developer"},
+  {q:"When I let go of what I am, I become what I might be.",a:"Lao Tzu",r:"Chinese philosopher"},
+  {q:"Life is not about finding yourself. Life is about creating yourself.",a:"Lolly Daskal",r:"Leadership coach"},
+  {q:"You miss every shot you don't take.",a:"Wayne Gretzky",r:"NHL legend"},
+  {q:"The secret to a rich life is to have more beginnings than endings.",a:"Dave Weinbaum",r:"Author"},
+  {q:"Accept the challenges so that you can feel the exhilaration of victory.",a:"George S. Patton",r:"US Army General"},
+  {q:"Don't let what you cannot do interfere with what you can do.",a:"John Wooden",r:"NBA coach"},
+  {q:"The most difficult thing is the decision to act, the rest is merely tenacity.",a:"Amelia Earhart",r:"Aviation pioneer"},
+  {q:"Knowing is not enough; we must apply. Being willing is not enough; we must do.",a:"Leonardo da Vinci",r:"Polymath & artist"},
+  {q:"Light tomorrow with today.",a:"Elizabeth Barrett Browning",r:"Poet"},
+  {q:"Hire character. Train skill.",a:"Peter Schutz",r:"Former CEO, Porsche"},
+  {q:"Not everything that is faced can be changed, but nothing can be changed until it is faced.",a:"James Baldwin",r:"Author & activist"},
+  {q:"I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.'",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"We must believe that we are gifted for something and that this thing must be attained.",a:"Marie Curie",r:"Physicist & Nobel laureate"},
+  {q:"It is better to fail in originality than to succeed in imitation.",a:"Herman Melville",r:"Author"},
+  {q:"The road to success and the road to failure are almost exactly the same.",a:"Colin R. Davis",r:"Conductor"},
+  {q:"I don't want to get to the end of my life and find that I lived just the length of it. I want to have lived the width of it as well.",a:"Diane Ackerman",r:"Author & naturalist"},
+  {q:"Courage is not the absence of fear, but rather the judgment that something else is more important than fear.",a:"Ambrose Redmoon",r:"Author"},
+  {q:"Believe you can and you're halfway there.",a:"Theodore Roosevelt",r:"26th US President"},
+  {q:"Too many of us are not living our dreams because we are living our fears.",a:"Les Brown",r:"Motivational speaker"},
+  {q:"Never give up, for that is just the place and time that the tide will turn.",a:"Harriet Beecher Stowe",r:"Author, Uncle Tom's Cabin"},
+  {q:"Your time is limited, don't waste it living someone else's life.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"Challenges are what make life interesting. Overcoming them is what makes life meaningful.",a:"Joshua J. Marine",r:"Author"},
+  {q:"It always seems impossible until it is done.",a:"Nelson Mandela",r:"Former President of South Africa"},
+  {q:"I alone cannot change the world, but I can cast a stone across the waters to create many ripples.",a:"Mother Teresa",r:"Humanitarian & Nobel Peace Prize laureate"},
+  {q:"Definiteness of purpose is the starting point of all achievement.",a:"W. Clement Stone",r:"Businessman & philanthropist"},
+  {q:"We can easily manage if we will only take, each day, the burden appointed to it.",a:"John Newton",r:"Clergyman & hymn writer"},
+  {q:"A creative man is motivated by the desire to achieve, not by the desire to beat others.",a:"Ayn Rand",r:"Philosopher & author"},
+  {q:"When you reach the end of your rope, tie a knot in it and hang on.",a:"Franklin D. Roosevelt",r:"32nd US President"},
+  {q:"Nothing great was ever achieved without enthusiasm.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"The question isn't who's going to let me; it's who's going to stop me.",a:"Ayn Rand",r:"Philosopher & author"},
+  {q:"Perseverance is not a long race; it is many short races one after another.",a:"Walter Elliott",r:"Author"},
+  {q:"I've missed more than 9,000 shots in my career. I've lost almost 300 games. 26 times, I've been trusted to take the game-winning shot and missed. I've failed over and over again in my life — and that is why I succeed.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"The biggest adventure you can take is to live the life of your dreams.",a:"Oprah Winfrey",r:"Media executive & philanthropist"},
+  {q:"To improve is to change; to be perfect is to change often.",a:"Winston Churchill",r:"Former UK Prime Minister"},
+  {q:"Without continual growth and progress, such words as improvement, achievement, and success have no meaning.",a:"Benjamin Franklin",r:"Founding Father & polymath"},
+  {q:"You must expect great things of yourself before you can do them.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"Motivation will almost always beat mere talent.",a:"Norman Ralph Augustine",r:"Engineer & businessman"},
+  {q:"I've failed over and over and over again in my life, and that is why I succeed.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"The successful man will profit from his mistakes and try again in a different way.",a:"Dale Carnegie",r:"Author, How to Win Friends and Influence People"},
+  {q:"If you want to achieve excellence, you can get there today. As of this second, quit doing less-than-excellent work.",a:"Thomas J. Watson",r:"Former CEO, IBM"},
+  {q:"The thing that separates successful people is not talent, not education, not background — it is habits.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Every action you take is a vote for the type of person you wish to become.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"You do not rise to the level of your goals. You fall to the level of your systems.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Habits are the compound interest of self-improvement.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Make it obvious, make it attractive, make it easy, make it satisfying.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"The most effective form of learning is practice, not planning.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Goals are good for setting a direction, but systems are best for making progress.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"You don't have to be the victim of your environment. You can also be the architect of it.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Be the designer of your world and not merely the consumer of it.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Success is the product of daily habits, not once-in-a-lifetime transformations.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"The key question you need to ask is not 'Is this good enough?' but 'Can I make it better?'",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Mastery requires practice. But the more you practice, the more comfortable you get with being uncomfortable.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"Most people don't want accurate information. They want validating information.",a:"James Clear",r:"Author, Atomic Habits"},
+  {q:"When nothing seems to help, I go and look at a stonecutter hammering away at his rock perhaps a hundred times without as much as a crack showing in it. Yet at the hundred and first blow it will split in two, and I know it was not that blow that did it — but all that had gone before.",a:"Jacob Riis",r:"Journalist & social reformer"},
+  {q:"Life is not measured by how much you own.",a:"Luke 12:15",r:"The Bible"},
+  {q:"The secret of your future is hidden in your daily routine.",a:"Mike Murdock",r:"Pastor & author"},
+  {q:"The price of success is hard work, dedication to the job at hand, and the determination that whether we win or lose, we have applied the best of ourselves to the task at hand.",a:"Vince Lombardi",r:"NFL coach"},
+  {q:"Success means doing the best we can with what we have. Success is the doing, not the getting; in the trying, not the triumph.",a:"Wynn Davis",r:"Author"},
+  {q:"Real difficulties can be overcome; it is only the imaginary ones that are unconquerable.",a:"Theodore Newton Vail",r:"AT&T president"},
+  {q:"We are what we repeatedly do. Excellence, then, is not an act, but a habit.",a:"Aristotle",r:"Ancient Greek philosopher"},
+  {q:"The future depends on what you do today.",a:"Mahatma Gandhi",r:"Leader of Indian independence"},
+  {q:"Productivity is never an accident. It is always the result of a commitment to excellence, intelligent planning, and focused effort.",a:"Paul J. Meyer",r:"Motivational author"},
+  {q:"Without leaps of imagination, or dreaming, we lose the excitement of possibilities. Dreaming, after all, is a form of planning.",a:"Gloria Steinem",r:"Activist & journalist"},
+  {q:"You were born with the ability to change someone's life — don't ever waste it.",a:"Dale Partridge",r:"Entrepreneur & author"},
+  {q:"I wake up every morning thinking about what I want to accomplish that day.",a:"Kobe Bryant",r:"NBA legend"},
+  {q:"The only person you should try to be better than is the person you were yesterday.",a:"Matty Mullins",r:"Musician"},
+  {q:"It's hard to beat a person who never gives up.",a:"Babe Ruth",r:"Baseball legend"},
+  {q:"The expert in anything was once a beginner.",a:"Helen Hayes",r:"Actress"},
+  {q:"Continuous improvement is better than delayed perfection.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"In order to succeed, we must first believe that we can.",a:"Nikos Kazantzakis",r:"Author"},
+  {q:"Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.",a:"Roy T. Bennett",r:"Author, The Light in the Heart"},
+  {q:"Push yourself, because no one else is going to do it for you.",a:"Anonymous",r:""},
+  {q:"The mind is not a vessel to be filled, but a fire to be kindled.",a:"Plutarch",r:"Ancient Greek historian"},
+  {q:"If something is important enough, even if the odds are against you, you should still do it.",a:"Elon Musk",r:"CEO, Tesla & SpaceX"},
+  {q:"I will go anywhere as long as it's forward.",a:"David Livingstone",r:"Explorer & missionary"},
+  {q:"Clarity about what matters provides clarity about what does not.",a:"Cal Newport",r:"Author, Deep Work"},
+  {q:"A deep life is a good life.",a:"Cal Newport",r:"Author, Deep Work"},
+  {q:"The ability to perform deep work is becoming increasingly rare and increasingly valuable.",a:"Cal Newport",r:"Author, Deep Work"},
+  {q:"Decide what you want to be, pay the price, and be what you want to be.",a:"John A. Widtsoe",r:"Educator & author"},
+  {q:"To handle yourself, use your head; to handle others, use your heart.",a:"Eleanor Roosevelt",r:"Former US First Lady"},
+  {q:"Kindness is the language which the deaf can hear and the blind can see.",a:"Mark Twain",r:"Author & humorist"},
+  {q:"Let no man pull you so low as to hate him.",a:"Martin Luther King Jr.",r:"Civil rights leader"},
+  {q:"Darkness cannot drive out darkness; only light can do that.",a:"Martin Luther King Jr.",r:"Civil rights leader"},
+  {q:"We must use time creatively — and forever realise that the time is always ripe to do right.",a:"Nelson Mandela",r:"Former President of South Africa"},
+  {q:"Real integrity is doing the right thing, knowing that nobody's going to know whether you did it or not.",a:"Oprah Winfrey",r:"Media executive & philanthropist"},
+  {q:"If opportunity doesn't knock, build a door.",a:"Kurt Cobain",r:"Musician"},
+  {q:"I learned a long time ago that there is something worse than missing the goal, and that's not pulling the trigger.",a:"Mia Hamm",r:"Soccer champion"},
+  {q:"You gain strength, courage, and confidence by every experience in which you really stop to look fear in the face. You must do the thing which you think you cannot do.",a:"Eleanor Roosevelt",r:"Former US First Lady"},
+  {q:"If my mind can conceive it, if my heart can believe it, then I can achieve it.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"The path to success is to take massive, determined action.",a:"Tony Robbins",r:"Author & life coach"},
+  {q:"Work hard in silence. Let success be your noise.",a:"Frank Ocean",r:"Musician"},
+  {q:"Courage is grace under pressure.",a:"Ernest Hemingway",r:"Author & journalist"},
+  {q:"Excellence is not a skill. It is an attitude.",a:"Ralph Marston",r:"Author"},
+  {q:"The best way to predict your future is to create it.",a:"Abraham Lincoln",r:"16th US President"},
+  {q:"If your dreams don't scare you, they are not big enough.",a:"Ellen Johnson Sirleaf",r:"Former President of Liberia"},
+  {q:"The harder the conflict, the more glorious the triumph.",a:"Thomas Paine",r:"Political activist & philosopher"},
+  {q:"I am thankful for all of those who said no to me. It's because of them that I'm doing it myself.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"Character cannot be developed in ease and quiet. Only through experience of trial and suffering can the soul be strengthened, ambition inspired, and success achieved.",a:"Helen Keller",r:"Author & activist"},
+  {q:"Your present circumstances don't determine where you can go; they merely determine where you start.",a:"Nido Qubein",r:"Businessman & motivational speaker"},
+  {q:"You are your greatest asset. Put your time, effort and money into training, grooming, and encouraging your greatest asset.",a:"Tom Hopkins",r:"Author & sales trainer"},
+  {q:"The only place where success comes before work is in the dictionary.",a:"Vidal Sassoon",r:"Hairstylist & businessman"},
+  {q:"If you believe it will work out, you'll see opportunities. If you believe it won't, you will see obstacles.",a:"Wayne Dyer",r:"Author & speaker"},
+  {q:"The way I see it, if you want the rainbow, you gotta put up with the rain.",a:"Dolly Parton",r:"Singer & businesswoman"},
+  {q:"I've learned that making a 'living' is not the same thing as making a 'life'.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"I am not afraid of storms, for I am learning how to sail my ship.",a:"Louisa May Alcott",r:"Author, Little Women"},
+  {q:"If you want to fly give up everything that weighs you down.",a:"Buddha",r:"Spiritual teacher"},
+  {q:"Only those who dare to fail greatly can ever achieve greatly.",a:"Robert F. Kennedy",r:"US Senator"},
+  {q:"It is our choices that show what we truly are, far more than our abilities.",a:"J.K. Rowling",r:"Author, Harry Potter"},
+  {q:"You have to be burning with an idea, or a problem, or a wrong that you want to right.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"The more that you read, the more things you will know.",a:"Dr. Seuss",r:"Author & illustrator"},
+  {q:"Well-behaved women seldom make history.",a:"Laurel Thatcher Ulrich",r:"Historian"},
+  {q:"Change is not a threat, it's an opportunity. Survival is not the goal, transformative success is.",a:"Seth Godin",r:"Author & entrepreneur"},
+  {q:"You don't need a title to be a leader.",a:"Mark Sanborn",r:"Author & speaker"},
+  {q:"Leadership is not about being in charge. It is about taking care of those in your charge.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"Start with why.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"People don't buy what you do; they buy why you do it.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"A team is not a group of people who work together. A team is a group of people who trust each other.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"Working hard for something we don't care about is called stress; working hard for something we love is called passion.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"The goal is not simply to 'work hard, play hard.' The goal is to make our work and our play indistinguishable.",a:"Simon Sinek",r:"Author, Start With Why"},
+  {q:"Vision is the art of seeing what is invisible to others.",a:"Jonathan Swift",r:"Author & satirist"},
+  {q:"Good is the enemy of great.",a:"Jim Collins",r:"Author, Good to Great"},
+  {q:"Great vision without great people is irrelevant.",a:"Jim Collins",r:"Author, Good to Great"},
+  {q:"The signature of mediocrity is not an unwillingness to change. The signature of mediocrity is chronic inconsistency.",a:"Jim Collins",r:"Author, Good to Great"},
+  {q:"The best executives are those who have the ability to translate vision into reality.",a:"Warren Bennis",r:"Leadership expert & author"},
+  {q:"Management is doing things right; leadership is doing the right things.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"The best way to predict the future is to create it.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"What gets measured, gets managed.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"Efficiency is doing things right; effectiveness is doing the right things.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"Knowledge has to be improved, challenged, and increased constantly, or it vanishes.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"The most important thing in communication is to hear what isn't being said.",a:"Peter Drucker",r:"Management consultant & author"},
+  {q:"Strength lies in differences, not in similarities.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"Begin with the end in mind.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"Most people do not listen with the intent to understand; they listen with the intent to reply.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"The key is not to prioritise what's on your schedule, but to schedule your priorities.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"Seek first to understand, then to be understood.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"Live out of your imagination, not your history.",a:"Stephen Covey",r:"Author, The 7 Habits of Highly Effective People"},
+  {q:"How you do anything is how you do everything.",a:"T. Harv Eker",r:"Author, Secrets of the Millionaire Mind"},
+  {q:"Rich people believe 'I create my life.' Poor people believe 'Life happens to me.'",a:"T. Harv Eker",r:"Author, Secrets of the Millionaire Mind"},
+  {q:"Done is better than perfect.",a:"Sheryl Sandberg",r:"Former COO, Facebook"},
+  {q:"In the future, there will be no female leaders. There will just be leaders.",a:"Sheryl Sandberg",r:"Former COO, Facebook"},
+  {q:"Fortune favours the bold.",a:"Virgil",r:"Ancient Roman poet"},
+  {q:"If you want to go fast, go alone. If you want to go far, go together.",a:"African Proverb",r:"Ancient wisdom"},
+  {q:"A smooth sea never made a skilled sailor.",a:"Franklin D. Roosevelt",r:"32nd US President"},
+  {q:"Experience is the teacher of all things.",a:"Julius Caesar",r:"Roman leader"},
+  {q:"The more I want to get something done, the less I call it work.",a:"Richard Bach",r:"Author, Jonathan Livingston Seagull"},
+  {q:"Be kind whenever possible. It is always possible.",a:"Dalai Lama",r:"Tibetan Buddhist leader"},
+  {q:"Three things cannot be long hidden: the sun, the moon, and the truth.",a:"Buddha",r:"Spiritual teacher"},
+  {q:"Peace comes from within. Do not seek it without.",a:"Buddha",r:"Spiritual teacher"},
+  {q:"Happiness depends upon ourselves.",a:"Aristotle",r:"Ancient Greek philosopher"},
+  {q:"Knowing yourself is the beginning of all wisdom.",a:"Aristotle",r:"Ancient Greek philosopher"},
+  {q:"The whole is more than the sum of its parts.",a:"Aristotle",r:"Ancient Greek philosopher"},
+  {q:"He who is not courageous enough to take risks will accomplish nothing in life.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"Float like a butterfly, sting like a bee.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"Don't count the days, make the days count.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"Service to others is the rent you pay for your room here on Earth.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"Impossible is just a big word thrown around by small men who find it easier to live in the world they've been given.",a:"Muhammad Ali",r:"Boxing champion"},
+  {q:"You can have results or excuses, but not both.",a:"Arnold Schwarzenegger",r:"Actor & former Governor of California"},
+  {q:"Just remember, you can't climb the ladder of success with your hands in your pockets.",a:"Arnold Schwarzenegger",r:"Actor & former Governor of California"},
+  {q:"The mind is the limit. As long as the mind can envision the fact that you can do something, you can do it.",a:"Arnold Schwarzenegger",r:"Actor & former Governor of California"},
+  {q:"Pain makes people change.",a:"Arnold Schwarzenegger",r:"Actor & former Governor of California"},
+  {q:"Be hungry, be humble, and always be the hardest worker in the room.",a:"Dwayne 'The Rock' Johnson",r:"Actor & entrepreneur"},
+  {q:"Success isn't always about greatness. It's about consistency. Consistent hard work leads to success.",a:"Dwayne 'The Rock' Johnson",r:"Actor & entrepreneur"},
+  {q:"Blood, sweat and respect. First two you give. Last one you earn.",a:"Dwayne 'The Rock' Johnson",r:"Actor & entrepreneur"},
+  {q:"Wake up determined. Go to bed satisfied.",a:"Dwayne 'The Rock' Johnson",r:"Actor & entrepreneur"},
+  {q:"All roads that lead to success have to pass through hard work boulevard at some point.",a:"Eric Thomas",r:"Motivational speaker"},
+  {q:"When you want to succeed as bad as you want to breathe, then you'll be successful.",a:"Eric Thomas",r:"Motivational speaker"},
+  {q:"I used to say 'I sleep when I die', but now I'm like, 'if I don't sleep, I'll die.'",a:"Eric Thomas",r:"Motivational speaker"},
+  {q:"Pain is temporary. It may last a minute, or an hour, or a day, or a year, but eventually it will subside.",a:"Lance Armstrong",r:"Cyclist"},
+  {q:"It's not about being the best. It's about being better than you were yesterday.",a:"Anonymous",r:""},
+  {q:"Your life is a result of the choices you make. If you don't like your life it is time to start making better choices.",a:"Anonymous",r:""},
+  {q:"Be so good they can't ignore you.",a:"Steve Martin",r:"Comedian & actor"},
+  {q:"The real opportunity for success lies within the person and not in the job.",a:"Zig Ziglar",r:"Author & motivational speaker"},
+  {q:"You can't go back and change the beginning, but you can start where you are and change the ending.",a:"C.S. Lewis",r:"Author & theologian"},
+  {q:"Mistakes are proof that you are trying.",a:"Jennifer Lim",r:"Author & speaker"},
+  {q:"Someone is sitting in the shade today because someone planted a tree a long time ago.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"The best investment you can make is in yourself.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"It takes 20 years to build a reputation and five minutes to ruin it.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"Price is what you pay. Value is what you get.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"The most important investment you can make is in yourself.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"Today is always the most productive day of your week.",a:"Mark Hunter",r:"Author & sales expert"},
+  {q:"The greatest danger for most of us is not that our aim is too high and we miss it, but that it is too low and we reach it.",a:"Michelangelo",r:"Artist & sculptor"},
+  {q:"We must all suffer one of two things: the pain of discipline or the pain of regret.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Discipline is the bridge between goals and accomplishment.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"If you don't design your own life plan, chances are you'll fall into someone else's plan.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Ideas can be life-changing. Sometimes all you need to open the door is just one more good idea.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Take care of your body. It's the only place you have to live.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Success is doing ordinary things extraordinarily well.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"Formal education will make you a living; self-education will make you a fortune.",a:"Jim Rohn",r:"Entrepreneur & author"},
+  {q:"The more you learn, the more you earn.",a:"Warren Buffett",r:"Investor & philanthropist"},
+  {q:"We delight in the beauty of the butterfly, but rarely admit the changes it has gone through to achieve that beauty.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"The purpose of life is a life of purpose.",a:"Robert Byrne",r:"Author"},
+  {q:"Go confidently in the direction of your dreams. Live the life you have imagined.",a:"Henry David Thoreau",r:"Author & philosopher"},
+  {q:"Live as if you were to die tomorrow. Learn as if you were to live forever.",a:"Mahatma Gandhi",r:"Leader of Indian independence"},
+  {q:"In three words I can sum up everything I've learned about life: it goes on.",a:"Robert Frost",r:"Poet"},
+  {q:"If you hear a voice within you say 'you cannot paint,' then by all means paint, and that voice will be silenced.",a:"Vincent Van Gogh",r:"Post-impressionist painter"},
+  {q:"There is only one way to avoid criticism: do nothing, say nothing, and be nothing.",a:"Aristotle",r:"Ancient Greek philosopher"},
+  {q:"Ask and it will be given to you; search, and you will find; knock and the door will be opened for you.",a:"Jesus Christ",r:"The Bible"},
+  {q:"The unexamined life is not worth living.",a:"Socrates",r:"Ancient Greek philosopher"},
+  {q:"Spread love everywhere you go. Let no one ever come to you without leaving happier.",a:"Mother Teresa",r:"Humanitarian & Nobel Peace Prize laureate"},
+  {q:"When you reach the end of your rope, tie a knot in it and hang on.",a:"Abraham Lincoln",r:"16th US President"},
+  {q:"Always remember that you are absolutely unique. Just like everyone else.",a:"Margaret Mead",r:"Cultural anthropologist"},
+  {q:"Do not go where the path may lead, go instead where there is no path and leave a trail.",a:"Ralph Waldo Emerson",r:"Philosopher & poet"},
+  {q:"You will face many defeats in life, but never let yourself be defeated.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"The greatest glory in living lies not in never falling, but in rising every time we fall.",a:"Nelson Mandela",r:"Former President of South Africa"},
+  {q:"In the end, it's not the years in your life that count. It's the life in your years.",a:"Abraham Lincoln",r:"16th US President"},
+  {q:"Never let the fear of striking out keep you from playing the game.",a:"Babe Ruth",r:"Baseball legend"},
+  {q:"The most common form of despair is not being who you are.",a:"Søren Kierkegaard",r:"Philosopher & theologian"},
+  {q:"My mission in life is not merely to survive, but to thrive.",a:"Maya Angelou",r:"Poet & activist"},
+  {q:"Not how long, but how well you have lived is the main thing.",a:"Seneca",r:"Roman Stoic philosopher"},
+  {q:"If life were predictable it would cease to be life, and be without flavour.",a:"Eleanor Roosevelt",r:"Former US First Lady"},
+  {q:"If you look at what you have in life, you'll always have more.",a:"Oprah Winfrey",r:"Media executive & philanthropist"},
+  {q:"If you set your goals ridiculously high and it's a failure, you will fail above everyone else's success.",a:"James Cameron",r:"Filmmaker"},
+  {q:"Life is not measured by the number of breaths you take but by the moments that take your breath away.",a:"George Carlin",r:"Comedian & author"},
+  {q:"If you want to live a happy life, tie it to a goal, not to people or things.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"Never let the fear of striking out keep you from playing the game.",a:"Babe Ruth",r:"Baseball legend"},
+  {q:"Money and success don't change people; they merely amplify what is already there.",a:"Will Smith",r:"Actor & rapper"},
+  {q:"Your time is limited, so don't waste it living someone else's life.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"Not all those who wander are lost.",a:"J.R.R. Tolkien",r:"Author, The Lord of the Rings"},
+  {q:"You only live once, but if you do it right, once is enough.",a:"Mae West",r:"Actress"},
+  {q:"In this life we cannot do great things. We can only do small things with great love.",a:"Mother Teresa",r:"Humanitarian & Nobel Peace Prize laureate"},
+  {q:"If you want to go fast go alone, but if you want to go far, go together.",a:"African Proverb",r:"Ancient wisdom"},
+  {q:"Only a life lived for others is a life worthwhile.",a:"Albert Einstein",r:"Theoretical physicist"},
+  {q:"The purpose of our lives is to be happy.",a:"Dalai Lama",r:"Tibetan Buddhist leader"},
+  {q:"Get busy living or get busy dying.",a:"Stephen King",r:"Author"},
+  {q:"You only live once, but if you do it right, once is enough.",a:"Mae West",r:"Actress"},
+  {q:"Many of life's failures are people who did not realise how close they were to success when they gave up.",a:"Thomas Edison",r:"Inventor"},
+  {q:"You have brains in your head. You have feet in your shoes. You can steer yourself any direction you choose.",a:"Dr. Seuss",r:"Author & illustrator"},
+  {q:"If you really look closely, most overnight successes took a long time.",a:"Steve Jobs",r:"Co-founder, Apple"},
+  {q:"The real test is not whether you avoid failure, because you won't. It's whether you let it harden or shame you into inaction.",a:"Barack Obama",r:"44th US President"},
+  {q:"Hard work beats talent when talent doesn't work hard.",a:"Tim Notke",r:"Basketball coach"},
+  {q:"Knowing is not enough; we must apply. Willing is not enough; we must do.",a:"Bruce Lee",r:"Martial artist & actor"},
+  {q:"Always do your best. What you plant now, you will harvest later.",a:"Og Mandino",r:"Author"},
+  {q:"Believe in yourself, take on your challenges, dig deep within yourself to conquer fears.",a:"Chantal Sutherland",r:"Jockey"},
+  {q:"When I believe in something, I'm like a dog with a bone.",a:"Melissa McCarthy",r:"Actress"},
+  {q:"A champion is defined not by their wins but by how they can recover when they fall.",a:"Serena Williams",r:"Tennis champion"},
+  {q:"I've always believed that if you put in the work, the results will come.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"You have to expect things of yourself before you can do them.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"I can accept failure, everyone fails at something. But I can't accept not trying.",a:"Michael Jordan",r:"NBA legend"},
+  {q:"Talent wins games, but teamwork and intelligence win championships.",a:"Michael Jordan",r:"NBA legend"},
+];
+
+function renderQuote() {
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const q = QUOTES[dayOfYear % QUOTES.length];
+  document.getElementById('daily-quote-text').textContent = q.q;
+  document.getElementById('daily-quote-author').textContent = '— ' + q.a;
+  document.getElementById('daily-quote-role').textContent = q.r;
+}
+
+// ── Init ──
+async function init() {
+  const savedToken = localStorage.getItem('lumio_token');
+  const savedUser = localStorage.getItem('lumio_user');
+  if (savedToken && savedUser) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${savedToken}` }
+      });
+      if (res.ok) {
+        const user = await res.json();
+        if (user && user.id) {
+          authToken = savedToken;
+          currentUser = user;
+          await onAuthSuccess();
+          return;
+        }
+      }
+    } catch(e) {}
+    localStorage.removeItem('lumio_token');
+    localStorage.removeItem('lumio_user');
+  }
+  document.getElementById('auth-screen').classList.add('visible');
+}
+
+init();
+</script>
+
+<!-- Build info -->
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v1.4 · 15 Apr 2026 8:10 PM AEDT</div>
+
+</body>
+</html>
