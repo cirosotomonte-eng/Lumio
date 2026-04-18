@@ -587,7 +587,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       <button onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:inherit" id="forgot-link">Forgot password?</button>
     </div>
   </div>
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 15 Apr 2026 8:10 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 18 Apr 2026 1:54 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1190,9 +1190,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v1.4 · 15 Apr 2026 8:10 PM AEDT';
-const BUILD_VERSION = 'v1.4';
-const BUILD_DISPLAY = '15 Apr 2026 8:10 PM AEDT';
+const BUILD = 'v1.5 · 18 Apr 2026 1:54 PM AEDT';
+const BUILD_VERSION = 'v1.5';
+const BUILD_DISPLAY = '18 Apr 2026 1:54 PM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1333,12 +1333,58 @@ async function onAuthSuccess() {
   document.getElementById('user-bar').classList.add('visible');
   document.getElementById('app').style.display = 'block';
   await loadFromSupabase();
+  if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   await checkForUpdate();
   renderQuote();
   renderToday();
   initPomo();
   initRoutine();
   if (state.rssEpisodes.length) renderRSSEpisodes();
+}
+
+function seedDefaultRoutine() {
+  const wkdays = [1,2,3,4,5];
+  const alldays = [0,1,2,3,4,5,6];
+  const wfh = [1,2,5];
+  const office = [3,4];
+  const weekend = [0,6];
+
+  state.routine = [
+    {id:'rb_wake',    title:'Wake up + make bed', category:'personal', startTime:'06:00', endTime:'06:05', startMins:360,  endMins:365,  days:alldays, habitId:'', note:''},
+    {id:'rb_stretch', title:'Stretch',            category:'health',   startTime:'06:05', endTime:'06:20', startMins:365,  endMins:380,  days:alldays, habitId:'', note:'15 min'},
+    {id:'rb_meditate',title:'Meditate',           category:'personal', startTime:'06:20', endTime:'06:35', startMins:380,  endMins:395,  days:alldays, habitId:'', note:'15 min'},
+    {id:'rb_journal', title:'Morning journal',    category:'personal', startTime:'06:35', endTime:'06:50', startMins:395,  endMins:410,  days:alldays, habitId:'', note:'Forward-looking — intentions, gratitude'},
+    {id:'rb_read',    title:'Read',               category:'learning', startTime:'06:50', endTime:'07:05', startMins:410,  endMins:425,  days:alldays, habitId:'', note:'15 min'},
+    {id:'rb_bfast',   title:'Breakfast',          category:'food',     startTime:'07:05', endTime:'07:35', startMins:425,  endMins:455,  days:alldays, habitId:'', note:''},
+    {id:'rb_shower',  title:'Shower',             category:'health',   startTime:'07:35', endTime:'08:05', startMins:455,  endMins:485,  days:alldays, habitId:'', note:'30 min'},
+    {id:'rb_plants',  title:'Plants',             category:'personal', startTime:'08:05', endTime:'08:20', startMins:485,  endMins:500,  days:[...wfh,...weekend], habitId:'', note:'15 min'},
+    {id:'rb_finance', title:'Check financials',   category:'personal', startTime:'08:20', endTime:'08:25', startMins:500,  endMins:505,  days:[...wfh,...weekend], habitId:'', note:'5 min'},
+    {id:'rb_plants_o',title:'Plants',             category:'personal', startTime:'12:05', endTime:'12:20', startMins:725,  endMins:740,  days:office,  habitId:'', note:'15 min — lunchtime on office days'},
+    {id:'rb_fin_o',   title:'Check financials',   category:'personal', startTime:'12:20', endTime:'12:25', startMins:740,  endMins:745,  days:office,  habitId:'', note:'5 min — lunchtime on office days'},
+    {id:'rb_commute_am', title:'Commute to office', category:'commute', startTime:'08:05', endTime:'09:00', startMins:485, endMins:540,  days:office,  habitId:'', note:''},
+    {id:'rb_work',    title:'Work',               category:'work',     startTime:'09:00', endTime:'17:00', startMins:540,  endMins:1020, days:wkdays,  habitId:'', note:''},
+    {id:'rb_training_tue', title:'Work training', category:'learning', startTime:'11:00', endTime:'12:00', startMins:660,  endMins:720,  days:[2],     habitId:'', note:'1 hr session'},
+    {id:'rb_training_thu', title:'Work training', category:'learning', startTime:'13:00', endTime:'14:00', startMins:780,  endMins:840,  days:[4],     habitId:'', note:'1 hr session'},
+    {id:'rb_commute_pm', title:'Commute home',    category:'commute',  startTime:'17:00', endTime:'18:00', startMins:1020, endMins:1080, days:office,  habitId:'', note:''},
+    {id:'rb_vacuum_tue', title:'Vacuum',          category:'personal', startTime:'17:00', endTime:'17:15', startMins:1020, endMins:1035, days:[2],     habitId:'', note:'15 min'},
+    {id:'rb_vacuum_fri', title:'Vacuum',          category:'personal', startTime:'17:00', endTime:'17:15', startMins:1020, endMins:1035, days:[5],     habitId:'', note:'15 min'},
+    {id:'rb_wash_tue',   title:'Washing clothes', category:'home',     startTime:'17:15', endTime:'17:30', startMins:1035, endMins:1050, days:[2],     habitId:'', note:''},
+    {id:'rb_wash_fri',   title:'Washing clothes', category:'home',     startTime:'17:15', endTime:'17:30', startMins:1035, endMins:1050, days:[5],     habitId:'', note:''},
+    {id:'rb_kitchen',    title:'Clean kitchen',   category:'home',     startTime:'17:30', endTime:'18:00', startMins:1050, endMins:1080, days:[2],     habitId:'', note:''},
+    {id:'rb_toilet',     title:'Clean toilet',    category:'home',     startTime:'17:30', endTime:'18:00', startMins:1050, endMins:1080, days:[5],     habitId:'', note:''},
+    {id:'rb_weights_mon',title:'Weight lifting',  category:'health',   startTime:'18:00', endTime:'20:00', startMins:1080, endMins:1200, days:[1],     habitId:'', note:''},
+    {id:'rb_yoga',       title:'Yoga',            category:'health',   startTime:'18:00', endTime:'20:00', startMins:1080, endMins:1200, days:[2],     habitId:'', note:''},
+    {id:'rb_weights_thu',title:'Weight lifting',  category:'health',   startTime:'18:00', endTime:'20:00', startMins:1080, endMins:1200, days:[4],     habitId:'', note:''},
+    {id:'rb_weights_sun',title:'Weight lifting',  category:'health',   startTime:'18:00', endTime:'20:00', startMins:1080, endMins:1200, days:[0],     habitId:'', note:''},
+    {id:'rb_dinner',     title:'Dinner',          category:'food',     startTime:'20:00', endTime:'21:00', startMins:1200, endMins:1260, days:alldays, habitId:'', note:''},
+    {id:'rb_free',       title:'Free time',       category:'personal', startTime:'21:00', endTime:'21:30', startMins:1260, endMins:1290, days:alldays, habitId:'', note:''},
+    {id:'rb_lumio',      title:'Lumio reflection',category:'personal', startTime:'21:30', endTime:'21:45', startMins:1290, endMins:1305, days:alldays, habitId:'', note:'Evening check-in — one win, one improvement'},
+    {id:'rb_winddown',   title:'Wind down',       category:'rest',     startTime:'21:45', endTime:'22:00', startMins:1305, endMins:1320, days:alldays, habitId:'', note:'No screens'},
+    {id:'rb_groceries',  title:'Grocery shopping',category:'personal', startTime:'11:00', endTime:'13:00', startMins:660,  endMins:780,  days:[0],     habitId:'', note:'2 hrs — after meal prep planning'},
+    {id:'rb_mealplan',   title:'Meal prep plan',  category:'food',     startTime:'10:00', endTime:'11:00', startMins:600,  endMins:660,  days:[0],     habitId:'', note:'What to cook this week'},
+    {id:'rb_mealprep',   title:'Meal prep cook',  category:'food',     startTime:'13:00', endTime:'15:00', startMins:780,  endMins:900,  days:[0],     habitId:'', note:'Cook lunches for the week'},
+  ];
+  saveToSupabase();
 }
 
 // ── Update checker ──
@@ -2891,7 +2937,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v1.4 · 15 Apr 2026 8:10 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v1.5 · 18 Apr 2026 1:54 PM AEDT</div>
 
 </body>
 </html>
