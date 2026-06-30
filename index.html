@@ -571,19 +571,21 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="text" id="auth-email" placeholder="you@example.com" autocomplete="email" oninput="clearAuthMessages()">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
-    </div>
-    <div class="form-group" id="auth-confirm-wrap" style="display:none">
-      <label>Confirm password</label>
-      <input type="password" id="auth-confirm" placeholder="••••••••" oninput="clearAuthMessages()">
-    </div>
-    <button class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn" onclick="handleAuth()">Sign in</button>
+    <form id="auth-form" autocomplete="on" onsubmit="event.preventDefault(); handleAuth();">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="auth-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" name="password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
+      </div>
+      <div class="form-group" id="auth-confirm-wrap" style="display:none">
+        <label>Confirm password</label>
+        <input type="password" id="auth-confirm" name="confirm-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
+      </div>
+      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn">Sign in</button>
+    </form>
     <div style="text-align:center;margin-top:14px">
       <button onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:inherit" id="forgot-link">Forgot password?</button>
     </div>
@@ -594,18 +596,20 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <div style="font-size:13px;color:var(--text3);margin-bottom:16px">Choose a new password for your account.</div>
     <div id="reset-error" class="auth-error"></div>
     <div id="reset-success" class="auth-success"></div>
-    <div class="form-group">
-      <label>New password</label>
-      <input type="password" id="reset-password" placeholder="••••••••" oninput="clearResetMessages()">
-    </div>
-    <div class="form-group">
-      <label>Confirm new password</label>
-      <input type="password" id="reset-confirm" placeholder="••••••••" oninput="clearResetMessages()">
-    </div>
-    <button class="btn btn-accent" style="width:100%" onclick="handleSetNewPassword()">Set new password</button>
+    <form id="reset-form" autocomplete="on" onsubmit="event.preventDefault(); handleSetNewPassword();">
+      <div class="form-group">
+        <label>New password</label>
+        <input type="password" id="reset-password" name="new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearResetMessages()">
+      </div>
+      <div class="form-group">
+        <label>Confirm new password</label>
+        <input type="password" id="reset-confirm" name="confirm-new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearResetMessages()">
+      </div>
+      <button type="submit" class="btn btn-accent" style="width:100%">Set new password</button>
+    </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:39 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:43 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1208,9 +1212,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.2 · 30 Jun 2026 10:39 PM AEDT';
-const BUILD_VERSION = 'v2.2';
-const BUILD_DISPLAY = '30 Jun 2026 10:39 PM AEDT';
+const BUILD = 'v2.3 · 30 Jun 2026 10:43 PM AEDT';
+const BUILD_VERSION = 'v2.3';
+const BUILD_DISPLAY = '30 Jun 2026 10:43 PM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -3022,7 +3026,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.2 · 30 Jun 2026 10:39 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.3 · 30 Jun 2026 10:43 PM AEDT</div>
 
 </body>
 </html>
