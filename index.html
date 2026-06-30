@@ -60,9 +60,13 @@ html, body {
 
 /* ── iOS Pill Nav ── */
 .nav-wrap {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  z-index: 100; width: calc(100% - 32px); max-width: 448px;
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  z-index: 100; width: 100%; max-width: 480px;
+  background: var(--bg);
+  padding: 8px 16px 20px;
+  display: none; /* hidden until logged in */
 }
+.nav-wrap.visible { display: block; }
 nav {
   display: flex; align-items: center;
   background: rgba(30,26,16,0.88);
@@ -678,7 +682,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 8:47 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 9:31 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1308,8 +1312,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v2.4</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 8:47 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v2.5</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 9:31 AM AEDT</div>
     </div>
   </div>
 </div>
@@ -1319,9 +1323,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.4 · 01 Jul 2026 8:47 AM AEDT';
-const BUILD_VERSION = 'v2.4';
-const BUILD_DISPLAY = '01 Jul 2026 8:47 AM AEDT';
+const BUILD = 'v2.5 · 01 Jul 2026 9:31 AM AEDT';
+const BUILD_VERSION = 'v2.5';
+const BUILD_DISPLAY = '01 Jul 2026 9:31 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1442,6 +1446,7 @@ async function handleSignOut() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('user-bar').classList.remove('visible');
   document.getElementById('update-banner').style.display = 'none';
+  document.querySelector('.nav-wrap').classList.remove('visible');
   document.getElementById('auth-screen').classList.add('visible');
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -1480,6 +1485,7 @@ async function onAuthSuccess() {
   document.getElementById('user-email-display').textContent = currentUser.email;
   document.getElementById('user-bar').classList.add('visible');
   document.getElementById('app').style.display = 'block';
+  document.querySelector('.nav-wrap').classList.add('visible');
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   initSettings();
@@ -1537,14 +1543,31 @@ function seedDefaultRoutine() {
 }
 
 // ── Update checker ──
+function parseVersion(v) {
+  // Parse 'v2.4' -> [2, 4] for numeric comparison
+  return (v || '').replace(/^v/, '').split('.').map(Number);
+}
+
+function isNewerVersion(remote, current) {
+  const r = parseVersion(remote), c = parseVersion(current);
+  for (let i = 0; i < Math.max(r.length, c.length); i++) {
+    const rv = r[i] || 0, cv = c[i] || 0;
+    if (rv > cv) return true;
+    if (rv < cv) return false;
+  }
+  return false;
+}
+
 async function checkForUpdate() {
   try {
     const res = await fetch(SUPABASE_URL + `/rest/v1/lumio_meta?id=eq.version`, {
       headers: authHeaders()
     });
     const rows = await res.json();
-    if (rows && rows.length && rows[0].value && rows[0].value !== BUILD_VERSION) {
-      document.getElementById('update-banner').style.display = 'block';
+    if (rows && rows.length && rows[0].value) {
+      if (isNewerVersion(rows[0].value, BUILD_VERSION)) {
+        document.getElementById('update-banner').style.display = 'block';
+      }
     }
   } catch(e) {}
 }
@@ -3242,7 +3265,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.4 · 01 Jul 2026 8:47 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.5 · 01 Jul 2026 9:31 AM AEDT</div>
 
 </body>
 </html>
