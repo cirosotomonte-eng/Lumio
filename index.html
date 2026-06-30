@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f8f4ed">
+<meta name="theme-color" content="#f8f4ed" id="theme-color-meta">
 <title>Lumio</title>
 <link rel="manifest" href="manifest.json">
 <style>
@@ -28,6 +28,20 @@
   --danger-bg: #faeae6;
   --rad:       10px;
   --rad-lg:    14px;
+}
+
+html[data-theme="dark"] {
+  --bg:        #16140f;
+  --surface:   #201d17;
+  --surface2:  #2a261e;
+  --border:    #3a352a;
+  --border2:   #4a4436;
+  --text:      #f0ece2;
+  --text2:     #b8b0a0;
+  --text3:     #7a7264;
+  --accent-bg: #3a2a12;
+  --accent2-bg:#16301f;
+  --danger-bg: #3a1a16;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -120,7 +134,7 @@ nav {
 .btn-icon { padding: 6px; border-radius: 8px; }
 
 /* ── Inputs ── */
-input[type=text], input[type=password], input[type=number], input[type=time], textarea, select {
+input[type=text], input[type=email], input[type=password], input[type=number], input[type=time], textarea, select {
   width: 100%; padding: 9px 12px;
   border: 0.5px solid var(--border2);
   border-radius: var(--rad);
@@ -128,7 +142,7 @@ input[type=text], input[type=password], input[type=number], input[type=time], te
   font-family: inherit; font-size: 14px;
   outline: none; transition: border-color 0.15s;
 }
-input[type=text]:focus, input[type=password]:focus, input[type=number]:focus, input[type=time]:focus, textarea:focus, select:focus {
+input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, input[type=number]:focus, input[type=time]:focus, textarea:focus, select:focus {
   border-color: var(--accent);
 }
 textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
@@ -557,6 +571,47 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .time-row { display: flex; gap: 8px; align-items: center; }
 .time-row span { font-size: 13px; color: var(--text3); }
 .time-row input { flex: 1; }
+
+/* ── Settings ── */
+.settings-cog-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 0.5px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2); flex-shrink: 0;
+  transition: background 0.15s, transform 0.2s;
+}
+.settings-cog-btn:hover { background: var(--surface2); }
+.settings-cog-btn:active { transform: rotate(45deg); }
+.settings-cog-btn svg { width: 17px; height: 17px; }
+
+.settings-section { margin-bottom: 22px; }
+.settings-section:last-child { margin-bottom: 0; }
+.settings-label { font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); font-weight: 500; margin-bottom: 10px; }
+
+.theme-segment { display: flex; background: var(--surface2); border-radius: 100px; padding: 3px; gap: 2px; }
+.theme-seg-btn {
+  flex: 1; padding: 8px 4px; border-radius: 100px; text-align: center;
+  font-size: 13px; color: var(--text2); cursor: pointer; border: none; background: none;
+  font-family: inherit; transition: background 0.15s, color 0.15s;
+}
+.theme-seg-btn.active { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+.accent-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.accent-swatch {
+  aspect-ratio: 1; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+}
+.accent-swatch:active { transform: scale(0.92); }
+.accent-swatch.selected { border-color: var(--text); }
+.accent-swatch svg { width: 16px; height: 16px; display: none; }
+.accent-swatch.selected svg { display: block; }
+.accent-name { font-size: 9px; text-align: center; margin-top: 4px; color: var(--text3); }
+
+.settings-version { text-align: center; padding-top: 16px; border-top: 0.5px solid var(--border); }
+.settings-version-num { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: var(--text); }
+.settings-version-time { font-size: 12px; color: var(--text3); margin-top: 2px; }
 </style>
 <body>
 <!-- ══════════════════════════════ AUTH SCREEN ══════════════════════════════ -->
@@ -571,22 +626,36 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
-    <form id="auth-form" autocomplete="on" onsubmit="event.preventDefault(); handleAuth();">
+
+    <form id="login-form" autocomplete="on" onsubmit="event.preventDefault(); handleAuth('login');">
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="auth-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
+        <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="auth-password" name="password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
+        <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
       </div>
-      <div class="form-group" id="auth-confirm-wrap" style="display:none">
-        <label>Confirm password</label>
-        <input type="password" id="auth-confirm" name="confirm-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
-      </div>
-      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn">Sign in</button>
+      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="login-submit-btn">Sign in</button>
     </form>
-    <div style="text-align:center;margin-top:14px">
+
+    <form id="signup-form" autocomplete="on" style="display:none" onsubmit="event.preventDefault(); handleAuth('signup');">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signup-password" name="new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
+      </div>
+      <div class="form-group">
+        <label>Confirm password</label>
+        <input type="password" id="signup-confirm" name="confirm-new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
+      </div>
+      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="signup-submit-btn">Create account</button>
+    </form>
+
+    <div style="text-align:center;margin-top:14px" id="forgot-wrap">
       <button onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:inherit" id="forgot-link">Forgot password?</button>
     </div>
   </div>
@@ -609,7 +678,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:43 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 8:47 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -636,7 +705,12 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         <div class="page-title" id="today-greeting">Good morning</div>
         <div class="page-sub" id="today-date"></div>
       </div>
-      <div id="today-streak-badge"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="today-streak-badge"></div>
+        <button class="settings-cog-btn" onclick="openModal('modal-settings')" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 14.6a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.18.6.55.6.95V10a2 2 0 010 4h-.09c-.4 0-.77.24-.95.6z"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="stats-row">
@@ -1207,14 +1281,47 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
   </div>
 </div>
 
+<!-- Settings modal -->
+<div class="modal-overlay" id="modal-settings" onclick="closeModalOutside(event,'modal-settings')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Settings</div>
+      <button class="modal-close" onclick="closeModal('modal-settings')">×</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">Appearance</div>
+      <div class="theme-segment">
+        <button class="theme-seg-btn" id="theme-seg-auto" onclick="setThemeMode('auto')">Auto</button>
+        <button class="theme-seg-btn" id="theme-seg-light" onclick="setThemeMode('light')">Light</button>
+        <button class="theme-seg-btn" id="theme-seg-dark" onclick="setThemeMode('dark')">Dark</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">Accent colour</div>
+      <div class="accent-grid" id="accent-grid"></div>
+    </div>
+
+    <div class="settings-section" style="margin-top:4px">
+      <button class="btn" style="width:100%;color:var(--danger)" onclick="handleSignOut()">Sign out</button>
+    </div>
+
+    <div class="settings-version">
+      <div class="settings-version-num" id="settings-version-num">Lumio v2.4</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 8:47 AM AEDT</div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════ SCRIPTS ══════════════════════════════ -->
 <script>
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.3 · 30 Jun 2026 10:43 PM AEDT';
-const BUILD_VERSION = 'v2.3';
-const BUILD_DISPLAY = '30 Jun 2026 10:43 PM AEDT';
+const BUILD = 'v2.4 · 01 Jul 2026 8:47 AM AEDT';
+const BUILD_VERSION = 'v2.4';
+const BUILD_DISPLAY = '01 Jul 2026 8:47 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1248,6 +1355,7 @@ let state = {
   pomoLog: {},
   routine: [],        // array of block objects
   routineDone: {},    // { 'YYYY-MM-DD': { blockId: true } }
+  settings: { accentColor: 'amber', themeMode: 'auto' },
 };
 
 // ── Auth ──
@@ -1256,17 +1364,17 @@ function authHeaders(useUserToken = false) {
   return { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
-async function handleAuth() {
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const isSignup = document.getElementById('auth-tab-signup').classList.contains('active');
+async function handleAuth(mode) {
+  const isSignup = mode === 'signup';
+  const email = document.getElementById(isSignup ? 'signup-email' : 'login-email').value.trim();
+  const password = document.getElementById(isSignup ? 'signup-password' : 'login-password').value;
   const errEl = document.getElementById('auth-error');
   const sucEl = document.getElementById('auth-success');
-  const btn = document.getElementById('auth-submit-btn');
+  const btn = document.getElementById(isSignup ? 'signup-submit-btn' : 'login-submit-btn');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
   if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
   if (isSignup) {
-    const confirm = document.getElementById('auth-confirm').value;
+    const confirm = document.getElementById('signup-confirm').value;
     if (password !== confirm) { showAuthError('Passwords do not match.'); return; }
     if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
   }
@@ -1286,7 +1394,7 @@ async function handleAuth() {
       sucEl.textContent = 'Account created! Please check your email to confirm, then sign in.';
       sucEl.style.display = 'block';
       switchAuthTab('login');
-      btn.disabled = false; btn.textContent = 'Sign in';
+      btn.disabled = false; btn.textContent = 'Create account';
       return;
     }
     authToken = data.access_token;
@@ -1301,7 +1409,7 @@ async function handleAuth() {
 }
 
 async function handleForgotPassword() {
-  const email = document.getElementById('auth-email').value.trim();
+  const email = document.getElementById('login-email').value.trim();
   if (!email) { showAuthError('Enter your email address first.'); return; }
   try {
     const redirectUrl = encodeURIComponent('https://cirosotomonte-eng.github.io/Lumio/');
@@ -1335,9 +1443,10 @@ async function handleSignOut() {
   document.getElementById('user-bar').classList.remove('visible');
   document.getElementById('update-banner').style.display = 'none';
   document.getElementById('auth-screen').classList.add('visible');
-  document.getElementById('auth-email').value = '';
-  document.getElementById('auth-password').value = '';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
   document.getElementById('auth-error').style.display = 'none';
+  startAutofillPoller();
 }
 
 function showAuthError(msg) {
@@ -1359,9 +1468,9 @@ function switchAuthTab(tab) {
   const isSignup = tab === 'signup';
   document.getElementById('auth-tab-login').classList.toggle('active', !isSignup);
   document.getElementById('auth-tab-signup').classList.toggle('active', isSignup);
-  document.getElementById('auth-confirm-wrap').style.display = isSignup ? 'block' : 'none';
-  document.getElementById('auth-submit-btn').textContent = isSignup ? 'Create account' : 'Sign in';
-  document.getElementById('forgot-link').style.display = isSignup ? 'none' : 'inline';
+  document.getElementById('login-form').style.display = isSignup ? 'none' : 'block';
+  document.getElementById('signup-form').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('forgot-wrap').style.display = isSignup ? 'none' : 'block';
   document.getElementById('auth-error').style.display = 'none';
   document.getElementById('auth-success').style.display = 'none';
 }
@@ -1373,6 +1482,7 @@ async function onAuthSuccess() {
   document.getElementById('app').style.display = 'block';
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
+  initSettings();
   await checkForUpdate();
   renderQuote();
   renderToday();
@@ -2226,6 +2336,7 @@ function openModal(id) {
   }
   document.getElementById(id).classList.add('open');
   if (id === 'modal-skill') renderSkillEditor();
+  if (id === 'modal-settings') renderSettingsModal();
 }
 
 function populateHabitLinkSelect(selectedId) {
@@ -2276,6 +2387,110 @@ function deleteRoutineBlock() {
   closeModal('modal-routine-block');
   saveToSupabase();
   renderRoutineTimeline();
+}
+
+// ── iOS autofill poller ──
+// iOS autofill does not reliably fire input/change events.
+// Poll for both fields being populated and auto-submit (login mode only).
+let _autofillPoller = null;
+function startAutofillPoller() {
+  stopAutofillPoller();
+  _autofillPoller = setInterval(() => {
+    const loginForm = document.getElementById('login-form');
+    if (!loginForm || loginForm.style.display === 'none') return;
+    const email = document.getElementById('login-email');
+    const pass  = document.getElementById('login-password');
+    const btn   = document.getElementById('login-submit-btn');
+    if (email && pass && email.value.trim() && pass.value && btn && !btn.disabled) {
+      stopAutofillPoller();
+      setTimeout(() => handleAuth('login'), 400);
+    }
+  }, 300);
+}
+function stopAutofillPoller() {
+  if (_autofillPoller) { clearInterval(_autofillPoller); _autofillPoller = null; }
+}
+
+// ── Settings (theme + accent colour) ──
+const ACCENT_PALETTE = {
+  amber:    { name: 'Amber',    accent: '#b87820', accentBg: '#fdf0d0', accentBgDark: '#3a2a12' },
+  teal:     { name: 'Teal',     accent: '#1a8a7a', accentBg: '#dcf2ee', accentBgDark: '#0f2e28' },
+  coral:    { name: 'Coral',    accent: '#d4623a', accentBg: '#fde4d8', accentBgDark: '#3a1f14' },
+  lavender: { name: 'Lavender', accent: '#7858c4', accentBg: '#ece4fa', accentBgDark: '#241b3a' },
+  sage:     { name: 'Sage',     accent: '#5a8a4a', accentBg: '#e6f0e0', accentBgDark: '#1e2e16' },
+  sky:      { name: 'Sky',      accent: '#2a7ec0', accentBg: '#dcedf8', accentBgDark: '#122838' },
+};
+
+function applyAccentColor(name) {
+  const p = ACCENT_PALETTE[name] || ACCENT_PALETTE.amber;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.style.setProperty('--accent', p.accent);
+  document.documentElement.style.setProperty('--accent-bg', isDark ? p.accentBgDark : p.accentBg);
+  const ring = document.getElementById('pomo-ring');
+  if (ring && pomoState && pomoState.mode === 'focus') ring.style.stroke = p.accent;
+}
+
+function resolveThemeMode(mode) {
+  if (mode === 'auto') {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return mode;
+}
+
+function applyThemeMode(mode) {
+  const resolved = resolveThemeMode(mode);
+  document.documentElement.setAttribute('data-theme', resolved);
+  document.getElementById('theme-color-meta')?.setAttribute('content', resolved === 'dark' ? '#16140f' : '#f8f4ed');
+  applyAccentColor(state.settings.accentColor); // re-apply so accent-bg matches dark/light variant
+}
+
+function setThemeMode(mode) {
+  state.settings.themeMode = mode;
+  applyThemeMode(mode);
+  renderSettingsModal();
+  saveToSupabase();
+}
+
+function setAccentColor(name) {
+  state.settings.accentColor = name;
+  applyAccentColor(name);
+  renderSettingsModal();
+  saveToSupabase();
+}
+
+function renderSettingsModal() {
+  const s = state.settings || { accentColor: 'amber', themeMode: 'auto' };
+  ['auto', 'light', 'dark'].forEach(m => {
+    const el = document.getElementById('theme-seg-' + m);
+    if (el) el.classList.toggle('active', s.themeMode === m);
+  });
+  const grid = document.getElementById('accent-grid');
+  if (grid) {
+    grid.innerHTML = Object.entries(ACCENT_PALETTE).map(([key, p]) => `
+      <div>
+        <div class="accent-swatch ${s.accentColor === key ? 'selected' : ''}" style="background:${p.accent}" onclick="setAccentColor('${key}')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg>
+        </div>
+        <div class="accent-name">${p.name}</div>
+      </div>`).join('');
+  }
+  const verNum = document.getElementById('settings-version-num');
+  const verTime = document.getElementById('settings-version-time');
+  if (verNum) verNum.textContent = 'Lumio ' + BUILD_VERSION;
+  if (verTime) verTime.textContent = BUILD_DISPLAY;
+}
+
+function initSettings() {
+  if (!state.settings) state.settings = { accentColor: 'amber', themeMode: 'auto' };
+  if (!state.settings.accentColor) state.settings.accentColor = 'amber';
+  if (!state.settings.themeMode) state.settings.themeMode = 'auto';
+  applyThemeMode(state.settings.themeMode);
+  renderSettingsModal();
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (state.settings.themeMode === 'auto') applyThemeMode('auto');
+    });
+  }
 }
 
 // ── Pomodoro ──
@@ -3020,13 +3235,14 @@ async function init() {
     localStorage.removeItem('lumio_user');
   }
   document.getElementById('auth-screen').classList.add('visible');
+  startAutofillPoller();
 }
 
 init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.3 · 30 Jun 2026 10:43 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.4 · 01 Jul 2026 8:47 AM AEDT</div>
 
 </body>
 </html>
