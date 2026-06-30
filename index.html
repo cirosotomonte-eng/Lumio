@@ -245,9 +245,25 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
   font-size: 16px; line-height: 1; padding: 0 2px; flex-shrink: 0; margin-top: 1px;
 }
 .focus-delete:hover { color: var(--danger); }
-.focus-done-header {
+.focus-section-header {
   font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
-  color: var(--text3); font-weight: 500; margin: 12px 0 4px;
+  font-weight: 500; margin: 12px 0 4px; padding-top: 10px;
+  border-top: 0.5px solid var(--border);
+}
+.focus-section-header.overdue   { color: var(--danger); }
+.focus-section-header.done-hdr  { color: var(--accent2); }
+.focus-section-header.history-hdr { color: var(--text3); margin-top: 14px; }
+.focus-item.overdue .focus-check { border-color: var(--danger); }
+.focus-item.overdue .focus-check.done { background: var(--danger); border-color: var(--danger); }
+.focus-item.past { opacity: 0.75; }
+.focus-item.past .focus-item-text { color: var(--text2); }
+.focus-day-label {
+  font-size: 11px; color: var(--text3); font-weight: 500;
+  padding: 8px 0 4px; border-top: 0.5px solid var(--border); margin-top: 4px;
+}
+.focus-day-label:first-child { border-top: none; padding-top: 0; }
+.focus-copy-toast {
+  font-size: 12px; color: var(--accent2); padding: 4px 0; text-align: center;
 }
 .focus-empty { font-size: 13px; color: var(--text3); padding: 8px 0; }
 
@@ -711,7 +727,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 9:43 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 9:50 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -778,10 +794,30 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         <input type="text" id="focus-new-input" placeholder="Add a focus item…" onkeydown="if(event.key==='Enter')addFocusItem()">
         <button class="btn btn-accent btn-sm" onclick="addFocusItem()">Add</button>
       </div>
+      <div id="focus-overdue-section" style="display:none">
+        <div class="focus-section-header overdue">
+          <span>Overdue</span>
+        </div>
+        <div id="focus-overdue-list"></div>
+      </div>
       <div id="focus-active-list"></div>
       <div id="focus-done-section" style="display:none">
-        <div class="focus-done-header">Done</div>
+        <div class="focus-section-header done-hdr">
+          <span>Done today</span>
+        </div>
         <div id="focus-done-list"></div>
+      </div>
+      <div id="focus-history-section" style="display:none">
+        <div class="focus-section-header history-hdr">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span>This week</span>
+            <button class="btn btn-sm" onclick="copyFocusHistory()" style="font-size:11px;padding:3px 8px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+        </div>
+        <div id="focus-history-list"></div>
       </div>
     </div>
 
@@ -1325,8 +1361,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v2.6</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 9:43 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v2.7</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 9:50 AM AEDT</div>
     </div>
   </div>
 </div>
@@ -1336,9 +1372,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.6 · 01 Jul 2026 9:43 AM AEDT';
-const BUILD_VERSION = 'v2.6';
-const BUILD_DISPLAY = '01 Jul 2026 9:43 AM AEDT';
+const BUILD = 'v2.7 · 01 Jul 2026 9:50 AM AEDT';
+const BUILD_VERSION = 'v2.7';
+const BUILD_DISPLAY = '01 Jul 2026 9:50 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1712,7 +1748,10 @@ function addFocusItem() {
 function toggleFocusItem(id) {
   if (!state.focusItems) return;
   const item = state.focusItems.find(i => i.id === id);
-  if (item) { item.done = !item.done; item.doneDate = item.done ? todayDateKey() : null; }
+  if (!item) return;
+  item.done = !item.done;
+  item.doneDate = item.done ? todayDateKey() : null;
+  // If completing an overdue item, move its doneDate to today
   saveToSupabase();
   renderFocusList();
 }
@@ -1724,41 +1763,146 @@ function deleteFocusItem(id) {
   renderFocusList();
 }
 
+function focusDaysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return dateKey(d);
+}
+
+function focusDayLabel(dateStr) {
+  const today = todayDateKey();
+  const yesterday = focusDaysAgo(1);
+  if (dateStr === today) return 'Today';
+  if (dateStr === yesterday) return 'Yesterday';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
 function renderFocusList() {
   if (!state.focusItems) state.focusItems = [];
   const today = todayDateKey();
-  // Show today's items plus any undone items from previous days
-  const visible = state.focusItems.filter(i => i.createdDate === today || !i.done);
-  const active = visible.filter(i => !i.done);
-  const done   = visible.filter(i => i.done);
 
-  const activeEl = document.getElementById('focus-active-list');
-  const doneEl   = document.getElementById('focus-done-list');
-  const doneSec  = document.getElementById('focus-done-section');
+  // Prune items older than 7 days to keep state lean
+  const cutoff = focusDaysAgo(7);
+  state.focusItems = state.focusItems.filter(i => i.createdDate >= cutoff);
+
+  // --- Today active (created today, not done) ---
+  const todayActive = state.focusItems.filter(i => i.createdDate === today && !i.done);
+
+  // --- Overdue (created before today, not done) ---
+  const overdue = state.focusItems.filter(i => i.createdDate < today && !i.done);
+
+  // --- Done today ---
+  const doneToday = state.focusItems.filter(i => i.done && i.doneDate === today);
+
+  // --- History: done items from the past 7 days (not today), grouped by doneDate ---
+  const doneHistory = state.focusItems
+    .filter(i => i.done && i.doneDate && i.doneDate !== today && i.doneDate >= cutoff)
+    .sort((a, b) => b.doneDate.localeCompare(a.doneDate));
+
+  const activeEl   = document.getElementById('focus-active-list');
+  const overdueEl  = document.getElementById('focus-overdue-list');
+  const overdueSec = document.getElementById('focus-overdue-section');
+  const doneEl     = document.getElementById('focus-done-list');
+  const doneSec    = document.getElementById('focus-done-section');
+  const histEl     = document.getElementById('focus-history-list');
+  const histSec    = document.getElementById('focus-history-section');
   if (!activeEl) return;
 
-  if (!active.length) {
-    activeEl.innerHTML = `<div class="focus-empty">No focus items yet — add one above</div>`;
+  // Active today
+  activeEl.innerHTML = todayActive.length
+    ? todayActive.map(i => focusItemHTML(i, false, false)).join('')
+    : `<div class="focus-empty">No focus items yet — add one above</div>`;
+
+  // Overdue
+  if (overdue.length) {
+    overdueSec.style.display = 'block';
+    overdueEl.innerHTML = overdue.map(i => focusItemHTML(i, true, false)).join('');
   } else {
-    activeEl.innerHTML = active.map(item => focusItemHTML(item)).join('');
+    overdueSec.style.display = 'none';
   }
 
-  if (done.length) {
+  // Done today
+  if (doneToday.length) {
     doneSec.style.display = 'block';
-    doneEl.innerHTML = done.map(item => focusItemHTML(item)).join('');
+    doneEl.innerHTML = doneToday.map(i => focusItemHTML(i, false, false)).join('');
   } else {
     doneSec.style.display = 'none';
   }
+
+  // Rolling week history grouped by day
+  if (doneHistory.length) {
+    histSec.style.display = 'block';
+    const byDay = {};
+    doneHistory.forEach(i => {
+      if (!byDay[i.doneDate]) byDay[i.doneDate] = [];
+      byDay[i.doneDate].push(i);
+    });
+    histEl.innerHTML = Object.entries(byDay)
+      .sort(([a],[b]) => b.localeCompare(a))
+      .map(([date, items]) =>
+        `<div class="focus-day-label">${focusDayLabel(date)}</div>` +
+        items.map(i => focusItemHTML(i, false, true)).join('')
+      ).join('');
+  } else {
+    histSec.style.display = 'none';
+  }
 }
 
-function focusItemHTML(item) {
-  return `<div class="focus-item">
-    <div class="focus-check ${item.done ? 'done' : ''}" onclick="toggleFocusItem('${item.id}')">
+function focusItemHTML(item, isOverdue, isPast) {
+  const classes = ['focus-item', isOverdue ? 'overdue' : '', isPast ? 'past' : ''].filter(Boolean).join(' ');
+  const textClass = ['focus-item-text', item.done ? 'done' : ''].filter(Boolean).join(' ');
+  // Past done items are read-only — no toggle, no delete
+  const checkClick = isPast ? '' : `onclick="toggleFocusItem('${item.id}')"`;
+  const deleteBtn  = isPast ? '' : `<button class="focus-delete" onclick="deleteFocusItem('${item.id}')" title="Remove">×</button>`;
+  return `<div class="${classes}">
+    <div class="focus-check ${item.done ? 'done' : ''}" ${checkClick} style="${isPast ? 'cursor:default' : ''}">
       <svg viewBox="0 0 11 11" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,5.5 4.5,8.5 9.5,2.5"/></svg>
     </div>
-    <div class="focus-item-text ${item.done ? 'done' : ''}">${item.text}</div>
-    <button class="focus-delete" onclick="deleteFocusItem('${item.id}')" title="Remove">×</button>
+    <div class="${textClass}">${item.text}</div>
+    ${deleteBtn}
   </div>`;
+}
+
+function copyFocusHistory() {
+  if (!state.focusItems) return;
+  const today = todayDateKey();
+  const cutoff = focusDaysAgo(7);
+
+  // Build standup-ready text grouped by day
+  const doneItems = state.focusItems
+    .filter(i => i.done && i.doneDate && i.doneDate >= cutoff)
+    .sort((a, b) => b.doneDate.localeCompare(a.doneDate));
+
+  if (!doneItems.length) return;
+
+  const byDay = {};
+  doneItems.forEach(i => {
+    if (!byDay[i.doneDate]) byDay[i.doneDate] = [];
+    byDay[i.doneDate].push(i);
+  });
+
+  const text = Object.entries(byDay)
+    .sort(([a],[b]) => b.localeCompare(a))
+    .map(([date, items]) =>
+      `${focusDayLabel(date)}:\n` + items.map(i => `  ✓ ${i.text}`).join('\n')
+    ).join('\n\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    // Flash a toast inside the history section
+    const histEl = document.getElementById('focus-history-list');
+    const toast = document.createElement('div');
+    toast.className = 'focus-copy-toast';
+    toast.textContent = '✓ Copied to clipboard';
+    histEl.prepend(toast);
+    setTimeout(() => toast.remove(), 2000);
+  }).catch(() => {
+    // Fallback for older iOS
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
 }
 
 function saveReflection() {
@@ -3340,7 +3484,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.6 · 01 Jul 2026 9:43 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.7 · 01 Jul 2026 9:50 AM AEDT</div>
 
 </body>
 </html>
