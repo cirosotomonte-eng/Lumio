@@ -222,6 +222,35 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .focus-label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; margin-bottom: 4px; }
 .focus-text { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; }
 
+/* ── Focus list ── */
+.focus-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.focus-add-row input { flex: 1; }
+.focus-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-bottom: 0.5px solid var(--border);
+}
+.focus-item:last-child { border-bottom: none; }
+.focus-check {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+  border: 1.5px solid var(--border2); background: var(--surface); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.focus-check.done { background: var(--accent2); border-color: var(--accent2); }
+.focus-check svg { display: none; width: 11px; height: 11px; }
+.focus-check.done svg { display: block; }
+.focus-item-text { flex: 1; font-size: 14px; color: var(--text); line-height: 1.5; }
+.focus-item-text.done { text-decoration: line-through; color: var(--text3); }
+.focus-delete {
+  border: none; background: none; cursor: pointer; color: var(--text3);
+  font-size: 16px; line-height: 1; padding: 0 2px; flex-shrink: 0; margin-top: 1px;
+}
+.focus-delete:hover { color: var(--danger); }
+.focus-done-header {
+  font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+  color: var(--text3); font-weight: 500; margin: 12px 0 4px;
+}
+.focus-empty { font-size: 13px; color: var(--text3); padding: 8px 0; }
+
 /* ── KB entry ── */
 .kb-entry { padding: 12px 0; border-bottom: 0.5px solid var(--border); }
 .kb-entry:last-child { border-bottom: none; }
@@ -682,7 +711,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 9:31 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 9:43 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -745,15 +774,14 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="card mb-12">
       <div class="card-label">Today's focus</div>
-      <div id="focus-display">
-        <div class="focus-box" id="focus-box-content">
-          <div class="focus-label">Single focus</div>
-          <div class="focus-text" id="focus-text-display">Tap to set your focus for today</div>
-        </div>
-        <button class="btn btn-sm mt-8" onclick="openModal('modal-focus')">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h5v5M13 3l-8 8M5 6H3v7h7v-2"/></svg>
-          Edit focus
-        </button>
+      <div class="focus-add-row">
+        <input type="text" id="focus-new-input" placeholder="Add a focus item…" onkeydown="if(event.key==='Enter')addFocusItem()">
+        <button class="btn btn-accent btn-sm" onclick="addFocusItem()">Add</button>
+      </div>
+      <div id="focus-active-list"></div>
+      <div id="focus-done-section" style="display:none">
+        <div class="focus-done-header">Done</div>
+        <div id="focus-done-list"></div>
       </div>
     </div>
 
@@ -1063,21 +1091,6 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
 <!-- ══════════════════════════════ MODALS ══════════════════════════════ -->
 
-<!-- Focus modal -->
-<div class="modal-overlay" id="modal-focus" onclick="closeModalOutside(event,'modal-focus')">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Set today's focus</div>
-      <button class="modal-close" onclick="closeModal('modal-focus')">×</button>
-    </div>
-    <div class="form-group">
-      <label>What's the one thing that matters most today?</label>
-      <input type="text" id="focus-input" placeholder="e.g. Run discovery session for BFR-2652">
-    </div>
-    <button class="btn btn-accent" style="width:100%" onclick="saveFocus()">Set focus</button>
-  </div>
-</div>
-
 <!-- Habit modal -->
 <div class="modal-overlay" id="modal-habit" onclick="closeModalOutside(event,'modal-habit')">
   <div class="modal">
@@ -1312,8 +1325,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v2.5</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 9:31 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v2.6</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 9:43 AM AEDT</div>
     </div>
   </div>
 </div>
@@ -1323,9 +1336,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.5 · 01 Jul 2026 9:31 AM AEDT';
-const BUILD_VERSION = 'v2.5';
-const BUILD_DISPLAY = '01 Jul 2026 9:31 AM AEDT';
+const BUILD = 'v2.6 · 01 Jul 2026 9:43 AM AEDT';
+const BUILD_VERSION = 'v2.6';
+const BUILD_DISPLAY = '01 Jul 2026 9:43 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1338,7 +1351,8 @@ const PROXIES = [
 
 // ── State ──
 let state = {
-  focus: '',
+  focus: '',           // legacy — kept for data compat, unused
+  focusItems: [],      // { id, text, done, createdDate }
   habits: [],
   habitLog: {},
   goals: [],
@@ -1646,8 +1660,8 @@ function renderToday() {
   document.getElementById('stat-pomo').textContent = state.pomoLog[todayKey] || 0;
 
   const focusEl = document.getElementById('focus-text-display');
-  focusEl.textContent = state.focus || 'Tap to set your focus for today';
-  if (state.focus) document.getElementById('focus-input').value = state.focus;
+  if (focusEl) focusEl.textContent = state.focus || 'Tap to set your focus for today';
+  renderFocusList();
 
   const listEl = document.getElementById('today-habits-list');
   if (!state.habits.length) {
@@ -1679,11 +1693,72 @@ function toggleTodayHabit(id) {
   renderHabits();
 }
 
-function saveFocus() {
-  state.focus = document.getElementById('focus-input').value.trim();
-  closeModal('modal-focus');
+function addFocusItem() {
+  const inp = document.getElementById('focus-new-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!state.focusItems) state.focusItems = [];
+  state.focusItems.push({
+    id: 'fi' + Date.now(),
+    text,
+    done: false,
+    createdDate: todayDateKey()
+  });
+  inp.value = '';
   saveToSupabase();
-  renderToday();
+  renderFocusList();
+}
+
+function toggleFocusItem(id) {
+  if (!state.focusItems) return;
+  const item = state.focusItems.find(i => i.id === id);
+  if (item) { item.done = !item.done; item.doneDate = item.done ? todayDateKey() : null; }
+  saveToSupabase();
+  renderFocusList();
+}
+
+function deleteFocusItem(id) {
+  if (!state.focusItems) return;
+  state.focusItems = state.focusItems.filter(i => i.id !== id);
+  saveToSupabase();
+  renderFocusList();
+}
+
+function renderFocusList() {
+  if (!state.focusItems) state.focusItems = [];
+  const today = todayDateKey();
+  // Show today's items plus any undone items from previous days
+  const visible = state.focusItems.filter(i => i.createdDate === today || !i.done);
+  const active = visible.filter(i => !i.done);
+  const done   = visible.filter(i => i.done);
+
+  const activeEl = document.getElementById('focus-active-list');
+  const doneEl   = document.getElementById('focus-done-list');
+  const doneSec  = document.getElementById('focus-done-section');
+  if (!activeEl) return;
+
+  if (!active.length) {
+    activeEl.innerHTML = `<div class="focus-empty">No focus items yet — add one above</div>`;
+  } else {
+    activeEl.innerHTML = active.map(item => focusItemHTML(item)).join('');
+  }
+
+  if (done.length) {
+    doneSec.style.display = 'block';
+    doneEl.innerHTML = done.map(item => focusItemHTML(item)).join('');
+  } else {
+    doneSec.style.display = 'none';
+  }
+}
+
+function focusItemHTML(item) {
+  return `<div class="focus-item">
+    <div class="focus-check ${item.done ? 'done' : ''}" onclick="toggleFocusItem('${item.id}')">
+      <svg viewBox="0 0 11 11" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,5.5 4.5,8.5 9.5,2.5"/></svg>
+    </div>
+    <div class="focus-item-text ${item.done ? 'done' : ''}">${item.text}</div>
+    <button class="focus-delete" onclick="deleteFocusItem('${item.id}')" title="Remove">×</button>
+  </div>`;
 }
 
 function saveReflection() {
@@ -3265,7 +3340,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.5 · 01 Jul 2026 9:31 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.6 · 01 Jul 2026 9:43 AM AEDT</div>
 
 </body>
 </html>
