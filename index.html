@@ -120,7 +120,7 @@ nav {
 .btn-icon { padding: 6px; border-radius: 8px; }
 
 /* ── Inputs ── */
-input[type=text], input[type=number], textarea, select {
+input[type=text], input[type=password], input[type=number], input[type=time], textarea, select {
   width: 100%; padding: 9px 12px;
   border: 0.5px solid var(--border2);
   border-radius: var(--rad);
@@ -128,7 +128,7 @@ input[type=text], input[type=number], textarea, select {
   font-family: inherit; font-size: 14px;
   outline: none; transition: border-color 0.15s;
 }
-input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus {
+input[type=text]:focus, input[type=password]:focus, input[type=number]:focus, input[type=time]:focus, textarea:focus, select:focus {
   border-color: var(--accent);
 }
 textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
@@ -573,15 +573,15 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <div id="auth-success" class="auth-success"></div>
     <div class="form-group">
       <label>Email</label>
-      <input type="text" id="auth-email" placeholder="you@example.com" autocomplete="email">
+      <input type="text" id="auth-email" placeholder="you@example.com" autocomplete="email" oninput="clearAuthMessages()">
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
     </div>
     <div class="form-group" id="auth-confirm-wrap" style="display:none">
       <label>Confirm password</label>
-      <input type="password" id="auth-confirm" placeholder="••••••••">
+      <input type="password" id="auth-confirm" placeholder="••••••••" oninput="clearAuthMessages()">
     </div>
     <button class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn" onclick="handleAuth()">Sign in</button>
     <div style="text-align:center;margin-top:14px">
@@ -596,16 +596,16 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <div id="reset-success" class="auth-success"></div>
     <div class="form-group">
       <label>New password</label>
-      <input type="password" id="reset-password" placeholder="••••••••">
+      <input type="password" id="reset-password" placeholder="••••••••" oninput="clearResetMessages()">
     </div>
     <div class="form-group">
       <label>Confirm new password</label>
-      <input type="password" id="reset-confirm" placeholder="••••••••">
+      <input type="password" id="reset-confirm" placeholder="••••••••" oninput="clearResetMessages()">
     </div>
     <button class="btn btn-accent" style="width:100%" onclick="handleSetNewPassword()">Set new password</button>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:33 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:39 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1208,9 +1208,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.1 · 30 Jun 2026 10:33 PM AEDT';
-const BUILD_VERSION = 'v2.1';
-const BUILD_DISPLAY = '30 Jun 2026 10:33 PM AEDT';
+const BUILD = 'v2.2 · 30 Jun 2026 10:39 PM AEDT';
+const BUILD_VERSION = 'v2.2';
+const BUILD_DISPLAY = '30 Jun 2026 10:39 PM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1339,6 +1339,16 @@ async function handleSignOut() {
 function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg; el.style.display = 'block';
+}
+
+function clearAuthMessages() {
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+function clearResetMessages() {
+  document.getElementById('reset-error').style.display = 'none';
+  document.getElementById('reset-success').style.display = 'none';
 }
 
 function switchAuthTab(tab) {
@@ -3012,7 +3022,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.1 · 30 Jun 2026 10:33 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.2 · 30 Jun 2026 10:39 PM AEDT</div>
 
 </body>
 </html>
