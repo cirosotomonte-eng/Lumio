@@ -605,7 +605,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <button class="btn btn-accent" style="width:100%" onclick="handleSetNewPassword()">Set new password</button>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:23 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 30 Jun 2026 10:33 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1208,9 +1208,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.0 · 30 Jun 2026 10:23 PM AEDT';
-const BUILD_VERSION = 'v2.0';
-const BUILD_DISPLAY = '30 Jun 2026 10:23 PM AEDT';
+const BUILD = 'v2.1 · 30 Jun 2026 10:33 PM AEDT';
+const BUILD_VERSION = 'v2.1';
+const BUILD_DISPLAY = '30 Jun 2026 10:33 PM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1300,10 +1300,11 @@ async function handleForgotPassword() {
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { showAuthError('Enter your email address first.'); return; }
   try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/recover', {
+    const redirectUrl = encodeURIComponent('https://cirosotomonte-eng.github.io/Lumio/');
+    const res = await fetch(SUPABASE_URL + '/auth/v1/recover?redirect_to=' + redirectUrl, {
       method: 'POST',
       headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, redirectTo: 'https://cirosotomonte-eng.github.io/Lumio/' })
+      body: JSON.stringify({ email })
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -3011,7 +3012,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.0 · 30 Jun 2026 10:23 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.1 · 30 Jun 2026 10:33 PM AEDT</div>
 
 </body>
 </html>
