@@ -266,6 +266,27 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
   font-size: 12px; color: var(--accent2); padding: 4px 0; text-align: center;
 }
 
+/* ── Collapsible history days ── */
+.focus-day-group { border-top: 0.5px solid var(--border); }
+.focus-day-group:first-child { border-top: none; }
+.focus-day-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; cursor: pointer; user-select: none;
+}
+.focus-day-toggle-label {
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.focus-day-count {
+  font-size: 11px; background: var(--surface2); color: var(--text3);
+  border-radius: 100px; padding: 1px 7px; font-weight: 400;
+}
+.focus-day-chevron {
+  color: var(--text3); transition: transform 0.2s; font-size: 12px;
+}
+.focus-day-chevron.open { transform: rotate(180deg); }
+.focus-day-items { padding-bottom: 4px; }
+
 /* ── To-do list ── */
 .todo-item {
   display: flex; align-items: center; gap: 8px;
@@ -819,7 +840,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 10:12 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 10:29 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1487,8 +1508,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v2.9</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 10:12 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.0</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 10:29 AM AEDT</div>
     </div>
   </div>
 </div>
@@ -1498,9 +1519,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.9 · 01 Jul 2026 10:12 AM AEDT';
-const BUILD_VERSION = 'v2.9';
-const BUILD_DISPLAY = '01 Jul 2026 10:12 AM AEDT';
+const BUILD = 'v3.0 · 01 Jul 2026 10:29 AM AEDT';
+const BUILD_VERSION = 'v3.0';
+const BUILD_DISPLAY = '01 Jul 2026 10:29 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1914,10 +1935,11 @@ function renderFocusList() {
   state.focusItems = state.focusItems.filter(i => i.createdDate >= cutoff);
 
   // --- Today active (created today, not done) ---
-  const todayActive = state.focusItems.filter(i => i.createdDate === today && !i.done);
+  // Items without createdDate (added before v2.6) are treated as today's
+  state.focusItems.forEach(i => { if (!i.createdDate) i.createdDate = today; });
 
-  // --- Overdue (created before today, not done) ---
-  const overdue = state.focusItems.filter(i => i.createdDate < today && !i.done);
+  const todayActive = state.focusItems.filter(i => i.createdDate === today && !i.done);
+  const overdue     = state.focusItems.filter(i => i.createdDate < today  && !i.done);
 
   // --- Done today ---
   const doneToday = state.focusItems.filter(i => i.done && i.doneDate === today);
@@ -1957,23 +1979,48 @@ function renderFocusList() {
     doneSec.style.display = 'none';
   }
 
-  // Rolling week history grouped by day
+  // Rolling week history — collapsible by day
   if (doneHistory.length) {
     histSec.style.display = 'block';
     const byDay = {};
     doneHistory.forEach(i => {
-      if (!byDay[i.doneDate]) byDay[i.doneDate] = [];
-      byDay[i.doneDate].push(i);
+      const d = i.doneDate || today;
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(i);
     });
     histEl.innerHTML = Object.entries(byDay)
       .sort(([a],[b]) => b.localeCompare(a))
-      .map(([date, items]) =>
-        `<div class="focus-day-label">${focusDayLabel(date)}</div>` +
-        items.map(i => focusItemHTML(i, false, true)).join('')
-      ).join('');
+      .map(([date, items]) => {
+        const label = focusDayLabel(date);
+        const groupId = 'fdg-' + date;
+        // Yesterday expanded by default, older days collapsed
+        const isYesterday = date === focusDaysAgo(1);
+        const open = isYesterday;
+        return `<div class="focus-day-group">
+          <div class="focus-day-toggle" onclick="toggleDayGroup('${groupId}')">
+            <div class="focus-day-toggle-label">
+              ${label}
+              <span class="focus-day-count">${items.length}</span>
+            </div>
+            <span class="focus-day-chevron ${open ? 'open' : ''}" id="${groupId}-chevron">▾</span>
+          </div>
+          <div class="focus-day-items" id="${groupId}" style="display:${open ? 'block' : 'none'}">
+            ${items.map(i => focusItemHTML(i, false, true)).join('')}
+          </div>
+        </div>`;
+      }).join('');
   } else {
     histSec.style.display = 'none';
   }
+}
+
+function toggleDayGroup(groupId) {
+  const el  = document.getElementById(groupId);
+  const chv = document.getElementById(groupId + '-chevron');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display  = open ? 'none' : 'block';
+  if (chv) chv.classList.toggle('open', !open);
 }
 
 function focusItemHTML(item, isOverdue, isPast) {
@@ -2699,7 +2746,12 @@ function saveWeeklyReview() {
 
 // ── Helpers ──
 function todayDateKey() { return dateKey(new Date()); }
-function dateKey(d) { return d.toISOString().split('T')[0]; }
+function dateKey(d) {
+  // Use local date, not UTC — avoids off-by-one errors for Australian users
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 
 function calcStreak() {
   let streak = 0, d = new Date();
@@ -3817,7 +3869,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.9 · 01 Jul 2026 10:12 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.0 · 01 Jul 2026 10:29 AM AEDT</div>
 
 </body>
 </html>
