@@ -325,6 +325,38 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
   background: transparent; outline: none; font-family: inherit; line-height: 1.5;
   border-bottom: 1.5px solid var(--accent); padding-bottom: 1px;
 }
+
+/* ── Focus category dot ── */
+.focus-cat-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+}
+.focus-cat-dot.work     { background: #4a7fc1; }
+.focus-cat-dot.personal { background: #3a7a5a; }
+
+/* ── Smart suggestion banner ── */
+.smart-banner {
+  font-size: 12px; color: var(--text2); background: var(--surface2);
+  border: 0.5px solid var(--border); border-radius: var(--rad);
+  padding: 7px 10px; margin-bottom: 10px; display: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.smart-banner svg { flex-shrink: 0; width: 13px; height: 13px; color: var(--accent); }
+
+/* ── Todo category tabs ── */
+.todo-cat-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.todo-cat-label {
+  font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+  font-weight: 500; display: flex; align-items: center; gap: 6px;
+}
+.todo-cat-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; font-size: 9px;
+  font-weight: 600; color: white;
+}
+.todo-cat-badge.work     { background: #4a7fc1; }
+.todo-cat-badge.personal { background: #3a7a5a; }
 .focus-empty { font-size: 13px; color: var(--text3); padding: 8px 0; }
 
 /* ── KB entry ── */
@@ -787,7 +819,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 10:07 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 10:12 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -878,16 +910,39 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       </div>
     </div>
 
-    <div class="card mb-12" id="todo-card">
-      <div class="flex-between mb-12">
-        <div class="card-label" style="margin-bottom:0">To-do</div>
-        <span style="font-size:11px;color:var(--text3)">drag or tap → to move to focus</span>
+    <div id="smart-suggestion-banner" class="smart-banner" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="smart-suggestion-text"></span>
+    </div>
+
+    <div class="card mb-12" id="todo-work-card">
+      <div class="todo-cat-header">
+        <div class="todo-cat-label" style="color:var(--text3)">
+          <div class="todo-cat-badge work">W</div>
+          Work to-do
+        </div>
+        <span style="font-size:11px;color:var(--text3)">drag or → to focus</span>
       </div>
       <div class="focus-add-row">
-        <input type="text" id="todo-new-input" placeholder="Add a to-do…" onkeydown="if(event.key==='Enter')addTodoItem()">
-        <button class="btn btn-accent btn-sm" onclick="addTodoItem()">Add</button>
+        <input type="text" id="todo-work-input" placeholder="Add a work task…" onkeydown="if(event.key==='Enter')addTodoItem('work')">
+        <button class="btn btn-sm" style="background:#eef2ff;color:#3d47a0;border-color:#c8d0f0" onclick="addTodoItem('work')">Add</button>
       </div>
-      <div id="todo-list"></div>
+      <div id="todo-work-list"></div>
+    </div>
+
+    <div class="card mb-12" id="todo-personal-card">
+      <div class="todo-cat-header">
+        <div class="todo-cat-label" style="color:var(--text3)">
+          <div class="todo-cat-badge personal">P</div>
+          Personal to-do
+        </div>
+        <span style="font-size:11px;color:var(--text3)">drag or → to focus</span>
+      </div>
+      <div class="focus-add-row">
+        <input type="text" id="todo-personal-input" placeholder="Add a personal task…" onkeydown="if(event.key==='Enter')addTodoItem('personal')">
+        <button class="btn btn-sm" style="background:#e4f0e8;color:#1e5c3a;border-color:#b0d4bc" onclick="addTodoItem('personal')">Add</button>
+      </div>
+      <div id="todo-personal-list"></div>
     </div>
 
     <div id="drag-ghost"></div>
@@ -1432,8 +1487,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v2.8</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 10:07 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v2.9</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 10:12 AM AEDT</div>
     </div>
   </div>
 </div>
@@ -1443,9 +1498,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v2.8 · 01 Jul 2026 10:07 AM AEDT';
-const BUILD_VERSION = 'v2.8';
-const BUILD_DISPLAY = '01 Jul 2026 10:07 AM AEDT';
+const BUILD = 'v2.9 · 01 Jul 2026 10:12 AM AEDT';
+const BUILD_VERSION = 'v2.9';
+const BUILD_DISPLAY = '01 Jul 2026 10:12 AM AEDT';
 
 let currentUser = null;
 let authToken = null;
@@ -1460,7 +1515,7 @@ const PROXIES = [
 let state = {
   focus: '',           // legacy — kept for data compat, unused
   focusItems: [],      // { id, text, done, createdDate }
-  todos: [],           // { id, text, createdAt }
+  todos: [],           // { id, text, category: 'work'|'personal', createdAt }
   habits: [],
   habitLog: {},
   goals: [],
@@ -1926,11 +1981,13 @@ function focusItemHTML(item, isOverdue, isPast) {
   const textClass = ['focus-item-text', item.done ? 'done' : '', isPast ? '' : 'editable'].filter(Boolean).join(' ');
   const checkClick = isPast ? '' : `onclick="toggleFocusItem('${item.id}')"`;
   const editClick  = isPast ? '' : `ondblclick="startEditFocusItem('${item.id}', this)" onclick="startEditFocusItemSingle('${item.id}', this, event)"`;
-  const deleteBtn  = isPast ? '' : `<button class="focus-delete" onclick="deleteFocusItem('${item.id}')" title="Remove">×</button>`;
+  const deleteBtn  = isPast ? '' : `<button class="focus-delete" onclick="deleteFocusItem('${item.id}')" title="Remove">x</button>`;
+  const catDot     = item.category ? `<div class="focus-cat-dot ${item.category}" title="${item.category}"></div>` : '';
   return `<div class="${classes}" data-id="${item.id}">
     <div class="focus-check ${item.done ? 'done' : ''}" ${checkClick} style="${isPast ? 'cursor:default' : ''}">
       <svg viewBox="0 0 11 11" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,5.5 4.5,8.5 9.5,2.5"/></svg>
     </div>
+    ${catDot}
     <div class="${textClass}" data-id="${item.id}" ${editClick}>${item.text}</div>
     ${deleteBtn}
   </div>`;
@@ -1966,15 +2023,22 @@ function startEditFocusItem(id, el) {
 
 function copyFocusHistory() {
   if (!state.focusItems) return;
-  const today = todayDateKey();
   const cutoff = focusDaysAgo(7);
 
-  // Build standup-ready text grouped by day
+  // Standup copy: Work items only (personal tasks aren't standup material)
   const doneItems = state.focusItems
-    .filter(i => i.done && i.doneDate && i.doneDate >= cutoff)
+    .filter(i => i.done && i.doneDate && i.doneDate >= cutoff && i.category === 'work')
     .sort((a, b) => b.doneDate.localeCompare(a.doneDate));
 
-  if (!doneItems.length) return;
+  if (!doneItems.length) {
+    const histEl = document.getElementById('focus-history-list');
+    const toast = document.createElement('div');
+    toast.className = 'focus-copy-toast';
+    toast.textContent = 'No completed work items to copy';
+    histEl.prepend(toast);
+    setTimeout(() => toast.remove(), 2000);
+    return;
+  }
 
   const byDay = {};
   doneItems.forEach(i => {
@@ -1989,15 +2053,13 @@ function copyFocusHistory() {
     ).join('\n\n');
 
   navigator.clipboard.writeText(text).then(() => {
-    // Flash a toast inside the history section
     const histEl = document.getElementById('focus-history-list');
     const toast = document.createElement('div');
     toast.className = 'focus-copy-toast';
-    toast.textContent = '✓ Copied to clipboard';
+    toast.textContent = '✓ Work items copied (standup ready)';
     histEl.prepend(toast);
-    setTimeout(() => toast.remove(), 2000);
+    setTimeout(() => toast.remove(), 2500);
   }).catch(() => {
-    // Fallback for older iOS
     const ta = document.createElement('textarea');
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.focus(); ta.select();
@@ -2007,12 +2069,14 @@ function copyFocusHistory() {
 }
 
 // ── To-do list ──
-function addTodoItem() {
-  const inp = document.getElementById('todo-new-input');
+function addTodoItem(category) {
+  const inputId = category === 'work' ? 'todo-work-input' : 'todo-personal-input';
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
   const text = inp.value.trim();
   if (!text) return;
   if (!state.todos) state.todos = [];
-  state.todos.push({ id: 'td' + Date.now(), text, createdAt: todayDateKey() });
+  state.todos.push({ id: 'td' + Date.now(), text, category, createdAt: todayDateKey() });
   inp.value = '';
   saveToSupabase();
   renderTodoList();
@@ -2039,7 +2103,10 @@ function editTodoItem(id, el) {
     renderTodoList();
   };
   input.addEventListener('blur', save);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') renderTodoList(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') renderTodoList();
+  });
 }
 
 function moveTodoToFocus(id) {
@@ -2048,7 +2115,13 @@ function moveTodoToFocus(id) {
   if (!item) return;
   state.todos = state.todos.filter(i => i.id !== id);
   if (!state.focusItems) state.focusItems = [];
-  state.focusItems.push({ id: 'fi' + Date.now(), text: item.text, done: false, createdDate: todayDateKey() });
+  state.focusItems.push({
+    id: 'fi' + Date.now(),
+    text: item.text,
+    done: false,
+    createdDate: todayDateKey(),
+    category: item.category || 'personal'
+  });
   saveToSupabase();
   renderTodoList();
   renderFocusList();
@@ -2056,21 +2129,53 @@ function moveTodoToFocus(id) {
 
 function renderTodoList() {
   if (!state.todos) state.todos = [];
-  const el = document.getElementById('todo-list');
-  if (!el) return;
-  if (!state.todos.length) {
-    el.innerHTML = '<div class="focus-empty">No to-dos yet — add one above</div>';
-    return;
-  }
-  el.innerHTML = state.todos.map(item => `
+  const work     = state.todos.filter(i => i.category === 'work');
+  const personal = state.todos.filter(i => i.category === 'personal' || !i.category);
+
+  const renderSection = (items, listId) => {
+    const el = document.getElementById(listId);
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<div class="focus-empty" style="padding:6px 0">Nothing here yet</div>';
+      return;
+    }
+    el.innerHTML = items.map(item => `
     <div class="todo-item" data-todo-id="${item.id}">
       <div class="todo-drag-handle" data-drag-id="${item.id}" ontouchstart="todoDragStart(event,'${item.id}')" title="Drag to focus">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="4" r="1"/><circle cx="10.5" cy="4" r="1"/><circle cx="5.5" cy="8" r="1"/><circle cx="10.5" cy="8" r="1"/><circle cx="5.5" cy="12" r="1"/><circle cx="10.5" cy="12" r="1"/></svg>
       </div>
       <div class="todo-text" ondblclick="editTodoItem('${item.id}', this)" title="Double-tap to edit">${item.text}</div>
       <button class="todo-to-focus-btn" onclick="moveTodoToFocus('${item.id}')">&#8594; Focus</button>
-      <button class="todo-delete" onclick="deleteTodoItem('${item.id}')" title="Remove">×</button>
+      <button class="todo-delete" onclick="deleteTodoItem('${item.id}')" title="Remove">x</button>
     </div>`).join('');
+  };
+
+  renderSection(work,     'todo-work-list');
+  renderSection(personal, 'todo-personal-list');
+  renderSmartBanner();
+}
+
+function renderSmartBanner() {
+  const banner = document.getElementById('smart-suggestion-banner');
+  const text   = document.getElementById('smart-suggestion-text');
+  if (!banner || !text) return;
+  const now  = new Date();
+  const hour = now.getHours();
+  const day  = now.getDay(); // 0=Sun, 6=Sat
+  const isWeekday   = day >= 1 && day <= 5;
+  const isWorkHours = hour >= 9 && hour < 17;
+  const workCount     = (state.todos || []).filter(i => i.category === 'work').length;
+  const personalCount = (state.todos || []).filter(i => i.category === 'personal' || !i.category).length;
+
+  if (isWeekday && isWorkHours && workCount > 0) {
+    banner.style.display = 'flex';
+    text.textContent = 'Work hours — you have ' + workCount + ' work task' + (workCount > 1 ? 's' : '') + ' to tackle.';
+  } else if ((!isWeekday || !isWorkHours) && personalCount > 0) {
+    banner.style.display = 'flex';
+    text.textContent = 'Personal time — you have ' + personalCount + ' personal task' + (personalCount > 1 ? 's' : '') + ' waiting.';
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 // ── Touch drag-to-focus ──
@@ -3712,7 +3817,7 @@ init();
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.8 · 01 Jul 2026 10:07 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v2.9 · 01 Jul 2026 10:12 AM AEDT</div>
 
 </body>
 </html>
