@@ -942,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:37 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 3:09 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1661,8 +1661,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.6</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:37 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.7</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 3:09 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1676,9 +1676,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.6 · 01 Jul 2026 2:37 PM AEDT';
-const BUILD_VERSION = 'v3.6';
-const BUILD_DISPLAY = '01 Jul 2026 2:37 PM AEDT';
+const BUILD = 'v3.7 · 01 Jul 2026 3:09 PM AEDT';
+const BUILD_VERSION = 'v3.7';
+const BUILD_DISPLAY = '01 Jul 2026 3:09 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3306,7 +3306,8 @@ function initRealtimeSync() {
       // Leaving — flush any pending saves immediately
       saveToSupabase();
     } else {
-      // Returning — pull latest from Supabase
+      // Returning — reconcile pomo timer first (instant), then pull data
+      pomoReconcile();
       loadFromSupabase().then(() => {
         renderToday();
         if (typeof renderFocusList === 'function') renderFocusList();
@@ -3467,6 +3468,7 @@ let pomoState = {
   totalSeconds: 0,
   round: 0,            // 0-3 within a set
   interval: null,
+  endTime: null,       // Date.now() ms when the current session ends
   settingsOpen: false,
 };
 
@@ -3481,6 +3483,7 @@ function initPomo() {
   pomoState.secondsLeft = pomoState.totalSeconds;
   pomoState.mode = 'focus';
   pomoState.running = false;
+  pomoState.endTime = null;
   clearInterval(pomoState.interval);
   updatePomoDisplay();
   updatePomoDots();
@@ -3499,27 +3502,42 @@ function togglePomo() {
 function startPomo() {
   if (pomoState.secondsLeft <= 0) return;
   pomoState.running = true;
+  // Store the absolute end time so backgrounding doesn't drift the countdown
+  pomoState.endTime = Date.now() + (pomoState.secondsLeft * 1000);
   updatePlayBtn();
-  pomoState.interval = setInterval(() => {
-    pomoState.secondsLeft--;
-    updatePomoDisplay();
-    if (pomoState.secondsLeft <= 0) {
-      clearInterval(pomoState.interval);
-      pomoState.running = false;
-      onPomoComplete();
-    }
-  }, 1000);
+  clearInterval(pomoState.interval);
+  pomoState.interval = setInterval(pomoTick, 500); // 500ms for snappier display
+}
+
+function pomoTick() {
+  if (!pomoState.running || !pomoState.endTime) return;
+  const remaining = Math.max(0, Math.round((pomoState.endTime - Date.now()) / 1000));
+  pomoState.secondsLeft = remaining;
+  updatePomoDisplay();
+  if (remaining <= 0) {
+    clearInterval(pomoState.interval);
+    pomoState.running = false;
+    pomoState.endTime = null;
+    onPomoComplete();
+  }
 }
 
 function pausePomo() {
   clearInterval(pomoState.interval);
   pomoState.running = false;
+  // Capture remaining time from endTime so pause is accurate even after backgrounding
+  if (pomoState.endTime) {
+    pomoState.secondsLeft = Math.max(0, Math.round((pomoState.endTime - Date.now()) / 1000));
+    pomoState.endTime = null;
+  }
   updatePlayBtn();
+  updatePomoDisplay();
 }
 
 function resetPomo() {
   clearInterval(pomoState.interval);
   pomoState.running = false;
+  pomoState.endTime = null;
   const m = pomoMins();
   const secs = { focus: m.focus, short: m.short, long: m.long }[pomoState.mode] * 60;
   pomoState.secondsLeft = secs;
@@ -3531,7 +3549,22 @@ function resetPomo() {
 function skipPomo() {
   clearInterval(pomoState.interval);
   pomoState.running = false;
+  pomoState.endTime = null;
   onPomoComplete();
+}
+
+// Called when returning to the app/tab — reconcile elapsed time
+function pomoReconcile() {
+  if (!pomoState.running || !pomoState.endTime) return;
+  const remaining = Math.max(0, Math.round((pomoState.endTime - Date.now()) / 1000));
+  pomoState.secondsLeft = remaining;
+  updatePomoDisplay();
+  if (remaining <= 0) {
+    clearInterval(pomoState.interval);
+    pomoState.running = false;
+    pomoState.endTime = null;
+    onPomoComplete();
+  }
 }
 
 function onPomoComplete() {
@@ -4542,7 +4575,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.6 · 01 Jul 2026 2:37 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.7 · 01 Jul 2026 3:09 PM AEDT</div>
 
 </body>
 </html>
