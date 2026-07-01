@@ -8,6 +8,15 @@
 <meta name="theme-color" content="#f8f4ed" id="theme-color-meta">
 <title>Lumio</title>
 <link rel="manifest" href="manifest.json">
+<script>
+// Load Supabase JS client dynamically (same pattern as Spendly)
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  s.async = true;
+  document.head.appendChild(s);
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=Space+Grotesk:wght@500;600&display=swap');
 
@@ -58,7 +67,58 @@ html, body {
 /* ── Layout ── */
 #app { max-width: 480px; margin: 0 auto; padding-bottom: 110px; }
 
-/* ── iOS Pill Nav ── */
+/* ── Lock screen ── */
+#lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg); display: none; opacity: 0; pointer-events: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.25s;
+}
+#lock-screen.visible { display: flex; opacity: 1; pointer-events: all; }
+.lock-logo { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--text); letter-spacing: -1px; margin-bottom: 6px; }
+.lock-logo span { color: var(--accent); }
+.lock-sub  { font-size: 14px; color: var(--text3); margin-bottom: 32px; text-align: center; }
+.lock-face-btn {
+  background: var(--accent-bg); border: 1.5px solid var(--accent); border-radius: 20px;
+  padding: 18px 32px; display: flex; flex-direction: column; align-items: center;
+  gap: 10px; cursor: pointer; transition: opacity 0.15s; margin-bottom: 12px;
+}
+.lock-face-btn:active { opacity: 0.7; }
+.lock-face-icon { font-size: 36px; }
+.lock-face-label { font-size: 13px; font-weight: 600; color: var(--accent); }
+.lock-pin-fallback-btn {
+  font-size: 12px; color: var(--text3); border: none; background: none;
+  cursor: pointer; padding: 4px 8px; font-family: inherit; text-decoration: underline;
+  margin-bottom: 24px;
+}
+.pin-dots { display: flex; gap: 14px; margin-bottom: 12px; }
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--surface2); transition: background 0.1s, transform 0.15s;
+  border: 1.5px solid var(--border2);
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); transform: scale(1.3); }
+.pin-dot.error  { background: var(--danger); border-color: var(--danger); transform: scale(1.3); }
+.lock-error { font-size: 13px; color: var(--danger); min-height: 18px; margin-bottom: 16px; text-align: center; }
+.lock-numpad {
+  display: grid; grid-template-columns: repeat(3, 68px); gap: 10px;
+}
+.numpad-btn {
+  width: 68px; height: 68px; border-radius: 50%; border: none;
+  background: var(--surface); color: var(--text); font-size: 22px; font-weight: 400;
+  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.1s, transform 0.1s;
+  display: flex; align-items: center; justify-content: center;
+}
+.numpad-btn:active, .numpad-btn.pressed { background: var(--surface2); transform: scale(0.91); }
+.numpad-btn.action { background: none; box-shadow: none; font-size: 18px; color: var(--text3); }
+.numpad-btn.action:active { background: var(--surface2); }
+.lock-skip-btn {
+  margin-top: 20px; font-size: 13px; color: var(--text3); border: none;
+  background: none; cursor: pointer; font-family: inherit; text-decoration: underline;
+}
+
+
 .nav-wrap {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   z-index: 100; width: 100%; max-width: 480px;
@@ -776,6 +836,48 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .settings-version-time { font-size: 12px; color: var(--text3); margin-top: 2px; }
 </style>
 <body>
+<!-- ══════════════════════════════ LOCK SCREEN ══════════════════════════════ -->
+<div id="lock-screen">
+  <div class="lock-logo">lumio<span>.</span></div>
+  <div class="lock-sub" id="lock-sub">Enter your PIN to continue</div>
+
+  <!-- Face ID prompt -->
+  <div id="lock-face-prompt" style="display:none;flex-direction:column;align-items:center">
+    <button class="lock-face-btn" id="lock-face-btn" onclick="triggerBiometric()">
+      <div class="lock-face-icon">&#x1F512;</div>
+      <div class="lock-face-label">Use Face ID</div>
+    </button>
+    <button class="lock-pin-fallback-btn" onclick="showPinPad()">Use PIN instead</button>
+  </div>
+
+  <!-- PIN pad -->
+  <div id="lock-pin-pad" style="display:flex;flex-direction:column;align-items:center">
+    <div class="pin-dots">
+      <div class="pin-dot" id="ldot0"></div>
+      <div class="pin-dot" id="ldot1"></div>
+      <div class="pin-dot" id="ldot2"></div>
+      <div class="pin-dot" id="ldot3"></div>
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+    <div class="lock-numpad">
+      <button class="numpad-btn" ontouchstart="lockTap('1',this)" onclick="lockTap('1',this)">1</button>
+      <button class="numpad-btn" ontouchstart="lockTap('2',this)" onclick="lockTap('2',this)">2</button>
+      <button class="numpad-btn" ontouchstart="lockTap('3',this)" onclick="lockTap('3',this)">3</button>
+      <button class="numpad-btn" ontouchstart="lockTap('4',this)" onclick="lockTap('4',this)">4</button>
+      <button class="numpad-btn" ontouchstart="lockTap('5',this)" onclick="lockTap('5',this)">5</button>
+      <button class="numpad-btn" ontouchstart="lockTap('6',this)" onclick="lockTap('6',this)">6</button>
+      <button class="numpad-btn" ontouchstart="lockTap('7',this)" onclick="lockTap('7',this)">7</button>
+      <button class="numpad-btn" ontouchstart="lockTap('8',this)" onclick="lockTap('8',this)">8</button>
+      <button class="numpad-btn" ontouchstart="lockTap('9',this)" onclick="lockTap('9',this)">9</button>
+      <button class="numpad-btn action" ontouchstart="lockTap('',this)" onclick=""></button>
+      <button class="numpad-btn" ontouchstart="lockTap('0',this)" onclick="lockTap('0',this)">0</button>
+      <button class="numpad-btn action" ontouchstart="lockBackspace(this)" onclick="lockBackspace(this)">&#9003;</button>
+    </div>
+  </div>
+
+  <button class="lock-skip-btn" id="lock-skip-btn" style="display:none" onclick="skipLock()">Skip for now</button>
+</div>
+
 <!-- ══════════════════════════════ AUTH SCREEN ══════════════════════════════ -->
 <div id="auth-screen">
   <div class="auth-logo">lumio<span>.</span></div>
@@ -840,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 10:48 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:00 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1504,12 +1606,24 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-section" style="margin-top:4px">
+      <div class="settings-label">Security</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" style="flex:1" onclick="setupFaceId();closeModal('modal-settings')">
+          &#x1F512; Face ID / Biometric
+        </button>
+        <button class="btn btn-sm" style="flex:1;color:var(--danger)" onclick="removeLockPin();closeModal('modal-settings')">
+          Remove PIN
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section" style="margin-top:4px">
       <button class="btn" style="width:100%;color:var(--danger)" onclick="handleSignOut()">Sign out</button>
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.1</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 10:48 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.2</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:00 PM AEDT</div>
     </div>
   </div>
 </div>
@@ -1519,12 +1633,11 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.1 · 01 Jul 2026 10:48 AM AEDT';
-const BUILD_VERSION = 'v3.1';
-const BUILD_DISPLAY = '01 Jul 2026 10:48 AM AEDT';
+const BUILD = 'v3.2 · 01 Jul 2026 2:00 PM AEDT';
+const BUILD_VERSION = 'v3.2';
+const BUILD_DISPLAY = '01 Jul 2026 2:00 PM AEDT';
 
-let currentUser = null;
-let authToken = null;
+let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -1560,9 +1673,29 @@ let state = {
   settings: { accentColor: 'amber', themeMode: 'auto' },
 };
 
-// ── Auth ──
+// ── Supabase JS client (loaded from CDN) ──
+let _sb = null;
+let _sbSession = null;
+
+function getSB() {
+  if (!_sb) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    _sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        _sbSession = session;
+        if (session) { currentUser = session.user; }
+      } else if (event === 'SIGNED_OUT') {
+        _sbSession = null;
+      }
+    });
+  }
+  return _sb;
+}
+
 function authHeaders(useUserToken = false) {
-  const token = useUserToken && authToken ? authToken : SUPABASE_KEY;
+  const token = (useUserToken && _sbSession) ? _sbSession.access_token : SUPABASE_KEY;
   return { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
@@ -1582,27 +1715,24 @@ async function handleAuth(mode) {
   }
   btn.disabled = true; btn.textContent = isSignup ? 'Creating account…' : 'Signing in…';
   try {
-    const endpoint = isSignup ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
-    const res = await fetch(SUPABASE_URL + endpoint, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (data.error || data.error_description || data.msg) {
-      throw new Error(data.error_description || data.msg || data.error || 'Authentication failed');
+    let result;
+    if (isSignup) {
+      result = await getSB().auth.signUp({ email, password });
+    } else {
+      result = await getSB().auth.signInWithPassword({ email, password });
     }
-    if (isSignup && !data.access_token) {
-      sucEl.textContent = 'Account created! Please check your email to confirm, then sign in.';
+    if (result.error) throw result.error;
+    if (isSignup && !result.data.session) {
+      sucEl.textContent = 'Account created! Check your email to confirm, then sign in.';
       sucEl.style.display = 'block';
       switchAuthTab('login');
       btn.disabled = false; btn.textContent = 'Create account';
       return;
     }
-    authToken = data.access_token;
-    currentUser = data.user;
-    localStorage.setItem('lumio_token', authToken);
-    localStorage.setItem('lumio_user', JSON.stringify(currentUser));
+    _sbSession = result.data.session;
+    currentUser = result.data.user;
+    // Mark PIN as bypassed — user just authenticated with password, no need for PIN too
+    try { sessionStorage.setItem('lumio_pin_bypassed', '1'); } catch(e) {}
     await onAuthSuccess();
   } catch(e) {
     showAuthError(e.message || 'Something went wrong. Please try again.');
@@ -1614,18 +1744,10 @@ async function handleForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) { showAuthError('Enter your email address first.'); return; }
   try {
-    const redirectUrl = encodeURIComponent('https://cirosotomonte-eng.github.io/Lumio/');
-    const res = await fetch(SUPABASE_URL + '/auth/v1/recover?redirect_to=' + redirectUrl, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+    const { error } = await getSB().auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://cirosotomonte-eng.github.io/Lumio/'
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data.error_description || data.msg || data.error || data.message || `Request failed (${res.status})`;
-      showAuthError('Reset failed: ' + msg);
-      return;
-    }
+    if (error) { showAuthError('Reset failed: ' + error.message); return; }
     const sucEl = document.getElementById('auth-success');
     sucEl.textContent = 'Password reset email sent — check your inbox.';
     sucEl.style.display = 'block';
@@ -1633,14 +1755,9 @@ async function handleForgotPassword() {
 }
 
 async function handleSignOut() {
-  try {
-    await fetch(SUPABASE_URL + '/auth/v1/logout', {
-      method: 'POST', headers: authHeaders(true)
-    });
-  } catch(e) {}
-  authToken = null; currentUser = null;
-  localStorage.removeItem('lumio_token');
-  localStorage.removeItem('lumio_user');
+  try { await getSB().auth.signOut(); } catch(e) {}
+  _sbSession = null; currentUser = null;
+  try { sessionStorage.removeItem('lumio_pin_bypassed'); } catch(e) {}
   document.getElementById('app').style.display = 'none';
   document.getElementById('user-bar').classList.remove('visible');
   document.getElementById('update-banner').style.display = 'none';
@@ -1650,6 +1767,29 @@ async function handleSignOut() {
   document.getElementById('login-password').value = '';
   document.getElementById('auth-error').style.display = 'none';
   startAutofillPoller();
+}
+
+async function handleSetNewPassword() {
+  const password = document.getElementById('reset-password').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  const errEl = document.getElementById('reset-error');
+  const sucEl = document.getElementById('reset-success');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!password || password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+  if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+  try {
+    const { error } = await getSB().auth.updateUser({ password });
+    if (error) throw error;
+    sucEl.textContent = 'Password updated! Signing you in…';
+    sucEl.style.display = 'block';
+    _sbSession = (await getSB().auth.getSession()).data.session;
+    if (_sbSession) { currentUser = _sbSession.user; }
+    try { sessionStorage.setItem('lumio_pin_bypassed', '1'); } catch(e) {}
+    setTimeout(() => onAuthSuccess(), 1500);
+  } catch(e) {
+    errEl.textContent = 'Could not update password. The reset link may have expired.';
+    errEl.style.display = 'block';
+  }
 }
 
 function showAuthError(msg) {
@@ -1680,10 +1820,8 @@ function switchAuthTab(tab) {
 
 async function onAuthSuccess() {
   document.getElementById('auth-screen').classList.remove('visible');
-  document.getElementById('user-email-display').textContent = currentUser.email;
-  document.getElementById('user-bar').classList.add('visible');
-  document.getElementById('app').style.display = 'block';
-  document.querySelector('.nav-wrap').classList.add('visible');
+  document.getElementById('user-email-display').textContent = currentUser ? currentUser.email : '';
+  showApp();
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   initSettings();
@@ -1693,6 +1831,7 @@ async function onAuthSuccess() {
   initPomo();
   initRoutine();
   if (state.rssEpisodes.length) renderRSSEpisodes();
+  initLock();
 }
 
 function seedDefaultRoutine() {
@@ -1781,7 +1920,7 @@ function dismissUpdate() {
 
 // ── Supabase data ──
 async function loadFromSupabase() {
-  if (!authToken || !currentUser) return;
+  if (!_sbSession || !currentUser) return;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?user_id=eq.${currentUser.id}`, {
       headers: authHeaders(true)
@@ -1795,7 +1934,7 @@ async function loadFromSupabase() {
 }
 
 async function saveToSupabase() {
-  if (!authToken || !currentUser) return;
+  if (!_sbSession || !currentUser) return;
   const payload = { user_id: currentUser.id, data: state, updated_at: new Date().toISOString() };
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
@@ -3816,21 +3955,23 @@ async function handleSetNewPassword() {
 }
 
 function checkRecoveryToken() {
+  // Supabase JS client handles recovery tokens automatically via detectSessionInUrl=false
+  // but we still need to catch the hash fragment and set the session
   const hash = window.location.hash;
   if (!hash) return false;
   const params = new URLSearchParams(hash.replace('#', ''));
   const type = params.get('type');
   const token = params.get('access_token');
+  const refresh = params.get('refresh_token');
   if (type === 'recovery' && token) {
-    authToken = token;
-    const refreshToken = params.get('refresh_token');
-    currentUser = { id: null, email: '' };
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      currentUser.id = payload.sub;
-      currentUser.email = payload.email || '';
-    } catch(e) {}
     window.history.replaceState({}, document.title, window.location.pathname);
+    // Set the session so the JS client can use updateUser()
+    getSB().auth.setSession({ access_token: token, refresh_token: refresh || '' }).then(({ data }) => {
+      if (data.session) {
+        _sbSession = data.session;
+        currentUser = data.session.user;
+      }
+    });
     document.getElementById('auth-screen').classList.add('visible');
     document.getElementById('auth-card-main').style.display = 'none';
     document.getElementById('auth-card-reset').style.display = 'block';
@@ -3839,38 +3980,344 @@ function checkRecoveryToken() {
   return false;
 }
 
+// ── Lock screen (PIN + Face ID) ──
+const LUMIO_PIN_KEY     = 'lumio_pin_hash';
+const LUMIO_PIN_SKIPPED = 'lumio_pin_skipped';
+const LUMIO_BIOM_CRED   = 'lumio_biom_cred';
+var lockMode = 'unlock'; // 'unlock' | 'setup' | 'confirm'
+var lockBuf  = '';
+var lockFirst = '';
+var _lockTapTime = 0;
+var _lockBackTime = 0;
+var _biomPlatformAvail = null;
+
+function hashPin(pin) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < pin.length; i++) { h ^= pin.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h.toString(16);
+}
+
+function showLockScreen() {
+  const ls = document.getElementById('lock-screen');
+  ls.style.display = 'flex';
+  ls.style.pointerEvents = 'all';
+  requestAnimationFrame(() => { ls.style.opacity = '1'; ls.classList.add('visible'); });
+}
+
+function hideLockScreen() {
+  const ls = document.getElementById('lock-screen');
+  ls.style.opacity = '0';
+  ls.classList.remove('visible');
+  setTimeout(() => { ls.style.display = 'none'; ls.style.pointerEvents = 'none'; }, 280);
+}
+
+function showPinPad() {
+  document.getElementById('lock-face-prompt').style.display = 'none';
+  document.getElementById('lock-pin-pad').style.display = 'flex';
+  updateLockDots(0, false);
+}
+
+function showFacePrompt() {
+  document.getElementById('lock-face-prompt').style.display = 'flex';
+  document.getElementById('lock-pin-pad').style.display = 'none';
+}
+
+function updateLockDots(n, error) {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('ldot' + i);
+    if (!d) continue;
+    d.classList.toggle('filled', i < n && !error);
+    d.classList.toggle('error', error);
+  }
+}
+
+function lockTap(digit, btn) {
+  const now = Date.now();
+  if (now - _lockTapTime < 300) return;
+  _lockTapTime = now;
+  if (!digit) return;
+  if (lockBuf.length >= 4) return;
+  if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 120); }
+  lockBuf += digit;
+  document.getElementById('lock-error').textContent = '';
+  updateLockDots(lockBuf.length, false);
+  if (lockBuf.length === 4) setTimeout(() => processLockPin(lockBuf), 80);
+}
+
+function lockBackspace(btn) {
+  const now = Date.now();
+  if (now - _lockBackTime < 300) return;
+  _lockBackTime = now;
+  if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 120); }
+  if (lockBuf.length > 0) { lockBuf = lockBuf.slice(0,-1); updateLockDots(lockBuf.length, false); }
+}
+
+function processLockPin(pin) {
+  if (lockMode === 'setup') {
+    lockFirst = pin; lockBuf = ''; lockMode = 'confirm';
+    document.getElementById('lock-sub').textContent = 'Confirm your PIN';
+    updateLockDots(0, false);
+    return;
+  }
+  if (lockMode === 'confirm') {
+    if (pin === lockFirst) {
+      localStorage.setItem(LUMIO_PIN_KEY, hashPin(pin));
+      hideLockScreen();
+      showApp();
+    } else {
+      lockBuf = ''; lockFirst = ''; lockMode = 'setup';
+      updateLockDots(0, true);
+      document.getElementById('lock-error').textContent = "PINs don't match — try again";
+      document.getElementById('lock-sub').textContent = 'Set a 4-digit PIN';
+      setTimeout(() => updateLockDots(0, false), 600);
+    }
+    return;
+  }
+  // unlock mode
+  if (hashPin(pin) === localStorage.getItem(LUMIO_PIN_KEY)) {
+    unlockApp();
+  } else {
+    lockBuf = '';
+    updateLockDots(0, true);
+    document.getElementById('lock-error').textContent = 'Incorrect PIN';
+    const dots = document.getElementById('lock-pin-pad');
+    dots.style.transform = 'translateX(8px)';
+    setTimeout(() => dots.style.transform = 'translateX(-8px)', 80);
+    setTimeout(() => dots.style.transform = 'translateX(4px)', 160);
+    setTimeout(() => { dots.style.transform = ''; updateLockDots(0, false); }, 240);
+  }
+}
+
+function unlockApp() {
+  hideLockScreen();
+  showApp();
+  lockBuf = ''; lockFirst = '';
+  document.getElementById('lock-error').textContent = '';
+  updateLockDots(0, false);
+}
+
+function skipLock() {
+  localStorage.setItem(LUMIO_PIN_SKIPPED, '1');
+  hideLockScreen();
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-bar').classList.add('visible');
+  document.querySelector('.nav-wrap').classList.add('visible');
+}
+
+async function probeBiometricAvailable() {
+  try {
+    if (window.PublicKeyCredential && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+      _biomPlatformAvail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } else { _biomPlatformAvail = false; }
+  } catch(e) { _biomPlatformAvail = false; }
+  return _biomPlatformAvail;
+}
+
+function isBiometricSupported() {
+  if (!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get)) return false;
+  if (_biomPlatformAvail === false) return false;
+  return true;
+}
+
+function hasBiometricRegistered() { return !!localStorage.getItem(LUMIO_BIOM_CRED); }
+
+async function registerBiometric() {
+  if (!isBiometricSupported()) return false;
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId    = crypto.getRandomValues(new Uint8Array(16));
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge, rp: { name: 'Lumio', id: location.hostname },
+        user: { id: userId, name: 'lumio-user', displayName: 'Lumio User' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+        timeout: 60000,
+      }
+    });
+    if (!credential) return false;
+    const credId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+    localStorage.setItem(LUMIO_BIOM_CRED, credId);
+    return true;
+  } catch(e) { return false; }
+}
+
+async function triggerBiometric() {
+  if (!isBiometricSupported()) { showPinPad(); return; }
+  const storedCredId = localStorage.getItem(LUMIO_BIOM_CRED);
+  if (!storedCredId) {
+    const btn = document.getElementById('lock-face-btn');
+    if (btn) { btn.style.opacity = '0.5'; btn.disabled = true; }
+    const ok = await registerBiometric();
+    if (btn) { btn.style.opacity = '1'; btn.disabled = false; }
+    if (ok) { unlockApp(); } else { showPinPad(); }
+    return;
+  }
+  try {
+    const challenge   = crypto.getRandomValues(new Uint8Array(32));
+    const credIdBytes = Uint8Array.from(atob(storedCredId), c => c.charCodeAt(0));
+    const btn = document.getElementById('lock-face-btn');
+    if (btn) { btn.style.opacity = '0.5'; }
+    const assertion = await navigator.credentials.get({
+      publicKey: { challenge, allowCredentials: [{ id: credIdBytes, type: 'public-key' }], userVerification: 'required', timeout: 60000 }
+    });
+    if (btn) { btn.style.opacity = '1'; }
+    if (assertion) { unlockApp(); } else { showPinPad(); }
+  } catch(e) {
+    const btn = document.getElementById('lock-face-btn');
+    if (btn) { btn.style.opacity = '1'; btn.disabled = false; }
+    showFacePrompt();
+    document.getElementById('lock-sub').textContent = 'Face ID cancelled — tap to retry or use PIN';
+  }
+}
+
+async function initLock() {
+  // Skip if user just authenticated with password this session
+  try { if (sessionStorage.getItem('lumio_pin_bypassed') === '1') return; } catch(e) {}
+  await probeBiometricAvailable();
+  const hasPin    = !!localStorage.getItem(LUMIO_PIN_KEY);
+  const skipped   = !!localStorage.getItem(LUMIO_PIN_SKIPPED);
+  const hasBiom   = isBiometricSupported() && hasBiometricRegistered();
+
+  if (!hasPin && !skipped) {
+    // Offer PIN setup
+    lockMode = 'setup'; lockBuf = ''; lockFirst = '';
+    document.getElementById('lock-sub').textContent = 'Set a 4-digit PIN to protect your data';
+    document.getElementById('lock-skip-btn').style.display = 'block';
+    showPinPad();
+    showLockScreen();
+    return;
+  }
+  if (hasPin) {
+    lockMode = 'unlock'; lockBuf = '';
+    document.getElementById('lock-skip-btn').style.display = 'none';
+    if (hasBiom) {
+      document.getElementById('lock-sub').textContent = 'Tap to unlock with Face ID';
+      showFacePrompt();
+    } else {
+      document.getElementById('lock-sub').textContent = 'Enter your PIN to continue';
+      showPinPad();
+    }
+    showLockScreen();
+  }
+}
+
+// Settings: toggle Face ID
+async function setupFaceId() {
+  await probeBiometricAvailable();
+  if (!isBiometricSupported()) {
+    alert('Face ID is not available on this device.');
+    return;
+  }
+  if (hasBiometricRegistered()) {
+    if (confirm('Remove Face ID from Lumio? Your PIN will be used to unlock.')) {
+      localStorage.removeItem(LUMIO_BIOM_CRED);
+      alert('Face ID removed.');
+    }
+  } else {
+    const ok = await registerBiometric();
+    if (ok) { alert('Face ID set up! Use it to unlock Lumio next time.'); }
+  }
+}
+
+// Settings: remove PIN
+function removeLockPin() {
+  if (confirm('Remove PIN protection? Lumio will open without asking.')) {
+    localStorage.removeItem(LUMIO_PIN_KEY);
+    localStorage.removeItem(LUMIO_BIOM_CRED);
+    localStorage.setItem(LUMIO_PIN_SKIPPED, '1');
+  }
+}
+
 // ── Init ──
 async function init() {
   if (checkRecoveryToken()) return;
-  const savedToken = localStorage.getItem('lumio_token');
-  const savedUser = localStorage.getItem('lumio_user');
-  if (savedToken && savedUser) {
-    try {
-      const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${savedToken}` }
-      });
-      if (res.ok) {
-        const user = await res.json();
-        if (user && user.id) {
-          authToken = savedToken;
-          currentUser = user;
-          await onAuthSuccess();
-          return;
+
+  const safetyTimer = setTimeout(() => {
+    document.getElementById('auth-screen').classList.add('visible');
+    startAutofillPoller();
+  }, 6000);
+
+  try {
+    // Step 1: Try to get existing session from Supabase JS (persisted in localStorage)
+    let { data: { session } } = await getSB().auth.getSession();
+
+    // Step 2: If no session, try to restore using the stored refresh token
+    if (!session) {
+      try {
+        const lsKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (lsKey) {
+          const stored = JSON.parse(localStorage.getItem(lsKey));
+          if (stored && stored.refresh_token) {
+            const { data, error } = await getSB().auth.refreshSession({ refresh_token: stored.refresh_token });
+            if (!error && data.session) {
+              session = data.session;
+            } else if (stored.access_token) {
+              const { data: d2 } = await getSB().auth.setSession({
+                access_token: stored.access_token, refresh_token: stored.refresh_token
+              });
+              session = d2.session;
+            }
+          }
         }
-      }
-    } catch(e) {}
-    localStorage.removeItem('lumio_token');
-    localStorage.removeItem('lumio_user');
+      } catch(e2) { /* ignore */ }
+    }
+
+    // Step 3: 800ms retry (handles race on first load)
+    if (!session) {
+      await new Promise(r => setTimeout(r, 800));
+      const retry = await getSB().auth.getSession();
+      session = retry.data.session;
+    }
+
+    if (!session) {
+      clearTimeout(safetyTimer);
+      document.getElementById('auth-screen').classList.add('visible');
+      startAutofillPoller();
+      return;
+    }
+
+    _sbSession = session;
+    currentUser = session.user;
+    // Mark PIN as bypassed — silent session restore counts as authenticated
+    try { sessionStorage.setItem('lumio_pin_bypassed', '1'); } catch(e) {}
+    clearTimeout(safetyTimer);
+    await onAuthSuccess();
+  } catch(e) {
+    clearTimeout(safetyTimer);
+    document.getElementById('auth-screen').classList.add('visible');
+    startAutofillPoller();
   }
-  document.getElementById('auth-screen').classList.add('visible');
-  startAutofillPoller();
 }
 
-init();
+function waitForSupabaseThenInit() {
+  const start = Date.now();
+  function attempt() {
+    if (window.supabase && window.supabase.createClient) {
+      init();
+    } else if (Date.now() - start > 5000) {
+      document.getElementById('auth-screen').classList.add('visible');
+      startAutofillPoller();
+    } else {
+      setTimeout(attempt, 50);
+    }
+  }
+  attempt();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', waitForSupabaseThenInit);
+} else {
+  waitForSupabaseThenInit();
+}
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.1 · 01 Jul 2026 10:48 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.2 · 01 Jul 2026 2:00 PM AEDT</div>
 
 </body>
 </html>
