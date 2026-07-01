@@ -942,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:33 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:37 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1661,8 +1661,12 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.5</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:33 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.6</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:37 PM AEDT</div>
+      <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
+        Check for update
+      </button>
+      <div id="settings-update-status" style="font-size:12px;margin-top:6px;min-height:16px;color:var(--text3)"></div>
     </div>
   </div>
 </div>
@@ -1672,9 +1676,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.5 · 01 Jul 2026 2:33 PM AEDT';
-const BUILD_VERSION = 'v3.5';
-const BUILD_DISPLAY = '01 Jul 2026 2:33 PM AEDT';
+const BUILD = 'v3.6 · 01 Jul 2026 2:37 PM AEDT';
+const BUILD_VERSION = 'v3.6';
+const BUILD_DISPLAY = '01 Jul 2026 2:37 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -1939,7 +1943,6 @@ function isNewerVersion(remote, current) {
 
 async function checkForUpdate() {
   try {
-    // Fetch the live deployed file and extract its BUILD_VERSION — no Supabase needed
     const res = await fetch('https://cirosotomonte-eng.github.io/Lumio/index.html?_=' + Date.now(), {
       cache: 'no-store'
     });
@@ -1950,6 +1953,38 @@ async function checkForUpdate() {
       document.getElementById('update-banner').style.display = 'block';
     }
   } catch(e) {}
+}
+
+async function checkForUpdateManual() {
+  const btn = document.getElementById('settings-update-btn');
+  const status = document.getElementById('settings-update-status');
+  if (!btn || !status) return;
+  btn.textContent = 'Checking…';
+  btn.style.opacity = '0.6';
+  btn.disabled = true;
+  status.textContent = '';
+  try {
+    const res = await fetch('https://cirosotomonte-eng.github.io/Lumio/index.html?_=' + Date.now(), {
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error('Could not reach server');
+    const text = await res.text();
+    const m = text.match(/const BUILD_VERSION = '([^']+)'/);
+    if (m && m[1] && isNewerVersion(m[1], BUILD_VERSION)) {
+      status.style.color = 'var(--accent)';
+      status.textContent = m[1] + ' is available — tap Update now below';
+      document.getElementById('update-banner').style.display = 'block';
+    } else {
+      status.style.color = 'var(--accent2)';
+      status.textContent = 'You\'re on the latest version ✓';
+    }
+  } catch(e) {
+    status.style.color = 'var(--danger)';
+    status.textContent = 'Could not check — try again';
+  }
+  btn.textContent = 'Check for update';
+  btn.style.opacity = '1';
+  btn.disabled = false;
 }
 
 function doUpdate() {
@@ -3405,6 +3440,8 @@ function renderSettingsModal() {
   const verTime = document.getElementById('settings-version-time');
   if (verNum) verNum.textContent = 'Lumio ' + BUILD_VERSION;
   if (verTime) verTime.textContent = BUILD_DISPLAY;
+  const updateStatus = document.getElementById('settings-update-status');
+  if (updateStatus) updateStatus.textContent = '';
 }
 
 function initSettings() {
@@ -4505,7 +4542,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.5 · 01 Jul 2026 2:33 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.6 · 01 Jul 2026 2:37 PM AEDT</div>
 
 </body>
 </html>
