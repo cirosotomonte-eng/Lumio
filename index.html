@@ -942,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 3:09 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 3:13 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1661,8 +1661,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.7</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 3:09 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.8</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 3:13 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1676,9 +1676,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.7 · 01 Jul 2026 3:09 PM AEDT';
-const BUILD_VERSION = 'v3.7';
-const BUILD_DISPLAY = '01 Jul 2026 3:09 PM AEDT';
+const BUILD = 'v3.8 · 01 Jul 2026 3:13 PM AEDT';
+const BUILD_VERSION = 'v3.8';
+const BUILD_DISPLAY = '01 Jul 2026 3:13 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3469,8 +3469,40 @@ let pomoState = {
   round: 0,            // 0-3 within a set
   interval: null,
   endTime: null,       // Date.now() ms when the current session ends
+  notifTimeout: null,  // scheduled notification timeout
   settingsOpen: false,
 };
+
+// ── Pomo notifications ──
+async function requestPomoNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+function schedulePomoNotification(seconds) {
+  clearPomoNotification();
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const mode = pomoState.mode;
+  pomoState.notifTimeout = setTimeout(() => {
+    const title = mode === 'focus' ? '✅ Focus session complete!' : '⏰ Break time is over!';
+    const body  = mode === 'focus'
+      ? 'Nice work — time for a break.'
+      : 'Ready for the next focus session?';
+    try {
+      new Notification(title, { body, icon: 'https://cirosotomonte-eng.github.io/Lumio/icon-192.png', tag: 'lumio-pomo', renotify: true });
+    } catch(e) {}
+  }, seconds * 1000);
+}
+
+function clearPomoNotification() {
+  if (pomoState.notifTimeout) {
+    clearTimeout(pomoState.notifTimeout);
+    pomoState.notifTimeout = null;
+  }
+}
 
 function pomoMins() {
   const s = state.pomoSettings;
@@ -3502,11 +3534,14 @@ function togglePomo() {
 function startPomo() {
   if (pomoState.secondsLeft <= 0) return;
   pomoState.running = true;
-  // Store the absolute end time so backgrounding doesn't drift the countdown
   pomoState.endTime = Date.now() + (pomoState.secondsLeft * 1000);
   updatePlayBtn();
   clearInterval(pomoState.interval);
-  pomoState.interval = setInterval(pomoTick, 500); // 500ms for snappier display
+  pomoState.interval = setInterval(pomoTick, 500);
+  // Request permission if needed, then schedule a notification for when it ends
+  requestPomoNotifPermission().then(granted => {
+    if (granted) schedulePomoNotification(pomoState.secondsLeft);
+  });
 }
 
 function pomoTick() {
@@ -3516,6 +3551,7 @@ function pomoTick() {
   updatePomoDisplay();
   if (remaining <= 0) {
     clearInterval(pomoState.interval);
+    clearPomoNotification(); // already completing in-app, cancel the bg notification
     pomoState.running = false;
     pomoState.endTime = null;
     onPomoComplete();
@@ -3524,6 +3560,7 @@ function pomoTick() {
 
 function pausePomo() {
   clearInterval(pomoState.interval);
+  clearPomoNotification();
   pomoState.running = false;
   // Capture remaining time from endTime so pause is accurate even after backgrounding
   if (pomoState.endTime) {
@@ -3536,6 +3573,7 @@ function pausePomo() {
 
 function resetPomo() {
   clearInterval(pomoState.interval);
+  clearPomoNotification();
   pomoState.running = false;
   pomoState.endTime = null;
   const m = pomoMins();
@@ -3548,6 +3586,7 @@ function resetPomo() {
 
 function skipPomo() {
   clearInterval(pomoState.interval);
+  clearPomoNotification();
   pomoState.running = false;
   pomoState.endTime = null;
   onPomoComplete();
@@ -4575,7 +4614,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.7 · 01 Jul 2026 3:09 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.8 · 01 Jul 2026 3:13 PM AEDT</div>
 
 </body>
 </html>
