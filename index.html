@@ -942,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:21 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:33 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1661,8 +1661,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.4</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:21 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.5</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:33 PM AEDT</div>
     </div>
   </div>
 </div>
@@ -1672,9 +1672,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.4 · 01 Jul 2026 2:21 PM AEDT';
-const BUILD_VERSION = 'v3.4';
-const BUILD_DISPLAY = '01 Jul 2026 2:21 PM AEDT';
+const BUILD = 'v3.5 · 01 Jul 2026 2:33 PM AEDT';
+const BUILD_VERSION = 'v3.5';
+const BUILD_DISPLAY = '01 Jul 2026 2:33 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -1866,6 +1866,8 @@ async function onAuthSuccess() {
   initSettings();
   initRealtimeSync();
   await checkForUpdate();
+  // Check for updates every 30 minutes while the app is open
+  setInterval(checkForUpdate, 30 * 60 * 1000);
   renderQuote();
   renderToday();  // renderToday now calls renderFocusList + renderTodoList
   initPomo();
@@ -4396,6 +4398,11 @@ function removeLockPin() {
 async function init() {
   if (checkRecoveryToken()) return;
 
+  // Save immediately if user navigates away (catches unsaved changes before reload)
+  window.addEventListener('beforeunload', () => {
+    if (_sbSession && currentUser) saveToSupabase();
+  });
+
   const safetyTimer = setTimeout(() => {
     document.getElementById('auth-screen').classList.add('visible');
     startAutofillPoller();
@@ -4426,7 +4433,29 @@ async function init() {
       } catch(e2) { /* ignore */ }
     }
 
-    // Step 3: 800ms retry (handles race on first load)
+    // Step 3: Legacy migration — old Lumio stored tokens as 'lumio_token'
+    // Try to hand them to the SDK so it can take over session management
+    if (!session) {
+      try {
+        const oldToken = localStorage.getItem('lumio_token');
+        const oldUserStr = localStorage.getItem('lumio_user');
+        if (oldToken && oldUserStr) {
+          // Old access tokens expire after 1hr but the SDK refresh may still work
+          const { data: d3 } = await getSB().auth.setSession({
+            access_token: oldToken,
+            refresh_token: '' // no refresh token in legacy format — SDK will try to refresh
+          });
+          if (d3.session) {
+            session = d3.session;
+            // Migration done — remove old keys
+            localStorage.removeItem('lumio_token');
+            localStorage.removeItem('lumio_user');
+          }
+        }
+      } catch(e3) { /* ignore — old token probably expired */ }
+    }
+
+    // Step 4: 800ms retry (handles race on first load)
     if (!session) {
       await new Promise(r => setTimeout(r, 800));
       const retry = await getSB().auth.getSession();
@@ -4476,7 +4505,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.4 · 01 Jul 2026 2:21 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.5 · 01 Jul 2026 2:33 PM AEDT</div>
 
 </body>
 </html>
