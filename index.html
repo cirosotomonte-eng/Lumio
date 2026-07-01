@@ -942,7 +942,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:17 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 01 Jul 2026 2:21 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1600,6 +1600,37 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-section">
+      <div class="settings-label">Your timezone</div>
+      <select id="settings-timezone" onchange="setTimezone(this.value)" style="width:100%;padding:10px 12px;border-radius:var(--rad);border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
+        <optgroup label="Australia">
+          <option value="Australia/Sydney">Sydney / Melbourne / Canberra (AEDT)</option>
+          <option value="Australia/Brisbane">Brisbane (AEST, no DST)</option>
+          <option value="Australia/Adelaide">Adelaide (ACDT)</option>
+          <option value="Australia/Perth">Perth (AWST)</option>
+          <option value="Australia/Darwin">Darwin (ACST)</option>
+          <option value="Australia/Hobart">Hobart (AEDT)</option>
+        </optgroup>
+        <optgroup label="Asia / Pacific">
+          <option value="Pacific/Auckland">Auckland (NZDT)</option>
+          <option value="Asia/Tokyo">Tokyo (JST)</option>
+          <option value="Asia/Singapore">Singapore (SGT)</option>
+          <option value="Asia/Dubai">Dubai (GST)</option>
+        </optgroup>
+        <optgroup label="Europe">
+          <option value="Europe/London">London (GMT/BST)</option>
+          <option value="Europe/Madrid">Madrid / Paris / Rome (CET)</option>
+        </optgroup>
+        <optgroup label="Americas">
+          <option value="America/New_York">New York (EST/EDT)</option>
+          <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="UTC">UTC</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-label">Appearance</div>
       <div class="theme-segment">
         <button class="theme-seg-btn" id="theme-seg-auto" onclick="setThemeMode('auto')">Auto</button>
@@ -1630,8 +1661,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v3.3</div>
-      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:17 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v3.4</div>
+      <div class="settings-version-time" id="settings-version-time">01 Jul 2026 2:21 PM AEDT</div>
     </div>
   </div>
 </div>
@@ -1641,9 +1672,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v3.3 · 01 Jul 2026 2:17 PM AEDT';
-const BUILD_VERSION = 'v3.3';
-const BUILD_DISPLAY = '01 Jul 2026 2:17 PM AEDT';
+const BUILD = 'v3.4 · 01 Jul 2026 2:21 PM AEDT';
+const BUILD_VERSION = 'v3.4';
+const BUILD_DISPLAY = '01 Jul 2026 2:21 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -1678,7 +1709,7 @@ let state = {
   pomoLog: {},
   routine: [],        // array of block objects
   routineDone: {},    // { 'YYYY-MM-DD': { blockId: true } }
-  settings: { accentColor: 'amber', themeMode: 'auto' },
+  settings: { accentColor: 'amber', themeMode: 'auto', timezone: 'Australia/Sydney' },
 };
 
 // ── Supabase JS client (loaded from CDN) ──
@@ -1833,6 +1864,7 @@ async function onAuthSuccess() {
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   initSettings();
+  initRealtimeSync();
   await checkForUpdate();
   renderQuote();
   renderToday();  // renderToday now calls renderFocusList + renderTodoList
@@ -2945,10 +2977,22 @@ function saveWeeklyReview() {
 // ── Helpers ──
 function todayDateKey() { return dateKey(new Date()); }
 function dateKey(d) {
-  // Use local date, not UTC — avoids off-by-one errors for Australian users
-  return d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
+  // Use the user's configured timezone (defaults to Sydney)
+  const tz = (state && state.settings && state.settings.timezone) || 'Australia/Sydney';
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(d);
+    const y = parts.find(p => p.type === 'year').value;
+    const m = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+    return `${y}-${m}-${day}`;
+  } catch(e) {
+    // Fallback to local date if timezone is invalid
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
 }
 
 function calcStreak() {
@@ -3214,6 +3258,52 @@ function deleteRoutineBlock() {
   renderRoutineTimeline();
 }
 
+function initRealtimeSync() {
+  if (!_sb || !currentUser) return;
+
+  // 1. Save immediately when leaving the app (before switching devices)
+  // 2. Pull fresh data when returning to the app
+  document.addEventListener('visibilitychange', () => {
+    if (!_sbSession || !currentUser) return;
+    if (document.hidden) {
+      // Leaving — flush any pending saves immediately
+      saveToSupabase();
+    } else {
+      // Returning — pull latest from Supabase
+      loadFromSupabase().then(() => {
+        renderToday();
+        if (typeof renderFocusList === 'function') renderFocusList();
+        if (typeof renderTodoList === 'function') renderTodoList();
+      });
+    }
+  });
+
+  // 3. Supabase Realtime — push notification when another device saves
+  // Requires "Replication" enabled for lumio_data in Supabase dashboard:
+  // Database → Replication → Tables → toggle lumio_data ON
+  try {
+    _sb.channel('lumio-data-changes')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'lumio_data',
+        filter: `user_id=eq.${currentUser.id}`
+      }, () => {
+        // Another device saved — reload silently if we're in the foreground
+        if (!document.hidden) {
+          loadFromSupabase().then(() => {
+            renderToday();
+            if (typeof renderFocusList === 'function') renderFocusList();
+            if (typeof renderTodoList === 'function') renderTodoList();
+          });
+        }
+      })
+      .subscribe();
+  } catch(e) {
+    // Realtime not enabled — visibility sync still works fine
+  }
+}
+
 // ── iOS autofill poller ──
 // iOS autofill does not reliably fire input/change events.
 // Poll for both fields being populated and auto-submit (login mode only).
@@ -3269,6 +3359,13 @@ function applyThemeMode(mode) {
   applyAccentColor(state.settings.accentColor); // re-apply so accent-bg matches dark/light variant
 }
 
+function setTimezone(tz) {
+  state.settings.timezone = tz;
+  saveToSupabase();
+  // Re-render today since dates may shift
+  renderToday();
+}
+
 function setThemeMode(mode) {
   state.settings.themeMode = mode;
   applyThemeMode(mode);
@@ -3284,7 +3381,10 @@ function setAccentColor(name) {
 }
 
 function renderSettingsModal() {
-  const s = state.settings || { accentColor: 'amber', themeMode: 'auto' };
+  const s = state.settings || { accentColor: 'amber', themeMode: 'auto', timezone: 'Australia/Sydney' };
+  // Timezone dropdown
+  const tzSel = document.getElementById('settings-timezone');
+  if (tzSel) tzSel.value = s.timezone || 'Australia/Sydney';
   ['auto', 'light', 'dark'].forEach(m => {
     const el = document.getElementById('theme-seg-' + m);
     if (el) el.classList.toggle('active', s.themeMode === m);
@@ -3306,9 +3406,10 @@ function renderSettingsModal() {
 }
 
 function initSettings() {
-  if (!state.settings) state.settings = { accentColor: 'amber', themeMode: 'auto' };
+  if (!state.settings) state.settings = { accentColor: 'amber', themeMode: 'auto', timezone: 'Australia/Sydney' };
   if (!state.settings.accentColor) state.settings.accentColor = 'amber';
   if (!state.settings.themeMode) state.settings.themeMode = 'auto';
+  if (!state.settings.timezone) state.settings.timezone = 'Australia/Sydney';
   applyThemeMode(state.settings.themeMode);
   renderSettingsModal();
   if (window.matchMedia) {
@@ -4375,7 +4476,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.3 · 01 Jul 2026 2:17 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v3.4 · 01 Jul 2026 2:21 PM AEDT</div>
 
 </body>
 </html>
