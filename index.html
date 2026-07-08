@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 9:04 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 9:29 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1874,8 +1874,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v4.7</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 9:04 AM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v4.8</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 9:29 AM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1889,9 +1889,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v4.7 · 09 Jul 2026 9:04 AM AEDT';
-const BUILD_VERSION = 'v4.7';
-const BUILD_DISPLAY = '09 Jul 2026 9:04 AM AEDT';
+const BUILD = 'v4.8 · 09 Jul 2026 9:29 AM AEDT';
+const BUILD_VERSION = 'v4.8';
+const BUILD_DISPLAY = '09 Jul 2026 9:29 AM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3741,17 +3741,24 @@ function foodMealCardHTML(recipe, m, dk) {
     ? `<img src="${recipe.imageUrl}" style="width:100%;height:150px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="this.style.display='none'" loading="lazy">`
     : '';
 
-  return `<div class="meal-card">
+  const isExcluded = !!recipe.excluded;
+
+  return `<div class="meal-card" style="${isExcluded ? 'opacity:0.45' : ''}">
     ${imgHtml}
     <div class="meal-card-header" onclick="toggleMealBody('${bodyId}')">
       <div style="flex:1;min-width:0">
         <div class="meal-type-label">${m.emoji} ${m.label}</div>
-        <div class="meal-name">${recipe.name}</div>
+        <div class="meal-name" style="${isExcluded ? 'text-decoration:line-through' : ''}">${recipe.name}</div>
         ${meta ? `<div class="meal-meta">${meta}</div>` : ''}
         <div class="meal-tags" style="margin-top:4px">${tags}${flagBadges}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="meal-save-btn" onclick="event.stopPropagation();toggleSaveRecipe('${dk}','${m.type}')" title="${isSaved ? 'Remove from saved' : 'Save recipe'}">${isSaved ? '❤️' : '🤍'}</button>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <button class="meal-save-btn" onclick="event.stopPropagation();toggleSaveRecipe('${dk}','${m.type}')" title="${isSaved ? 'Unsave' : 'Save'}">${isSaved ? '❤️' : '🤍'}</button>
+        <button onclick="event.stopPropagation();excludeRecipe('${dk}','${m.type}')"
+          style="border:none;background:none;cursor:pointer;font-size:16px;padding:2px 4px;color:${isExcluded ? 'var(--accent2)' : 'var(--text3)'}"
+          title="${isExcluded ? 'Restore recipe' : 'Remove from plan'}">
+          ${isExcluded ? '↩️' : '✕'}
+        </button>
         <span class="meal-chevron" id="${bodyId}-chv">▾</span>
       </div>
     </div>
@@ -3787,46 +3794,132 @@ function toggleSaveRecipe(dk, mealType) {
   renderFoodWeekPlan();
 }
 
+function excludeRecipe(dk, mealType) {
+  if (!state.food || !state.food.weekPlan[dk]) return;
+  const recipe = state.food.weekPlan[dk][mealType];
+  if (!recipe) return;
+  recipe.excluded = !recipe.excluded;
+  saveToSupabase();
+  renderFoodWeekPlan();
+  // If shopping tab is visible, refresh it
+  if (foodActiveTab === 'shop') renderShoppingList();
+}
+
+// ── Shopping list: computed live from weekPlan (not stored separately) ──
+const SHOP_CATEGORIES = {
+  produce: ['tomato','lettuce','spinach','kale','broccoli','carrot','zucchini','capsicum','cucumber',
+    'onion','garlic','ginger','avocado','lemon','lime','apple','banana','berr','mushroom','potato',
+    'sweet potato','pumpkin','corn','celery','asparagus','cabbage','broccolini','bok choy','silverbeet',
+    'herbs','coriander','parsley','basil','mint','chilli','spring onion','shallot','leek','beetroot',
+    'eggplant','cauliflower','fennel','mango','strawberr','blueberr','raspberr','grape','orange','fresh'],
+  protein: ['chicken','beef','pork','lamb','fish','salmon','tuna','prawn','shrimp','egg','tofu',
+    'tempeh','lentil','chickpea','bean','kidney bean','black bean','edamame','protein powder','mince'],
+  dairyFree: ['coconut milk','almond milk','oat milk','soy milk','lactose-free','dairy-free',
+    'coconut cream','coconut yoghurt','coconut water'],
+  spices: ['salt','pepper','cumin','coriander seed','paprika','turmeric','cinnamon','oregano','thyme',
+    'rosemary','bay leaf','chilli flake','cayenne','cardamom','nutmeg','clove','star anise',
+    'mustard seed','curry powder','garam masala','sumac','mixed spice','allspice','dried'],
+};
+
+function categoriseShopItem(ingredient) {
+  const il = ingredient.toLowerCase();
+  if (SHOP_CATEGORIES.dairyFree.some(k => il.includes(k))) return 'Dairy-free';
+  if (SHOP_CATEGORIES.produce.some(k => il.includes(k))) return 'Produce';
+  if (SHOP_CATEGORIES.protein.some(k => il.includes(k))) return 'Protein';
+  if (SHOP_CATEGORIES.spices.some(k => il.includes(k))) return 'Spices & Herbs';
+  return 'Pantry';
+}
+
+function buildShoppingListFromPlan() {
+  // Gather ingredients from all non-excluded recipes in the week plan
+  const plan = (state.food && state.food.weekPlan) || {};
+  const recipeGroups = []; // [{ recipeName, emoji, ingredients[] }]
+
+  const mealEmoji = { breakfast: '🌅', lunch: '☀️', dinner: '🌙' };
+
+  Object.entries(plan).sort(([a],[b]) => a.localeCompare(b)).forEach(([dk, dayPlan]) => {
+    ['breakfast','lunch','dinner'].forEach(mealType => {
+      const recipe = dayPlan[mealType];
+      if (!recipe || recipe.excluded) return;
+      if (recipeGroups.some(g => g.recipeId === recipe.id)) return; // deduplicate
+      recipeGroups.push({
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        emoji: mealEmoji[mealType] || '🍽️',
+        mealType,
+        ingredients: recipe.ingredients || []
+      });
+    });
+  });
+
+  return recipeGroups;
+}
+
 function renderShoppingList() {
   if (!state.food) return;
-  const items = state.food.shoppingList || [];
-  const weekStart = state.food.shoppingListWeek;
   const el = document.getElementById('food-shopping-list');
   const labelEl = document.getElementById('shop-week-label');
 
+  const weekStart = state.food.shoppingListWeek;
   if (weekStart) {
     const d = new Date(weekStart + 'T00:00:00');
     labelEl.textContent = 'Week of ' + d.toLocaleDateString('en-AU', { day:'numeric', month:'short' });
   }
 
-  if (!items.length) {
-    el.innerHTML = '<div class="meal-empty">No shopping list yet — it will appear here every Thursday.</div>';
+  const recipeGroups = buildShoppingListFromPlan();
+
+  if (!recipeGroups.length) {
+    el.innerHTML = '<div class="meal-empty">No recipes in your plan yet — add meals in the This Week tab.</div>';
     return;
   }
 
-  // Group by category
-  const groups = {};
-  items.forEach((item, i) => {
-    const cat = item.category || 'Other';
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push({ ...item, _idx: i });
-  });
+  // Checked state stored in state.food.shoppingChecked = { 'recipeId::ingredient': true }
+  if (!state.food.shoppingChecked) state.food.shoppingChecked = {};
 
-  const catOrder = ['Produce', 'Protein', 'Dairy-free', 'Pantry', 'Spices & Herbs', 'Other'];
-  const orderedCats = [
-    ...catOrder.filter(c => groups[c]),
-    ...Object.keys(groups).filter(c => !catOrder.includes(c))
-  ];
+  el.innerHTML = recipeGroups.map(group => {
+    // Group ingredients by category within this recipe
+    const catGroups = {};
+    group.ingredients.forEach(ing => {
+      const cat = categoriseShopItem(ing);
+      if (!catGroups[cat]) catGroups[cat] = [];
+      catGroups[cat].push(ing);
+    });
+    const catOrder = ['Produce', 'Protein', 'Dairy-free', 'Pantry', 'Spices & Herbs'];
+    const orderedCats = [...catOrder.filter(c => catGroups[c]), ...Object.keys(catGroups).filter(c => !catOrder.includes(c))];
 
-  el.innerHTML = orderedCats.map(cat => {
-    const catItems = groups[cat].map(item => `
-      <div class="shop-item">
-        <div class="shop-check ${item.checked ? 'done' : ''}" onclick="toggleShopItem(${item._idx})"></div>
-        <div class="shop-item-text ${item.checked ? 'done' : ''}">${item.name}</div>
-        ${item.amount ? `<div class="shop-amount">${item.amount}</div>` : ''}
-      </div>`).join('');
-    return `<div class="shop-category-header">${cat}</div>${catItems}`;
+    const itemsHtml = orderedCats.map(cat => {
+      const catHtml = catGroups[cat].map(ing => {
+        const key = `${group.recipeId}::${ing}`;
+        const checked = !!state.food.shoppingChecked[key];
+        return `<div class="shop-item">
+          <div class="shop-check ${checked ? 'done' : ''}" onclick="toggleShopCheck('${key.replace(/'/g,"\\'")}')"></div>
+          <div class="shop-item-text ${checked ? 'done' : ''}">${ing}</div>
+        </div>`;
+      }).join('');
+      return `<div style="font-size:10px;font-weight:600;letter-spacing:0.6px;color:var(--text3);text-transform:uppercase;margin:8px 0 2px">${cat}</div>${catHtml}`;
+    }).join('');
+
+    return `<div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);padding:8px 0 4px;border-bottom:1.5px solid var(--accent-bg);margin-bottom:4px">
+        ${group.emoji} ${group.recipeName}
+      </div>
+      ${itemsHtml}
+    </div>`;
   }).join('');
+}
+
+function toggleShopCheck(key) {
+  if (!state.food.shoppingChecked) state.food.shoppingChecked = {};
+  state.food.shoppingChecked[key] = !state.food.shoppingChecked[key];
+  saveToSupabase();
+  renderShoppingList();
+}
+
+function clearShoppingChecks() {
+  if (!state.food) return;
+  state.food.shoppingChecked = {};
+  saveToSupabase();
+  renderShoppingList();
 }
 
 function toggleShopItem(idx) {
@@ -5462,7 +5555,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v4.7 · 09 Jul 2026 9:04 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v4.8 · 09 Jul 2026 9:29 AM AEDT</div>
 
 </body>
 </html>
