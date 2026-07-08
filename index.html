@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 9:47 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 9:54 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1880,7 +1880,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 9:47 AM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 9:54 AM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1894,9 +1894,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v4.9 · 09 Jul 2026 9:47 AM AEDT';
-const BUILD_VERSION = 'v4.9';
-const BUILD_DISPLAY = '09 Jul 2026 9:47 AM AEDT';
+const BUILD = 'v4.9.1 · 09 Jul 2026 9:54 AM AEDT';
+const BUILD_VERSION = 'v4.9.1';
+const BUILD_DISPLAY = '09 Jul 2026 9:54 AM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3594,6 +3594,12 @@ async function refreshFood() {
   const btn = document.getElementById('food-refresh-btn');
   if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
   await loadFromSupabase();
+  // Debug: log what's in state.food after loading
+  const f = state.food || {};
+  const wk = f.weekPlan || {};
+  const wkKeys = Object.keys(wk);
+  console.log('[Food Debug] weekPlan keys:', wkKeys);
+  console.log('[Food Debug] state.food:', JSON.stringify(f).slice(0, 300));
   initFood();
   if (btn) {
     btn.style.opacity = '1'; btn.style.pointerEvents = '';
@@ -3887,7 +3893,11 @@ function renderShoppingList() {
   const recipeGroups = buildShoppingListFromPlan();
 
   if (!recipeGroups.length) {
-    el.innerHTML = '<div class="meal-empty">No recipes in your plan yet — add meals in the This Week tab.</div>';
+    const wk = (state.food && state.food.weekPlan) || {};
+    const keys = Object.keys(wk);
+    el.innerHTML = `<div class="meal-empty">No recipes in your plan yet — add meals in the This Week tab.
+      <div style="font-size:10px;color:var(--text3);margin-top:8px">Debug: weekPlan has ${keys.length} day(s): ${keys.join(', ') || 'none'}</div>
+    </div>`;
     return;
   }
 
@@ -5573,7 +5583,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v4.9 · 09 Jul 2026 9:47 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v4.9.1 · 09 Jul 2026 9:54 AM AEDT</div>
 
 </body>
 </html>
