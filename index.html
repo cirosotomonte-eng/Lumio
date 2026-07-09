@@ -3749,6 +3749,8 @@ function handleImageError(img) {
     img.style.display = 'none';
   }
 }
+
+function foodContainsAny(text, keywords) {
   return keywords.some(k => text.includes(k));
 }
 
