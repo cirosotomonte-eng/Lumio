@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 10:58 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 11:14 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1880,7 +1880,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 10:58 AM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 11:14 AM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1894,9 +1894,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.0 · 09 Jul 2026 10:58 AM AEDT';
-const BUILD_VERSION = 'v5.0';
-const BUILD_DISPLAY = '09 Jul 2026 10:58 AM AEDT';
+const BUILD = 'v5.1 · 09 Jul 2026 11:14 AM AEDT';
+const BUILD_VERSION = 'v5.1';
+const BUILD_DISPLAY = '09 Jul 2026 11:14 AM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3639,11 +3639,21 @@ function foodMondayOfCurrentWeek() {
 }
 
 function foodWeekDates() {
-  const mon = foodMondayOfCurrentWeek();
+  // Use the week the scraper planned (shoppingListWeek) if available
+  // Otherwise fall back to current week
+  let startMon;
+  const planWeek = state.food && state.food.shoppingListWeek;
+  if (planWeek) {
+    const [y,m,d] = planWeek.split('-').map(Number);
+    startMon = new Date(y, m-1, d);
+    startMon.setHours(0,0,0,0);
+  } else {
+    startMon = foodMondayOfCurrentWeek();
+  }
   const dates = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(mon);
-    d.setDate(mon.getDate() + i);
+    const d = new Date(startMon);
+    d.setDate(startMon.getDate() + i);
     const dk = d.getFullYear() + '-' +
       String(d.getMonth()+1).padStart(2,'0') + '-' +
       String(d.getDate()).padStart(2,'0');
@@ -3679,9 +3689,17 @@ function renderFoodWeekPlan() {
     return;
   }
 
-  // Find default active day — today if in this week, else Monday
+  // Find default active day — today if in this week, else first day with meals
   const todayIdx = dates.findIndex(d => d.dk === today);
-  if (foodActiveDayIndex === 0 && todayIdx >= 0) foodActiveDayIndex = todayIdx;
+  if (foodActiveDayIndex === 0) {
+    if (todayIdx >= 0) {
+      foodActiveDayIndex = todayIdx;
+    } else {
+      // Show first day that has meals
+      const firstWithMeals = dates.findIndex(d => plan[d.dk] && (plan[d.dk].breakfast || plan[d.dk].lunch || plan[d.dk].dinner));
+      foodActiveDayIndex = firstWithMeals >= 0 ? firstWithMeals : 0;
+    }
+  }
 
   pillsEl.innerHTML = dates.map((d, i) => {
     const isToday = d.dk === today;
@@ -5597,7 +5615,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.0 · 09 Jul 2026 10:58 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.1 · 09 Jul 2026 11:14 AM AEDT</div>
 
 </body>
 </html>
