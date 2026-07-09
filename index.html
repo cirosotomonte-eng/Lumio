@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 11:14 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 11:38 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1880,7 +1880,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 11:14 AM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 11:38 AM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1894,9 +1894,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.1 · 09 Jul 2026 11:14 AM AEDT';
-const BUILD_VERSION = 'v5.1';
-const BUILD_DISPLAY = '09 Jul 2026 11:14 AM AEDT';
+const BUILD = 'v5.2 · 09 Jul 2026 11:38 AM AEDT';
+const BUILD_VERSION = 'v5.2';
+const BUILD_DISPLAY = '09 Jul 2026 11:38 AM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3740,7 +3740,15 @@ function renderFoodDay(idx) {
   }).join('');
 }
 
-function foodContainsAny(text, keywords) {
+function handleImageError(img) {
+  // Try mobile variant first, then hide
+  if (img.src && img.src.includes('desktop2x')) {
+    img.onerror = () => { img.style.display = 'none'; };
+    img.src = img.src.replace('desktop2x', 'mobile2x');
+  } else {
+    img.style.display = 'none';
+  }
+}
   return keywords.some(k => text.includes(k));
 }
 
@@ -3780,9 +3788,10 @@ function foodMealCardHTML(recipe, m, dk) {
   const method = (recipe.method || []).map((s, i) => `<div class="meal-method-step"><strong>${i+1}.</strong> ${s}</div>`).join('');
 
   const imgHtml = recipe.imageUrl
-    ? `<img src="${recipe.imageUrl}" style="width:100%;height:160px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="this.src=this.src.replace('desktop2x','mobile2x');this.onerror=function(){this.style.display='none'}" loading="lazy">`
+    ? `<img src="${recipe.imageUrl}" style="width:100%;height:160px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="handleImageError(this)" loading="lazy">`
     : '';
 
+  const isInShop = !!recipe.addedToShop;
   const isExcluded = !!recipe.excluded;
 
   // Nutrition panel
@@ -3798,21 +3807,29 @@ function foodMealCardHTML(recipe, m, dk) {
       </div>
     </div>` : '';
 
-  return `<div class="meal-card" style="${isExcluded ? 'opacity:0.45' : ''}">
+  // Add to shopping list button
+  const shopBtnHtml = `
+    <button onclick="toggleAddToShop('${dk}','${m.type}')"
+      style="width:100%;padding:11px;border-radius:var(--rad);border:1.5px solid ${isInShop ? 'var(--accent2)' : 'var(--accent)'};
+      background:${isInShop ? 'var(--accent2)' : 'var(--accent)'};color:white;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+      ${isInShop ? '✓ Added to shopping list' : '🛒 Add to shopping list'}
+    </button>`;
+
+  return `<div class="meal-card" style="${isExcluded ? 'opacity:0.4' : ''}">
     ${imgHtml}
     <div class="meal-card-header" onclick="toggleMealBody('${bodyId}')">
       <div style="flex:1;min-width:0">
         <div class="meal-type-label">${m.emoji} ${m.label}</div>
         <div class="meal-name" style="${isExcluded ? 'text-decoration:line-through' : ''}">${recipe.name}</div>
         ${meta ? `<div class="meal-meta">${meta}</div>` : ''}
-        <div class="meal-tags" style="margin-top:4px">${tags}${flagBadges}</div>
+        <div class="meal-tags" style="margin-top:4px">${tags}${flagBadges}${isInShop ? '<span class="meal-tag" style="background:var(--accent2-bg);color:var(--accent2)">🛒 In list</span>' : ''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <button class="meal-save-btn" onclick="event.stopPropagation();toggleSaveRecipe('${dk}','${m.type}')" title="${isSaved ? 'Unsave' : 'Save'}">${isSaved ? '❤️' : '🤍'}</button>
         <button onclick="event.stopPropagation();excludeRecipe('${dk}','${m.type}')"
-          style="border:none;background:none;cursor:pointer;font-size:16px;padding:2px 4px;color:${isExcluded ? 'var(--accent2)' : 'var(--text3)'}"
-          title="${isExcluded ? 'Restore recipe' : 'Remove from plan'}">
-          ${isExcluded ? '↩️' : '✕'}
+          style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:var(--text3)"
+          title="${isExcluded ? 'Restore' : 'Hide'}">
+          ${isExcluded ? '↩' : '✕'}
         </button>
         <span class="meal-chevron" id="${bodyId}-chv">▾</span>
       </div>
@@ -3822,6 +3839,7 @@ function foodMealCardHTML(recipe, m, dk) {
       ${nutritionHtml}
       ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients</div>${ingredients}</div>` : ''}
       ${method ? `<div style="margin-top:12px"><div class="meal-method-title">Method</div>${method}</div>` : ''}
+      ${shopBtnHtml}
     </div>
   </div>`;
 }
@@ -3886,85 +3904,87 @@ function categoriseShopItem(ingredient) {
   return 'Pantry';
 }
 
+function toggleAddToShop(dk, mealType) {
+  if (!state.food || !state.food.weekPlan[dk]) return;
+  const recipe = state.food.weekPlan[dk][mealType];
+  if (!recipe) return;
+  recipe.addedToShop = !recipe.addedToShop;
+  saveToSupabase();
+  renderFoodWeekPlan();
+  if (foodActiveTab === 'shop') renderShoppingList();
+}
+
 function buildShoppingListFromPlan() {
-  // Gather ingredients from all non-excluded recipes in the week plan
+  // Returns flat array of items from addedToShop recipes
   const plan = (state.food && state.food.weekPlan) || {};
-  const recipeGroups = []; // [{ recipeName, emoji, ingredients[] }]
-
+  const items = [];
   const mealEmoji = { breakfast: '🌅', lunch: '☀️', dinner: '🌙' };
-
+  const seen = new Set(); // deduplicate same recipe appearing multiple days
   Object.entries(plan).sort(([a],[b]) => a.localeCompare(b)).forEach(([dk, dayPlan]) => {
     ['breakfast','lunch','dinner'].forEach(mealType => {
       const recipe = dayPlan[mealType];
-      if (!recipe || recipe.excluded) return;
-      if (recipeGroups.some(g => g.recipeId === recipe.id)) return; // deduplicate
-      recipeGroups.push({
-        recipeId: recipe.id,
-        recipeName: recipe.name,
-        emoji: mealEmoji[mealType] || '🍽️',
-        mealType,
-        ingredients: recipe.ingredients || []
+      if (!recipe || !recipe.addedToShop) return;
+      if (seen.has(recipe.id)) return;
+      seen.add(recipe.id);
+      (recipe.ingredients || []).forEach(ing => {
+        items.push({
+          name: ing,
+          category: categoriseShopItem(ing),
+          recipeName: recipe.name,
+          emoji: mealEmoji[mealType] || '🍽️',
+          key: `${recipe.id}::${ing}`
+        });
       });
     });
   });
-
-  return recipeGroups;
+  return items;
 }
 
 function renderShoppingList() {
   if (!state.food) return;
   const el = document.getElementById('food-shopping-list');
   const labelEl = document.getElementById('shop-week-label');
-
   const weekStart = state.food.shoppingListWeek;
   if (weekStart) {
     const d = new Date(weekStart + 'T00:00:00');
     labelEl.textContent = 'Week of ' + d.toLocaleDateString('en-AU', { day:'numeric', month:'short' });
   }
+  if (!state.food.shoppingChecked) state.food.shoppingChecked = {};
 
-  const recipeGroups = buildShoppingListFromPlan();
+  const items = buildShoppingListFromPlan();
 
-  if (!recipeGroups.length) {
-    const wk = (state.food && state.food.weekPlan) || {};
-    const keys = Object.keys(wk);
-    el.innerHTML = `<div class="meal-empty">No recipes in your plan yet — add meals in the This Week tab.
-      <div style="font-size:10px;color:var(--text3);margin-top:8px">Debug: weekPlan has ${keys.length} day(s): ${keys.join(', ') || 'none'}</div>
+  if (!items.length) {
+    const totalRecipes = Object.values(state.food.weekPlan || {})
+      .flatMap(d => Object.values(d)).filter(r => r && r.name).length;
+    el.innerHTML = `<div class="meal-empty">
+      No ingredients yet.<br>
+      <span style="font-size:13px;color:var(--text3)">Go to <strong>This Week</strong>, open a recipe<br>and tap 🛒 <strong>Add to shopping list</strong></span>
+      ${totalRecipes > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:8px">${totalRecipes} recipes ready to add</div>` : ''}
     </div>`;
     return;
   }
 
-  // Checked state stored in state.food.shoppingChecked = { 'recipeId::ingredient': true }
-  if (!state.food.shoppingChecked) state.food.shoppingChecked = {};
+  // Group by category across ALL recipes
+  const catOrder = ['Produce','Protein','Dairy-free','Pantry','Spices & Herbs'];
+  const groups = {};
+  items.forEach(item => {
+    if (!groups[item.category]) groups[item.category] = [];
+    groups[item.category].push(item);
+  });
+  const orderedCats = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
 
-  el.innerHTML = recipeGroups.map(group => {
-    // Group ingredients by category within this recipe
-    const catGroups = {};
-    group.ingredients.forEach(ing => {
-      const cat = categoriseShopItem(ing);
-      if (!catGroups[cat]) catGroups[cat] = [];
-      catGroups[cat].push(ing);
-    });
-    const catOrder = ['Produce', 'Protein', 'Dairy-free', 'Pantry', 'Spices & Herbs'];
-    const orderedCats = [...catOrder.filter(c => catGroups[c]), ...Object.keys(catGroups).filter(c => !catOrder.includes(c))];
-
-    const itemsHtml = orderedCats.map(cat => {
-      const catHtml = catGroups[cat].map(ing => {
-        const key = `${group.recipeId}::${ing}`;
-        const checked = !!state.food.shoppingChecked[key];
-        return `<div class="shop-item">
-          <div class="shop-check ${checked ? 'done' : ''}" onclick="toggleShopCheck('${key.replace(/'/g,"\\'")}')"></div>
-          <div class="shop-item-text ${checked ? 'done' : ''}">${ing}</div>
-        </div>`;
-      }).join('');
-      return `<div style="font-size:10px;font-weight:600;letter-spacing:0.6px;color:var(--text3);text-transform:uppercase;margin:8px 0 2px">${cat}</div>${catHtml}`;
+  el.innerHTML = orderedCats.map(cat => {
+    const catHtml = groups[cat].map(item => {
+      const checked = !!state.food.shoppingChecked[item.key];
+      return `<div class="shop-item">
+        <div class="shop-check ${checked ? 'done' : ''}" onclick="toggleShopCheck('${item.key.replace(/'/g,"\\'")}')"></div>
+        <div style="flex:1;min-width:0">
+          <div class="shop-item-text ${checked ? 'done' : ''}">${item.name}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">${item.emoji} ${item.recipeName}</div>
+        </div>
+      </div>`;
     }).join('');
-
-    return `<div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);padding:8px 0 4px;border-bottom:1.5px solid var(--accent-bg);margin-bottom:4px">
-        ${group.emoji} ${group.recipeName}
-      </div>
-      ${itemsHtml}
-    </div>`;
+    return `<div class="shop-category-header">${cat}</div>${catHtml}`;
   }).join('');
 }
 
@@ -3978,20 +3998,6 @@ function toggleShopCheck(key) {
 function clearShoppingChecks() {
   if (!state.food) return;
   state.food.shoppingChecked = {};
-  saveToSupabase();
-  renderShoppingList();
-}
-
-function toggleShopItem(idx) {
-  if (!state.food || !state.food.shoppingList[idx]) return;
-  state.food.shoppingList[idx].checked = !state.food.shoppingList[idx].checked;
-  saveToSupabase();
-  renderShoppingList();
-}
-
-function clearShoppingChecks() {
-  if (!state.food) return;
-  (state.food.shoppingList || []).forEach(i => i.checked = false);
   saveToSupabase();
   renderShoppingList();
 }
@@ -5615,7 +5621,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.1 · 09 Jul 2026 11:14 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.2 · 09 Jul 2026 11:38 AM AEDT</div>
 
 </body>
 </html>
