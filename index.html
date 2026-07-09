@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 11:38 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 1:01 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1511,7 +1511,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 </div><!-- /app -->
 
 <!-- ══════════════════════════════ NAV ══════════════════════════════ -->
-  <div id="page-food" class="page">
+  <div id="page-food" class="page" style="padding-bottom:140px">
     <div class="page-header">
       <div class="page-title">Food</div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -1880,7 +1880,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 11:38 AM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 1:01 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1894,9 +1894,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.2 · 09 Jul 2026 11:38 AM AEDT';
-const BUILD_VERSION = 'v5.2';
-const BUILD_DISPLAY = '09 Jul 2026 11:38 AM AEDT';
+const BUILD = 'v5.3 · 09 Jul 2026 1:01 PM AEDT';
+const BUILD_VERSION = 'v5.3';
+const BUILD_DISPLAY = '09 Jul 2026 1:01 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3917,24 +3917,28 @@ function toggleAddToShop(dk, mealType) {
 }
 
 function buildShoppingListFromPlan() {
-  // Returns flat array of items from addedToShop recipes
   const plan = (state.food && state.food.weekPlan) || {};
   const items = [];
   const mealEmoji = { breakfast: '🌅', lunch: '☀️', dinner: '🌙' };
-  const seen = new Set(); // deduplicate same recipe appearing multiple days
+  const seenRecipes = new Set();
   Object.entries(plan).sort(([a],[b]) => a.localeCompare(b)).forEach(([dk, dayPlan]) => {
     ['breakfast','lunch','dinner'].forEach(mealType => {
       const recipe = dayPlan[mealType];
       if (!recipe || !recipe.addedToShop) return;
-      if (seen.has(recipe.id)) return;
-      seen.add(recipe.id);
+      if (seenRecipes.has(recipe.id)) return;
+      seenRecipes.add(recipe.id);
+      // Deduplicate ingredients within the same recipe
+      const seenIngs = new Set();
       (recipe.ingredients || []).forEach(ing => {
+        const key = ing.trim().toLowerCase();
+        if (seenIngs.has(key)) return;
+        seenIngs.add(key);
         items.push({
           name: ing,
           category: categoriseShopItem(ing),
           recipeName: recipe.name,
           emoji: mealEmoji[mealType] || '🍽️',
-          key: `${recipe.id}::${ing}`
+          key: `${recipe.id}::${key}`
         });
       });
     });
@@ -5623,7 +5627,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.2 · 09 Jul 2026 11:38 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.3 · 09 Jul 2026 1:01 PM AEDT</div>
 
 </body>
 </html>
