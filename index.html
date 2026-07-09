@@ -1094,7 +1094,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 4:19 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 5:08 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1879,7 +1879,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 4:19 PM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 5:08 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1893,9 +1893,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.5 · 09 Jul 2026 4:19 PM AEDT';
-const BUILD_VERSION = 'v5.5';
-const BUILD_DISPLAY = '09 Jul 2026 4:19 PM AEDT';
+const BUILD = 'v5.6 · 09 Jul 2026 5:08 PM AEDT';
+const BUILD_VERSION = 'v5.6';
+const BUILD_DISPLAY = '09 Jul 2026 5:08 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3740,9 +3740,18 @@ function renderFoodDay(idx) {
 }
 
 function handleImageError(img) {
-  // Try mobile variant first, then hide
   if (img.src && img.src.includes('desktop2x')) {
-    img.onerror = () => { img.style.display = 'none'; };
+    // Step 1: try mobile2x variant
+    img.onerror = () => {
+      // Step 2: try og:image fallback stored in data-fallback
+      const fb = img.dataset.fallback;
+      if (fb && fb !== 'null' && fb !== img.src) {
+        img.onerror = () => { img.style.display = 'none'; };
+        img.src = fb;
+      } else {
+        img.style.display = 'none';
+      }
+    };
     img.src = img.src.replace('desktop2x', 'mobile2x');
   } else {
     img.style.display = 'none';
@@ -3789,7 +3798,7 @@ function foodMealCardHTML(recipe, m, dk) {
   const method = (recipe.method || []).map((s, i) => `<div class="meal-method-step"><strong>${i+1}.</strong> ${s}</div>`).join('');
 
   const imgHtml = recipe.imageUrl
-    ? `<img src="${recipe.imageUrl}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="handleImageError(this)" loading="lazy">`
+    ? `<img src="${recipe.imageUrl}" data-fallback="${recipe.imageUrlFallback || ''}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="handleImageError(this)" loading="lazy">`
     : '';
 
   const isInShop = !!recipe.addedToShop;
@@ -5627,7 +5636,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.5 · 09 Jul 2026 4:19 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.6 · 09 Jul 2026 5:08 PM AEDT</div>
 
 </body>
 </html>
