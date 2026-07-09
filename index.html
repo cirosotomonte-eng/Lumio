@@ -1095,7 +1095,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 9:54 AM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 09 Jul 2026 10:58 AM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1880,7 +1880,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 9:54 AM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">09 Jul 2026 10:58 AM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1894,9 +1894,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v4.9.1 · 09 Jul 2026 9:54 AM AEDT';
-const BUILD_VERSION = 'v4.9.1';
-const BUILD_DISPLAY = '09 Jul 2026 9:54 AM AEDT';
+const BUILD = 'v5.0 · 09 Jul 2026 10:58 AM AEDT';
+const BUILD_VERSION = 'v5.0';
+const BUILD_DISPLAY = '09 Jul 2026 10:58 AM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3762,10 +3762,23 @@ function foodMealCardHTML(recipe, m, dk) {
   const method = (recipe.method || []).map((s, i) => `<div class="meal-method-step"><strong>${i+1}.</strong> ${s}</div>`).join('');
 
   const imgHtml = recipe.imageUrl
-    ? `<img src="${recipe.imageUrl}" style="width:100%;height:150px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="this.style.display='none'" loading="lazy">`
+    ? `<img src="${recipe.imageUrl}" style="width:100%;height:160px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="this.src=this.src.replace('desktop2x','mobile2x');this.onerror=function(){this.style.display='none'}" loading="lazy">`
     : '';
 
   const isExcluded = !!recipe.excluded;
+
+  // Nutrition panel
+  const hasNutrition = recipe.calories || recipe.protein || recipe.fat || recipe.carbs;
+  const nutritionHtml = hasNutrition ? `
+    <div style="background:var(--surface2);border-radius:var(--rad);padding:10px 12px;margin-bottom:14px">
+      <div class="meal-ingredients-title" style="margin-bottom:8px">Per serving</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center;gap:6px">
+        ${recipe.calories ? `<div><div style="font-size:17px;font-weight:700;color:var(--accent)">${recipe.calories}</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px">cal</div></div>` : ''}
+        ${recipe.protein  ? `<div><div style="font-size:17px;font-weight:700;color:var(--accent2)">${recipe.protein}g</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px">protein</div></div>` : ''}
+        ${recipe.fat      ? `<div><div style="font-size:17px;font-weight:700;color:var(--text2)">${recipe.fat}g</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px">fat</div></div>` : ''}
+        ${recipe.carbs    ? `<div><div style="font-size:17px;font-weight:700;color:var(--text2)">${recipe.carbs}g</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px">carbs</div></div>` : ''}
+      </div>
+    </div>` : '';
 
   return `<div class="meal-card" style="${isExcluded ? 'opacity:0.45' : ''}">
     ${imgHtml}
@@ -3788,8 +3801,9 @@ function foodMealCardHTML(recipe, m, dk) {
     </div>
     <div class="meal-body" id="${bodyId}" style="display:none">
       <div class="meal-divider"></div>
+      ${nutritionHtml}
       ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients</div>${ingredients}</div>` : ''}
-      ${method ? `<div class="meal-method-title">Method</div>${method}` : ''}
+      ${method ? `<div style="margin-top:12px"><div class="meal-method-title">Method</div>${method}</div>` : ''}
     </div>
   </div>`;
 }
@@ -5583,7 +5597,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v4.9.1 · 09 Jul 2026 9:54 AM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.0 · 09 Jul 2026 10:58 AM AEDT</div>
 
 </body>
 </html>
