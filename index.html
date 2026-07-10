@@ -1094,7 +1094,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 10 Jul 2026 5:28 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 10 Jul 2026 6:12 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1534,7 +1534,14 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         <div style="font-size:13px;color:var(--text2)" id="shop-week-label">No shopping list yet</div>
         <button class="btn btn-sm" onclick="clearShoppingChecks()" style="font-size:11px">Clear ticks</button>
       </div>
+      <!-- Store toggle -->
+      <div id="shop-price-summary" style="display:none;margin-bottom:14px"></div>
+      <div class="food-tabs" id="shop-mode-tabs" style="display:none">
+        <button class="food-tab-btn active" onclick="switchShopMode('one',this)">One store</button>
+        <button class="food-tab-btn" onclick="switchShopMode('split',this)">Split shop</button>
+      </div>
       <div id="food-shopping-list"></div>
+      <div id="shop-not-found" style="display:none;margin-top:16px"></div>
     </div>
     <div id="food-tab-saved" style="display:none">
       <div id="food-saved-recipes"></div>
@@ -1879,7 +1886,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">10 Jul 2026 5:28 PM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">10 Jul 2026 6:12 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1893,9 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.9 · 10 Jul 2026 5:28 PM AEDT';
-const BUILD_VERSION = 'v5.9';
-const BUILD_DISPLAY = '10 Jul 2026 5:28 PM AEDT';
+const BUILD = 'v5.10 · 10 Jul 2026 6:12 PM AEDT';
+const BUILD_VERSION = 'v5.10';
+const BUILD_DISPLAY = '10 Jul 2026 6:12 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -3614,8 +3621,188 @@ function calcHabitStreak(id) {
 }
 
 // ── Food ──
-let foodActiveTab = 'plan';
-let foodActiveDayIndex = 0; // 0=Mon ... 6=Sun
+let shopMode = 'one'; // 'one' or 'split'
+
+function switchShopMode(mode, btn) {
+  shopMode = mode;
+  document.querySelectorAll('#shop-mode-tabs .food-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderShoppingList();
+}
+
+function renderShoppingList() {
+  if (!state.food) return;
+  const el = document.getElementById('food-shopping-list');
+  const labelEl = document.getElementById('shop-week-label');
+  const summaryEl = document.getElementById('shop-price-summary');
+  const tabsEl = document.getElementById('shop-mode-tabs');
+  const notFoundEl = document.getElementById('shop-not-found');
+
+  const weekStart = state.food.shoppingListWeek;
+  if (weekStart) {
+    const d = new Date(weekStart + 'T00:00:00');
+    labelEl.textContent = 'Week of ' + d.toLocaleDateString('en-AU', { day:'numeric', month:'short' });
+  }
+
+  if (!state.food.shoppingChecked) state.food.shoppingChecked = {};
+
+  const items = buildShoppingListFromPlan();
+  if (!items.length) {
+    const plan = state.food.weekPlan || {};
+    const totalRecipes = Object.values(plan).flatMap(d => Object.values(d)).filter(r => r && r.name).length;
+    el.innerHTML = `<div class="meal-empty">No ingredients yet.<br><span style="font-size:13px;color:var(--text3)">Open <strong>This Week</strong>, expand a recipe<br>and tap 🛒 <strong>Add to shopping list</strong></span>${totalRecipes > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:8px">${totalRecipes} recipes ready to add</div>` : ''}</div>`;
+    summaryEl.style.display = 'none';
+    tabsEl.style.display = 'none';
+    notFoundEl.style.display = 'none';
+    return;
+  }
+
+  const prices = state.food.prices || {};
+  const hasPrices = Object.keys(prices).length > 0;
+
+  // Show/hide price UI
+  if (hasPrices) {
+    tabsEl.style.display = 'flex';
+    renderPriceSummary(items, prices, summaryEl);
+    summaryEl.style.display = 'block';
+  } else {
+    tabsEl.style.display = 'none';
+    summaryEl.style.display = 'none';
+  }
+
+  // Render list based on mode
+  if (hasPrices && shopMode === 'split') {
+    el.innerHTML = renderSplitShop(items, prices);
+  } else {
+    el.innerHTML = renderOneStore(items, prices);
+  }
+
+  // Not found
+  const notFound = state.food.pricesNotFound || [];
+  if (notFound.length && hasPrices) {
+    notFoundEl.style.display = 'block';
+    notFoundEl.innerHTML = `<div style="font-size:11px;color:var(--text3);padding:10px 0;border-top:0.5px solid var(--border)">⚠️ Prices not found: ${notFound.join(', ')}</div>`;
+  } else {
+    notFoundEl.style.display = 'none';
+  }
+}
+
+function getBestPrice(itemName, prices) {
+  const p = prices[itemName.toLowerCase()];
+  if (!p) return null;
+  const ww = p.woolworths?.price;
+  const co = p.coles?.price;
+  if (ww && co) return ww <= co ? { store: 'woolworths', price: ww, other: co, unit: p.woolworths.unitPrice } : { store: 'coles', price: co, other: ww, unit: p.coles.unitPrice };
+  if (ww) return { store: 'woolworths', price: ww, unit: p.woolworths.unitPrice };
+  if (co) return { store: 'coles', price: co, unit: p.coles.unitPrice };
+  return null;
+}
+
+function renderPriceSummary(items, prices, el) {
+  let wwTotal = 0, coTotal = 0, wwCount = 0, coCount = 0;
+  items.forEach(item => {
+    const names = item.name.toLowerCase().split(/[,&]/).map(n => n.trim());
+    for (const name of names) {
+      const p = prices[name];
+      if (p?.woolworths?.price) { wwTotal += p.woolworths.price; wwCount++; }
+      if (p?.coles?.price) { coTotal += p.coles.price; coCount++; }
+    }
+  });
+  const wwWins = wwTotal <= coTotal;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:${wwWins ? '#e8f5e9' : 'var(--surface2)'};border-radius:var(--rad);padding:10px 12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;color:#2e7d32;margin-bottom:4px">🟢 WOOLWORTHS</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text)">$${wwTotal.toFixed(2)}</div>
+        ${wwWins ? '<div style="font-size:10px;color:#2e7d32;font-weight:600">✓ cheaper</div>' : ''}
+      </div>
+      <div style="background:${!wwWins ? '#e3f2fd' : 'var(--surface2)'};border-radius:var(--rad);padding:10px 12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;color:#1565c0;margin-bottom:4px">🔵 COLES</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text)">$${coTotal.toFixed(2)}</div>
+        ${!wwWins ? '<div style="font-size:10px;color:#1565c0;font-weight:600">✓ cheaper</div>' : ''}
+      </div>
+    </div>`;
+}
+
+function renderOneStore(items, prices) {
+  const catOrder = ['Produce','Protein','Dairy-free','Pantry','Spices & Herbs'];
+  const groups = {};
+  items.forEach(item => { if (!groups[item.category]) groups[item.category] = []; groups[item.category].push(item); });
+  const orderedCats = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
+
+  return orderedCats.map(cat => {
+    const catHtml = groups[cat].map(item => {
+      const checked = !!state.food.shoppingChecked[item.key];
+      const best = getBestPrice(item.name, prices);
+      const priceHtml = best ? `<div style="font-size:11px;color:var(--text3)">${best.store === 'woolworths' ? '🟢' : '🔵'} $${best.price.toFixed(2)}${best.unit ? ' · ' + best.unit : ''}</div>` : '';
+      return `<div class="shop-item">
+        <div class="shop-check ${checked ? 'done' : ''}" onclick="toggleShopCheck('${item.key.replace(/'/g,"\\'")}')"></div>
+        <div style="flex:1;min-width:0">
+          <div class="shop-item-text ${checked ? 'done' : ''}">${item.name}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">${item.emoji} ${item.recipeName}</div>
+          ${priceHtml}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="shop-category-header">${cat}</div>${catHtml}`;
+  }).join('');
+}
+
+function renderSplitShop(items, prices) {
+  const catOrder = ['Produce','Protein','Dairy-free','Pantry','Spices & Herbs'];
+
+  // Separate items by cheapest store
+  const wwItems = [], coItems = [], unknownItems = [];
+  let wwTotal = 0, coTotal = 0;
+
+  items.forEach(item => {
+    const best = getBestPrice(item.name, prices);
+    if (!best) { unknownItems.push({ item, best: null }); return; }
+    if (best.store === 'woolworths') { wwItems.push({ item, best }); wwTotal += best.price; }
+    else { coItems.push({ item, best }); coTotal += best.price; }
+  });
+
+  const splitTotal = wwTotal + coTotal;
+  const allWw = wwTotal + coTotal + (coItems.reduce((s, { best }) => s + (best?.other || best?.price || 0), 0));
+  const allCo = wwTotal + coTotal + (wwItems.reduce((s, { best }) => s + (best?.other || best?.price || 0), 0));
+  const saving = Math.max(allWw, allCo) - splitTotal;
+
+  function renderGroup(itemsList, storeColor, storeLabel, total) {
+    if (!itemsList.length) return '';
+    const groups = {};
+    itemsList.forEach(({ item, best }) => {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push({ item, best });
+    });
+    const orderedCats = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
+    const catHtml = orderedCats.map(cat => {
+      const rows = groups[cat].map(({ item, best }) => {
+        const checked = !!state.food.shoppingChecked[item.key];
+        return `<div class="shop-item">
+          <div class="shop-check ${checked ? 'done' : ''}" onclick="toggleShopCheck('${item.key.replace(/'/g,"\\'")}')"></div>
+          <div style="flex:1;min-width:0">
+            <div class="shop-item-text ${checked ? 'done' : ''}">${item.name}</div>
+            <div style="font-size:10px;color:var(--text3)">${item.emoji} ${item.recipeName}</div>
+            ${best ? `<div style="font-size:11px;color:var(--text3)">$${best.price.toFixed(2)}${best.unit ? ' · ' + best.unit : ''}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div style="font-size:10px;font-weight:600;letter-spacing:0.6px;color:var(--text3);text-transform:uppercase;margin:8px 0 2px">${cat}</div>${rows}`;
+    }).join('');
+    return `<div style="margin-bottom:16px;background:var(--surface2);border-radius:var(--rad);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${storeLabel}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">$${total.toFixed(2)}</div>
+      </div>${catHtml}</div>`;
+  }
+
+  const savingHtml = saving > 0.01 ? `<div style="text-align:center;padding:10px;background:var(--accent-bg);border-radius:var(--rad);margin-bottom:12px;font-size:13px">💰 Split shop: <strong>$${splitTotal.toFixed(2)}</strong> · saving <strong>$${saving.toFixed(2)}</strong></div>` : '';
+
+  return savingHtml +
+    renderGroup(coItems, '#1565c0', '🔵 COLES', coTotal) +
+    renderGroup(wwItems, '#2e7d32', '🟢 WOOLWORTHS', wwTotal) +
+    (unknownItems.length ? renderGroup(unknownItems, '#666', '📋 NO PRICE DATA', 0) : '');
+} // 0=Mon ... 6=Sun
 
 function initFood() {
   if (!state.food) {
@@ -5671,7 +5858,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.9 · 10 Jul 2026 5:28 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.10 · 10 Jul 2026 6:12 PM AEDT</div>
 
 </body>
 </html>
