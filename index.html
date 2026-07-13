@@ -1094,7 +1094,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </form>
   </div>
 
-  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 10 Jul 2026 6:12 PM AEDT</div>
+  <div style="margin-top:24px;font-size:11px;color:var(--text3);text-align:center;opacity:0.6">Lumio · 13 Jul 2026 4:46 PM AEDT</div>
 </div>
 
 <!-- ══════════════════════════════ USER BAR ══════════════════════════════ -->
@@ -1886,7 +1886,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">10 Jul 2026 6:12 PM AEDT</div>
+      <div class="settings-version-time" id="settings-version-time">13 Jul 2026 4:46 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1900,9 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.10 · 10 Jul 2026 6:12 PM AEDT';
-const BUILD_VERSION = 'v5.10';
-const BUILD_DISPLAY = '10 Jul 2026 6:12 PM AEDT';
+const BUILD = 'v5.11 · 13 Jul 2026 4:46 PM AEDT';
+const BUILD_VERSION = 'v5.11';
+const BUILD_DISPLAY = '13 Jul 2026 4:46 PM AEDT';
 
 let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
 
@@ -2640,7 +2640,7 @@ function addTodoItem(category) {
   const text = inp.value.trim();
   if (!text) return;
   if (!state.todos) state.todos = [];
-  state.todos.push({ id: 'td' + Date.now(), text, category, createdAt: todayDateKey() });
+  state.todos.push({ id: 'td' + Date.now(), text, category, notes: '', url: '', createdAt: todayDateKey() });
   inp.value = '';
   saveToSupabase();
   renderTodoList();
@@ -2673,6 +2673,48 @@ function editTodoItem(id, el) {
   });
 }
 
+function openTodoDetail(id) {
+  const item = (state.todos || []).find(i => i.id === id);
+  if (!item) return;
+  // Remove existing modal
+  document.getElementById('todo-detail-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'todo-detail-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:20px 16px 36px;box-shadow:0 -4px 24px rgba(0,0,0,0.15)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:600;color:var(--text)">Task details</div>
+        <button onclick="closeTodoDetail()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">Task</div>
+      <input id="td-detail-text" value="${item.text.replace(/"/g,'&quot;')}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box">
+      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">Notes</div>
+      <textarea id="td-detail-notes" placeholder="Add notes…" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box;height:80px;resize:none;font-family:inherit">${item.notes || ''}</textarea>
+      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">URL</div>
+      <input id="td-detail-url" value="${(item.url||'').replace(/"/g,'&quot;')}" placeholder="https://…" type="url" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:16px;box-sizing:border-box">
+      <button onclick="saveTodoDetail('${id}')" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--rad);font-size:15px;font-weight:600;cursor:pointer">Save</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closeTodoDetail(); });
+  document.body.appendChild(modal);
+  document.getElementById('td-detail-text').focus();
+}
+
+function closeTodoDetail() {
+  document.getElementById('todo-detail-modal')?.remove();
+}
+
+function saveTodoDetail(id) {
+  const item = (state.todos || []).find(i => i.id === id);
+  if (!item) return;
+  item.text  = document.getElementById('td-detail-text').value.trim() || item.text;
+  item.notes = document.getElementById('td-detail-notes').value.trim();
+  item.url   = document.getElementById('td-detail-url').value.trim();
+  closeTodoDetail();
+  saveToSupabase();
+  renderTodoList();
+}
+
 function moveTodoToFocus(id) {
   if (!state.todos) return;
   const item = state.todos.find(i => i.id === id);
@@ -2703,15 +2745,24 @@ function renderTodoList() {
       el.innerHTML = '<div class="focus-empty" style="padding:6px 0">Nothing here yet</div>';
       return;
     }
-    el.innerHTML = items.map(item => `
+    el.innerHTML = items.map(item => {
+      const hasNotes = item.notes && item.notes.trim();
+      const hasUrl = item.url && item.url.trim();
+      return `
     <div class="todo-item" data-todo-id="${item.id}">
       <div class="todo-drag-handle" data-drag-id="${item.id}" ontouchstart="todoDragStart(event,'${item.id}')" title="Drag to focus">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="4" r="1"/><circle cx="10.5" cy="4" r="1"/><circle cx="5.5" cy="8" r="1"/><circle cx="10.5" cy="8" r="1"/><circle cx="5.5" cy="12" r="1"/><circle cx="10.5" cy="12" r="1"/></svg>
       </div>
-      <div class="todo-text" ondblclick="editTodoItem('${item.id}', this)" title="Double-tap to edit">${item.text}</div>
+      <div style="flex:1;min-width:0">
+        <div class="todo-text" ondblclick="editTodoItem('${item.id}', this)" title="Double-tap to edit">${item.text}</div>
+        ${hasNotes ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.notes}</div>` : ''}
+        ${hasUrl ? `<a href="${item.url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;margin-top:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔗 ${item.url}</a>` : ''}
+      </div>
+      <button onclick="openTodoDetail('${item.id}')" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px 6px" title="Details">⋯</button>
       <button class="todo-to-focus-btn" onclick="moveTodoToFocus('${item.id}')">&#8594; Focus</button>
       <button class="todo-delete" onclick="deleteTodoItem('${item.id}')" title="Remove">x</button>
-    </div>`).join('');
+    </div>`;
+    }).join('');
   };
 
   renderSection(work,     'todo-work-list');
@@ -5858,7 +5909,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.10 · 10 Jul 2026 6:12 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.11 · 13 Jul 2026 4:46 PM AEDT</div>
 
 </body>
 </html>
