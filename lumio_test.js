@@ -51,13 +51,53 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed');
 }
 
+function makeStyleStub() {
+  // A real CSSStyleDeclaration supports both property assignment
+  // (el.style.display = 'flex') and setProperty (for custom properties like
+  // --accent, which can't be set via plain assignment in a real browser).
+  const props = {};
+  return new Proxy(props, {
+    get(target, key) {
+      if (key === 'setProperty') return (name, value) => { target[name] = value; };
+      if (key === 'getPropertyValue') return (name) => target[name] || '';
+      return target[key];
+    },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+}
+
 function makeElementStub() {
+  const attrs = {};
   return {
-    style: {}, classList: { add(){}, remove(){}, toggle(){}, contains: () => false },
+    style: makeStyleStub(), classList: { add(){}, remove(){}, toggle(){}, contains: () => false },
     textContent: '', value: '', innerHTML: '', disabled: false,
     addEventListener(){}, removeEventListener(){}, appendChild(){}, click(){},
     getElementById: () => makeElementStub(),
+    setAttribute(k, v) { attrs[k] = v; }, getAttribute(k) { return k in attrs ? attrs[k] : null; }, removeAttribute(k) { delete attrs[k]; },
   };
+}
+
+// Drives a real login through handleAuth('login'), rather than assigning
+// sandbox._sbSession/sandbox.currentUser directly from outside the vm
+// context. Those are declared with `let` at the script's top level, so
+// external assignment to the sandbox object does NOT reach the script's
+// actual internal bindings (a JS scoping fact, not a mocking choice) —
+// loadFromSupabase()'s internal `if (!_sbSession || !currentUser) return;`
+// guard would otherwise always see them as unset and silently no-op,
+// which would make a test look like it passed or failed for reasons that
+// have nothing to do with the code being tested. Routing through the
+// script's own handleAuth() lets its own internal assignments do this
+// correctly, exactly as a real login would.
+async function loginViaHandleAuth(sandbox, { email = 'test@test.com', password = 'password123', userId = 'u1' } = {}) {
+  sandbox.document.getElementById('login-email').value = email;
+  sandbox.document.getElementById('login-password').value = password;
+  sandbox.window.supabase.createClient = sandbox.window.supabase.createClient || (() => ({}));
+  const client = sandbox.getSB();
+  client.auth.signInWithPassword = async () => ({
+    data: { session: { access_token: 'tok', expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: userId, email } }, user: { id: userId, email } },
+    error: null,
+  });
+  await sandbox.handleAuth('login');
 }
 
 function buildSandbox(mainScript) {
@@ -77,16 +117,26 @@ function buildSandbox(mainScript) {
     removeItem: k => { delete sessStore[k]; },
     clear: () => { Object.keys(sessStore).forEach(k => delete sessStore[k]); },
   };
+  // Cache elements by id so repeated getElementById('x') calls — e.g. one
+  // render setting textContent/innerHTML, a later check or a second render
+  // reading/overwriting it — see the SAME persistent element, matching how
+  // a real DOM behaves. Without this, each call returns an unrelated
+  // throwaway stub and nothing set by one function is visible to another.
+  const elementCache = {};
+  function getCachedElement(id) {
+    if (!elementCache[id]) elementCache[id] = makeElementStub();
+    return elementCache[id];
+  }
   const documentStub = {
     readyState: 'loading', // prevents auto-init from firing during load
     addEventListener(){}, removeEventListener(){},
-    getElementById: () => makeElementStub(),
+    getElementById: getCachedElement,
     querySelector: () => makeElementStub(),
     querySelectorAll: () => [],
     createElement: () => makeElementStub(),
     head: { appendChild(){} },
-    documentElement: { style: {} },
-    body: { style: {} },
+    documentElement: makeElementStub(),
+    body: { style: makeStyleStub() },
   };
   const sandbox = {
     console,
@@ -463,21 +513,55 @@ async function main() {
     sandbox.renderToday = () => { throw new Error('simulated bug in an unrelated feature'); };
 
     let appShown = false;
-    const realGetElementById = sandbox.document.getElementById;
-    sandbox.document.getElementById = (id) => {
-      const el = makeElementStub();
-      if (id === 'app') {
-        Object.defineProperty(el.style, 'display', { get(){ return this._d; }, set(v){ this._d = v; if (v === 'block') appShown = true; } });
-      }
-      return el;
-    };
-    sandbox._sbSession = { access_token: 'tok', expires_at: Math.floor(Date.now()/1000) + 3600, user: { id: 'u1' } };
-    sandbox.currentUser = sandbox._sbSession.user;
+    const appEl = sandbox.document.getElementById('app'); // pre-warm the cached element, then instrument it
+    Object.defineProperty(appEl.style, 'display', { get(){ return this._d; }, set(v){ this._d = v; if (v === 'block') appShown = true; } });
 
-    await sandbox.onAuthSuccess();
+    await loginViaHandleAuth(sandbox);
     await new Promise(r => setTimeout(r, 500)); // allow the retry/settle timers to run
-    sandbox.document.getElementById = realGetElementById;
     assert(appShown, 'renderToday() throwing left the app permanently hidden — the safety net did not kick in');
+  });
+
+  await test('REGRESSION (Today tab empty until manual refresh, round 2): onAuthSuccess() has an automatic reconciliation pass ~1.5s after login', () => {
+    // The v5.15 fix (removing the SIGNED_OUT clearing from onAuthStateChange)
+    // addressed one plausible cause but did not eliminate the symptom in
+    // practice — Ciro still saw the Today tab stay empty until manually
+    // tapping refresh. The earlier retry-if-not-loaded logic doesn't help
+    // either: it only fires when loadFromSupabase() detectably no-opped,
+    // not when it "succeeded" with stale/incomplete data (e.g. read timing
+    // on the Supabase side immediately after a fresh sign-in, which we
+    // can't observe or reproduce from here). A second automatic load+
+    // render a moment later mirrors exactly what the manual refresh
+    // button does, so the fix applies regardless of the exact cause.
+    const body = mainScript.slice(mainScript.indexOf('async function onAuthSuccess'), mainScript.indexOf('function seedDefaultRoutine'));
+    assert(/setTimeout\(async \(\) => \{[\s\S]*?loadFromSupabase\(\)[\s\S]*?renderToday\(\)[\s\S]*?\}, 1500\)/.test(body), 'onAuthSuccess() does not have an automatic delayed reconciliation pass (loadFromSupabase + renderToday inside a ~1.5s setTimeout)');
+  });
+
+  await test('FUNCTION (automatic reconciliation): a stale/empty first read is corrected automatically ~1.5s later, without a manual refresh', async () => {
+    const sandbox = buildSandbox(mainScript);
+    sandbox.window.supabase = { createClient: () => ({ auth: { onAuthStateChange(){}, refreshSession: async () => ({ data: {}, error: null }) } }) };
+    sandbox.localStorage.setItem('lumio_pin_skipped', '1'); // no lock screen — app shows directly
+
+    let fetchCallCount = 0;
+    sandbox.fetch = async () => {
+      fetchCallCount++;
+      if (fetchCallCount === 1) {
+        // Simulates the exact symptom: the first read comes back empty/stale.
+        return { status: 200, json: async () => ([{ data: { habits: [], habitLog: {}, kb: [], pomoLog: {}, settings: {}, focus: '', todos: [], rssEpisodes: [], routine: [{id:'x'}] } }]) };
+      }
+      // Every subsequent read returns the real, populated data. (habitRowHTML
+      // reads h.name/h.category/h.target — not h.title — for the row text.)
+      return { status: 200, json: async () => ([{ data: { habits: [{ id: 'h1', name: 'Real habit', category: 'health', target: 7, days: [0,1,2,3,4,5,6] }], habitLog: {}, kb: [], pomoLog: {}, settings: {}, focus: 'Real focus', todos: [], rssEpisodes: [], routine: [{id:'x'}] } }]) };
+    };
+
+    await loginViaHandleAuth(sandbox);
+
+    const habitsListImmediately = sandbox.document.getElementById('today-habits-list').innerHTML;
+    assert(/No habits scheduled/.test(habitsListImmediately), 'test setup issue: expected the first (stale) read to render as empty so the automatic fix can be proven against it');
+
+    await new Promise(r => setTimeout(r, 1800)); // past the 1.5s automatic reconciliation delay
+
+    const habitsListAfter = sandbox.document.getElementById('today-habits-list').innerHTML;
+    assert(/Real habit/.test(habitsListAfter), 'the automatic reconciliation pass did not pick up the real data ~1.5s after login — the Today tab would stay stale until a manual refresh, exactly the reported bug');
   });
 
   // ─────────────────────────────────────────────────────────────────────────
