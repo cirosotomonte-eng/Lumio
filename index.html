@@ -1884,8 +1884,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.16</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:19 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.17</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:41 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1899,9 +1899,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.16 · 16 Jul 2026 5:19 PM AEDT';
-const BUILD_VERSION = 'v5.16';
-const BUILD_DISPLAY = '16 Jul 2026 5:19 PM AEDT';
+const BUILD = 'v5.17 · 16 Jul 2026 5:41 PM AEDT';
+const BUILD_VERSION = 'v5.17';
+const BUILD_DISPLAY = '16 Jul 2026 5:41 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2124,14 +2124,33 @@ async function onAuthSuccess() {
     await loadFromSupabase();
   }
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
-  initSettings();
-  initRealtimeSync();
-  initFood();
-  renderToday();  // renderToday now calls renderFocusList + renderTodoList
-  initPomo();
-  initRoutine();
-  if (state.rssEpisodes.length) renderRSSEpisodes();
-  initLock();
+  // Defense in depth: none of these render/init calls should ever be able
+  // to leave the user on a permanently blank screen. If a bug in any one
+  // specific feature throws here, we still want initLock() below to run —
+  // otherwise the exception aborts onAuthSuccess() before showApp()/
+  // showLockScreen() is ever reached, and since the auth-screen was already
+  // hidden at the top of this function, the result is nothing visible at
+  // all with no way back in short of fully reloading. A broken widget is
+  // recoverable; a screen with no path forward is not.
+  try {
+    initSettings();
+    initRealtimeSync();
+    initFood();
+    renderToday();  // renderToday now calls renderFocusList + renderTodoList
+    initPomo();
+    initRoutine();
+    if (state.rssEpisodes.length) renderRSSEpisodes();
+  } catch(e) {
+    console.error('onAuthSuccess: a render/init step threw — continuing so the app still becomes visible', e);
+  }
+  // Ultimate safety net: initLock() is what actually decides whether to
+  // show the app or the lock screen. If it throws for any reason we
+  // haven't anticipated, force the app visible rather than leaving the
+  // user on a blank screen with no way in.
+  initLock().catch(e => {
+    console.error('onAuthSuccess: initLock() itself threw — forcing the app visible as a last resort', e);
+    showApp();
+  });
   // Update check runs in the background — it fetches the whole deployed
   // index.html from a different origin and must never block the Today
   // page from rendering. Previously this was awaited here, ahead of
@@ -5953,7 +5972,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.16 · 16 Jul 2026 5:19 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.17 · 16 Jul 2026 5:41 PM AEDT</div>
 
 </body>
 </html>

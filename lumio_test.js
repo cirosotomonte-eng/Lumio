@@ -306,8 +306,10 @@ async function main() {
     const end = mainScript.indexOf('function seedDefaultRoutine');
     assert(start !== -1 && end !== -1 && end > start, 'could not locate onAuthSuccess()/seedDefaultRoutine() boundaries in source');
     const body = mainScript.slice(start, end);
-    assert(!/\bshowApp\(\);/.test(body), 'onAuthSuccess() still calls showApp() directly — #app can be revealed before the lock screen has decided whether it should show');
-    assert(/initLock\(\);/.test(body), 'onAuthSuccess() no longer calls initLock() at all');
+    const initLockIdx = body.indexOf('initLock(');
+    assert(initLockIdx !== -1, 'onAuthSuccess() no longer calls initLock() at all');
+    const beforeInitLock = body.slice(0, initLockIdx);
+    assert(!/\bshowApp\(\);/.test(beforeInitLock), 'onAuthSuccess() calls showApp() before initLock() runs — #app can be revealed before the lock screen has decided whether it should show. (A showApp() call is fine AFTER initLock() starts, e.g. as its own .catch() fallback — but not before.)');
   });
 
   await test('REGRESSION (bypassed lock never reveals app): initLock()\'s early-return (password login this session) must call showApp() itself', () => {
@@ -417,11 +419,75 @@ async function main() {
     }
   });
 
+  await test('REGRESSION (blank screen, any future cause): onAuthSuccess() wraps the render/init chain so an unrelated exception can never again abort before initLock() runs', () => {
+    // onAuthSuccess() calls auth-screen.classList.remove('visible') at the
+    // very top, before anything else. If ANY later step throws uncaught,
+    // the function aborts right there — auth-screen already hidden,
+    // showApp()/showLockScreen() never reached — leaving nothing visible
+    // at all. This happened once already (the initLock branch-coverage
+    // bug); the fix there addressed that one cause, but the same class of
+    // bug can recur from any future change to initSettings/initFood/
+    // renderToday/initPomo/initRoutine/renderRSSEpisodes. This test checks
+    // the structural guard exists so ANY exception in that chain is safe,
+    // not just the one we already found.
+    const body = mainScript.slice(mainScript.indexOf('async function onAuthSuccess'), mainScript.indexOf('function seedDefaultRoutine'));
+    const tryIdx = body.indexOf('try {');
+    const catchIdx = body.indexOf('} catch(e) {', tryIdx);
+    assert(tryIdx !== -1 && catchIdx !== -1, 'no try/catch wraps the render/init chain in onAuthSuccess()');
+    const guarded = body.slice(tryIdx, catchIdx);
+    ['initSettings()', 'initFood()', 'renderToday()', 'initPomo()', 'initRoutine()'].forEach(call => {
+      assert(guarded.includes(call), `${call} is not inside the protective try block — an exception there would still abort before initLock()`);
+    });
+    const afterCatch = body.slice(catchIdx);
+    assert(/initLock\(\)/.test(afterCatch), 'initLock() is not called after the guarded block — it must run regardless of whether the try block threw');
+  });
+
+  await test('REGRESSION (blank screen, last resort): initLock() is called with a .catch() that forces showApp() if initLock() itself throws', () => {
+    const body = mainScript.slice(mainScript.indexOf('async function onAuthSuccess'), mainScript.indexOf('function seedDefaultRoutine'));
+    // Search for the actual call site, not just any textual mention of
+    // "initLock()" — a nearby comment referencing the function name by
+    // itself would otherwise satisfy a looser substring search.
+    const idx = body.indexOf('initLock().catch(');
+    assert(idx !== -1, 'initLock() is not called with a .catch() — if initLock() throws, nothing shows and there is no fallback');
+    const tail = body.slice(idx, idx + 250);
+    assert(/showApp\(\)/.test(tail), 'the initLock().catch() handler does not call showApp() as a last resort');
+  });
+
+  await test('FUNCTION (blank screen safety net): a throwing renderToday() still results in the app or lock screen becoming visible', async () => {
+    const sandbox = buildSandbox(mainScript);
+    sandbox.window.supabase = { createClient: () => ({ auth: { onAuthStateChange(){}, refreshSession: async () => ({ data: {}, error: null }) } }) };
+    sandbox.fetch = async () => ({ status: 200, json: async () => ([{ data: { habits: [], habitLog: {}, kb: [], pomoLog: {}, settings: {}, focus: '', todos: [], rssEpisodes: [], routine: [{id:'x'}] } }]) });
+    sandbox.localStorage.setItem('lumio_pin_skipped', '1'); // no PIN, previously skipped -> should reveal the app directly
+
+    // Sabotage a real render function to simulate an unrelated future bug.
+    sandbox.renderToday = () => { throw new Error('simulated bug in an unrelated feature'); };
+
+    let appShown = false;
+    const realGetElementById = sandbox.document.getElementById;
+    sandbox.document.getElementById = (id) => {
+      const el = makeElementStub();
+      if (id === 'app') {
+        Object.defineProperty(el.style, 'display', { get(){ return this._d; }, set(v){ this._d = v; if (v === 'block') appShown = true; } });
+      }
+      return el;
+    };
+    sandbox._sbSession = { access_token: 'tok', expires_at: Math.floor(Date.now()/1000) + 3600, user: { id: 'u1' } };
+    sandbox.currentUser = sandbox._sbSession.user;
+
+    await sandbox.onAuthSuccess();
+    await new Promise(r => setTimeout(r, 500)); // allow the retry/settle timers to run
+    sandbox.document.getElementById = realGetElementById;
+    assert(appShown, 'renderToday() throwing left the app permanently hidden — the safety net did not kick in');
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   console.log(`\n=== ${pass} passed, ${fail} failed ===\n`);
-  if (fail > 0) {
-    process.exitCode = 1;
-  }
+  // Function-level tests run real onAuthSuccess()/initLock() code in sandboxed
+  // vm contexts, which can register real setInterval timers (e.g. the 30-
+  // minute update-check poll). Those are harmless inside a throwaway vm
+  // context, but they keep Node's event loop alive — force an explicit exit
+  // once results are in rather than waiting on timers that will never matter.
+  process.exit(fail > 0 ? 1 : 0);
 }
 
 main().catch(e => {
