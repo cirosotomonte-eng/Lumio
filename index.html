@@ -1885,8 +1885,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.14</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:06 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.15</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:11 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1900,9 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.14 · 16 Jul 2026 5:06 PM AEDT';
-const BUILD_VERSION = 'v5.14';
-const BUILD_DISPLAY = '16 Jul 2026 5:06 PM AEDT';
+const BUILD = 'v5.15 · 16 Jul 2026 5:11 PM AEDT';
+const BUILD_VERSION = 'v5.15';
+const BUILD_DISPLAY = '16 Jul 2026 5:11 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -1959,9 +1959,19 @@ function getSB() {
       if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
         _sbSession = session;
         if (session) { currentUser = session.user; }
-      } else if (event === 'SIGNED_OUT') {
-        _sbSession = null;
       }
+      // NOTE: deliberately not clearing _sbSession on a 'SIGNED_OUT' event
+      // here. handleSignOut() already clears _sbSession/currentUser itself,
+      // synchronously, right when the user actually signs out — that's the
+      // one place this should ever happen. Clearing it again from this
+      // listener risked a race: if the SDK ever emits a transient
+      // 'SIGNED_OUT' while it's still settling its own session restore
+      // (a known timing quirk immediately after createClient()), this
+      // would null out a session we'd just restored a moment earlier,
+      // right as loadFromSupabase() was about to use it — causing its
+      // "if (!_sbSession || !currentUser) return;" guard to silently skip
+      // loading, leaving the Today tab empty until a manual refresh ran
+      // once the SDK had settled into the correct signed-in state.
     });
   }
   return _sb;
@@ -2105,6 +2115,15 @@ async function onAuthSuccess() {
   // immediately below when no lock is configured for this session at all.
   renderQuote(); // date-only, no data dependency — show it immediately, don't wait on anything
   await loadFromSupabase();
+  // Defense in depth: loadFromSupabase() silently no-ops if _sbSession/
+  // currentUser were momentarily falsy (e.g. an auth-state race). If that
+  // happened, _hasLoadedFromSupabase is still false here — retry once
+  // after a brief pause instead of leaving the Today tab rendering with
+  // no data until the user notices and taps refresh themselves.
+  if (!_hasLoadedFromSupabase) {
+    await new Promise(r => setTimeout(r, 400));
+    await loadFromSupabase();
+  }
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   initSettings();
   initRealtimeSync();
@@ -5927,7 +5946,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.14 · 16 Jul 2026 5:06 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.15 · 16 Jul 2026 5:11 PM AEDT</div>
 
 </body>
 </html>

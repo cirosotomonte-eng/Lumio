@@ -311,6 +311,29 @@ test('REGRESSION (scroll-lock defense in depth): showLockScreen()/hideLockScreen
   assert(/document\.body\.style\.overflow\s*=\s*''/.test(hideBody), 'hideLockScreen() does not restore body scroll');
 });
 
+test('REGRESSION (Today tab empty until manual refresh): onAuthStateChange must not clear _sbSession on SIGNED_OUT — handleSignOut() already does that explicitly', () => {
+  // A SIGNED_OUT event firing from this listener during the SDK's own
+  // session-restore settling (a known timing quirk right after
+  // createClient()) could null out a session loadFromSupabase() was about
+  // to use, making it silently no-op and leave the Today tab empty until
+  // a manual refresh ran later once the SDK had settled. handleSignOut()
+  // already clears _sbSession/currentUser itself when the user actually
+  // signs out, so this listener doing it again only adds risk.
+  // Fails against the old code (which had this branch); passes against the fix.
+  const getSBBody = mainScript.slice(mainScript.indexOf('function getSB('), mainScript.indexOf('function authHeaders('));
+  assert(!/SIGNED_OUT['"]?\)\s*\{\s*\n?\s*_sbSession\s*=\s*null/.test(getSBBody), 'onAuthStateChange still nulls _sbSession on SIGNED_OUT — reintroduces the race with loadFromSupabase()');
+  const signOutBody = mainScript.slice(mainScript.indexOf('async function handleSignOut'), mainScript.indexOf('async function handleSetNewPassword'));
+  assert(/_sbSession\s*=\s*null;\s*currentUser\s*=\s*null;/.test(signOutBody), 'handleSignOut() no longer explicitly clears _sbSession/currentUser — sign-out would leave a stale session');
+});
+
+test('REGRESSION (Today tab empty until manual refresh): onAuthSuccess() retries loadFromSupabase() once if it silently no-op\'d', () => {
+  const body = mainScript.slice(mainScript.indexOf('async function onAuthSuccess'), mainScript.indexOf('function seedDefaultRoutine'));
+  assert(/_hasLoadedFromSupabase/.test(body), 'onAuthSuccess() does not check _hasLoadedFromSupabase after the first loadFromSupabase() call');
+  const retryIdx = body.indexOf('_hasLoadedFromSupabase');
+  const afterGuard = body.slice(retryIdx);
+  assert(/loadFromSupabase\(\)/.test(afterGuard.slice(afterGuard.indexOf('{'))), 'onAuthSuccess() does not retry loadFromSupabase() when the initial call silently no-opped');
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 console.log(`\n=== ${pass} passed, ${fail} failed ===\n`);
 if (fail > 0) {
