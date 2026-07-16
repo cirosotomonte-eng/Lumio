@@ -277,6 +277,40 @@ test('REGRESSION (update-check timeout): checkForUpdate() and checkForUpdateManu
   });
 });
 
+test('REGRESSION (data visible/scrollable behind lock screen): onAuthSuccess() must not reveal #app before initLock() decides whether a lock is needed', () => {
+  // showApp() used to run at the top of onAuthSuccess(), well before
+  // initLock(). That meant the real, already-rendered app sat in the DOM
+  // the whole time the PIN/Face ID screen was "covering" it, and since
+  // nothing disabled background scroll, a user could scroll straight past
+  // the lock screen and see their real data while supposedly locked out.
+  // Fails against the old code (which calls showApp() here); passes once
+  // showApp() is only reachable through actual unlock paths.
+  const start = mainScript.indexOf('async function onAuthSuccess');
+  const end = mainScript.indexOf('function seedDefaultRoutine');
+  assert(start !== -1 && end !== -1 && end > start, 'could not locate onAuthSuccess()/seedDefaultRoutine() boundaries in source');
+  const body = mainScript.slice(start, end);
+  assert(!/\bshowApp\(\);/.test(body), 'onAuthSuccess() still calls showApp() directly — #app can be revealed before the lock screen has decided whether it should show');
+  assert(/initLock\(\);/.test(body), 'onAuthSuccess() no longer calls initLock() at all');
+});
+
+test('REGRESSION (bypassed lock never reveals app): initLock()\'s early-return (password login this session) must call showApp() itself', () => {
+  // Since onAuthSuccess() no longer reveals #app, the one path where no
+  // lock screen ever appears (fresh password login, pin bypassed for this
+  // session) must take responsibility for showing the app — otherwise the
+  // user would be stuck staring at a blank/hidden #app forever.
+  const start = mainScript.indexOf('async function initLock(');
+  const bypassLine = mainScript.slice(start, mainScript.indexOf('\n', start + 1) + 400);
+  assert(/lumio_pin_bypassed/.test(bypassLine), 'initLock() early-return guard for lumio_pin_bypassed not found where expected');
+  assert(/showApp\(\)/.test(bypassLine), 'initLock() bypass path does not call showApp() — app would stay hidden after a fresh password login');
+});
+
+test('REGRESSION (scroll-lock defense in depth): showLockScreen()/hideLockScreen() toggle body scroll so nothing behind a full-screen fixed overlay can ever be scrolled to', () => {
+  const showBody = mainScript.slice(mainScript.indexOf('function showLockScreen()'), mainScript.indexOf('function hideLockScreen()'));
+  const hideBody = mainScript.slice(mainScript.indexOf('function hideLockScreen()'), mainScript.indexOf('function showPinPad()'));
+  assert(/document\.body\.style\.overflow\s*=\s*'hidden'/.test(showBody), 'showLockScreen() does not lock body scroll');
+  assert(/document\.body\.style\.overflow\s*=\s*''/.test(hideBody), 'hideLockScreen() does not restore body scroll');
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 console.log(`\n=== ${pass} passed, ${fail} failed ===\n`);
 if (fail > 0) {

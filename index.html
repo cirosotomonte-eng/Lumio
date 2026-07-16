@@ -1885,8 +1885,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.13</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 4:38 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.14</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:06 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1900,9 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.13 · 16 Jul 2026 4:38 PM AEDT';
-const BUILD_VERSION = 'v5.13';
-const BUILD_DISPLAY = '16 Jul 2026 4:38 PM AEDT';
+const BUILD = 'v5.14 · 16 Jul 2026 5:06 PM AEDT';
+const BUILD_VERSION = 'v5.14';
+const BUILD_DISPLAY = '16 Jul 2026 5:06 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2094,7 +2094,15 @@ function switchAuthTab(tab) {
 async function onAuthSuccess() {
   document.getElementById('auth-screen').classList.remove('visible');
   document.getElementById('user-email-display').textContent = currentUser ? currentUser.email : '';
-  showApp();
+  // NOTE: showApp() is deliberately NOT called here. It used to run at this
+  // point, before initLock() below, which meant the real app (already
+  // rendered, already holding your data) sat visible in the DOM the whole
+  // time the PIN/Face ID lock screen was covering it — and since nothing
+  // disabled background scrolling, that data could be scrolled into view
+  // right past the lock screen. #app now only becomes visible via
+  // showApp() from the actual unlock paths (successful PIN entry,
+  // successful Face ID, "Skip" on first-time setup) inside initLock(), or
+  // immediately below when no lock is configured for this session at all.
   renderQuote(); // date-only, no data dependency — show it immediately, don't wait on anything
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
@@ -5570,6 +5578,11 @@ function showLockScreen() {
   const ls = document.getElementById('lock-screen');
   ls.style.display = 'flex';
   ls.style.pointerEvents = 'all';
+  // Defense in depth: #app should already be display:none behind this
+  // screen, but also block body scroll outright so nothing underneath can
+  // ever be scrolled into view while locked, regardless of layout changes.
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
   requestAnimationFrame(() => { ls.style.opacity = '1'; ls.classList.add('visible'); });
 }
 
@@ -5577,6 +5590,8 @@ function hideLockScreen() {
   const ls = document.getElementById('lock-screen');
   ls.style.opacity = '0';
   ls.classList.remove('visible');
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
   setTimeout(() => { ls.style.display = 'none'; ls.style.pointerEvents = 'none'; }, 280);
 }
 
@@ -5745,8 +5760,10 @@ async function triggerBiometric() {
 }
 
 async function initLock() {
-  // Skip if user just authenticated with password this session
-  try { if (sessionStorage.getItem('lumio_pin_bypassed') === '1') return; } catch(e) {}
+  // Skip if user just authenticated with password this session — this is
+  // the one path where no lock screen will ever show, so it's on us to
+  // reveal the app here instead.
+  try { if (sessionStorage.getItem('lumio_pin_bypassed') === '1') { showApp(); return; } } catch(e) { showApp(); return; }
   await probeBiometricAvailable();
   const hasPin    = !!localStorage.getItem(LUMIO_PIN_KEY);
   const skipped   = !!localStorage.getItem(LUMIO_PIN_SKIPPED);
@@ -5910,7 +5927,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.13 · 16 Jul 2026 4:38 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.14 · 16 Jul 2026 5:06 PM AEDT</div>
 
 </body>
 </html>
