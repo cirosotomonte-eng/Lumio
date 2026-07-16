@@ -1870,7 +1870,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <div class="settings-section" style="margin-top:4px">
       <div class="settings-label">Security</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" style="flex:1" onclick="setupFaceId();closeModal('modal-settings')">
+        <button class="btn btn-sm" id="faceid-btn" style="flex:1" onclick="setupFaceId().then(() => closeModal('modal-settings'))">
           &#x1F512; Face ID / Biometric
         </button>
         <button class="btn btn-sm" style="flex:1;color:var(--danger)" onclick="removeLockPin();closeModal('modal-settings')">
@@ -1884,8 +1884,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.18</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 5:52 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.19</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 6:08 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1899,9 +1899,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.18 · 16 Jul 2026 5:52 PM AEDT';
-const BUILD_VERSION = 'v5.18';
-const BUILD_DISPLAY = '16 Jul 2026 5:52 PM AEDT';
+const BUILD = 'v5.19 · 16 Jul 2026 6:08 PM AEDT';
+const BUILD_VERSION = 'v5.19';
+const BUILD_DISPLAY = '16 Jul 2026 6:08 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4841,6 +4841,7 @@ function initSettings() {
   if (state.settings.emoji === undefined) state.settings.emoji = '👋';
   applyThemeMode(state.settings.themeMode);
   renderSettingsModal();
+  updateFaceIdButtonLabel();
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (state.settings.themeMode === 'auto') applyThemeMode('auto');
@@ -5766,6 +5767,15 @@ function isBiometricSupported() {
 
 function hasBiometricRegistered() { return !!localStorage.getItem(LUMIO_BIOM_CRED); }
 
+// The button previously always read "🔒 Face ID / Biometric" regardless of
+// whether it was actually set up — no visible confirmation either way,
+// which made a silent registration failure indistinguishable from success.
+function updateFaceIdButtonLabel() {
+  const btn = document.getElementById('faceid-btn');
+  if (!btn) return;
+  btn.textContent = hasBiometricRegistered() ? '🔒 Face ID: On (tap to remove)' : '🔒 Set up Face ID';
+}
+
 async function registerBiometric() {
   if (!isBiometricSupported()) return false;
   try {
@@ -5820,7 +5830,21 @@ async function initLock() {
   // Skip if user just authenticated with password this session — this is
   // the one path where no lock screen will ever show, so it's on us to
   // reveal the app here instead.
-  try { if (sessionStorage.getItem('lumio_pin_bypassed') === '1') { showApp(); return; } } catch(e) { showApp(); return; }
+  try {
+    if (sessionStorage.getItem('lumio_pin_bypassed') === '1') {
+      showApp();
+      // Pre-warm biometric availability now, even though no lock screen
+      // shows this session. If we don't, _biomPlatformAvail stays unknown
+      // (null) until the user later taps "Face ID / Biometric" in
+      // Settings — and awaiting the probe THERE, immediately before
+      // navigator.credentials.create(), can cost the "user activation"
+      // window iOS requires for a WebAuthn ceremony, since it's no longer
+      // synchronous within the original tap. Firing it here, well before
+      // that button is ever reached, means it's already resolved by then.
+      probeBiometricAvailable();
+      return;
+    }
+  } catch(e) { showApp(); return; }
   await probeBiometricAvailable();
   const hasPin    = !!localStorage.getItem(LUMIO_PIN_KEY);
   const skipped   = !!localStorage.getItem(LUMIO_PIN_SKIPPED);
@@ -5859,7 +5883,17 @@ async function initLock() {
 
 // Settings: toggle Face ID
 async function setupFaceId() {
-  await probeBiometricAvailable();
+  // Only await a fresh probe if we genuinely don't know yet (_biomPlatformAvail
+  // is still its initial `null`). Awaiting anything here, right before
+  // registerBiometric()'s navigator.credentials.create() call, risks iOS no
+  // longer treating the WebAuthn ceremony as within this tap's "user
+  // activation" window — it can then silently fail to even show the Face ID
+  // prompt. initLock() pre-warms _biomPlatformAvail on every app open
+  // (including the bypassed-lock-screen path) specifically so this is
+  // already known well before the user reaches this button.
+  if (_biomPlatformAvail === null) {
+    await probeBiometricAvailable();
+  }
   if (!isBiometricSupported()) {
     alert('Face ID is not available on this device.');
     return;
@@ -5871,8 +5905,16 @@ async function setupFaceId() {
     }
   } else {
     const ok = await registerBiometric();
-    if (ok) { alert('Face ID set up! Use it to unlock Lumio next time.'); }
+    if (ok) {
+      alert('Face ID set up! Use it to unlock Lumio next time.');
+    } else {
+      // Previously silent — the button appeared to do nothing at all if
+      // the WebAuthn ceremony failed for any reason, which is exactly what
+      // looks like "I enabled it but the option never shows up".
+      alert('Could not set up Face ID. Make sure Face ID (or Touch ID) is enabled for this device in iOS Settings, then try again.');
+    }
   }
+  updateFaceIdButtonLabel();
 }
 
 // Settings: remove PIN
@@ -5992,7 +6034,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.18 · 16 Jul 2026 5:52 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.19 · 16 Jul 2026 6:08 PM AEDT</div>
 
 </body>
 </html>

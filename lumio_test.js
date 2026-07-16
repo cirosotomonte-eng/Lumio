@@ -564,6 +564,50 @@ async function main() {
     assert(/Real habit/.test(habitsListAfter), 'the automatic reconciliation pass did not pick up the real data ~1.5s after login — the Today tab would stay stale until a manual refresh, exactly the reported bug');
   });
 
+  await test('REGRESSION (Face ID silently fails to register): setupFaceId() only awaits a fresh biometric probe if _biomPlatformAvail is still unknown', () => {
+    // setupFaceId() used to unconditionally `await probeBiometricAvailable()`
+    // before calling registerBiometric() (which calls
+    // navigator.credentials.create(), the actual Face ID prompt). On iOS,
+    // an intervening await between a tap and a WebAuthn ceremony can cost
+    // the "user activation" window the ceremony needs, causing Face ID to
+    // silently fail to even prompt — the exact "user gesture requirement
+    // for WebAuthn" issue already documented as solved once for Spendly.
+    // Fails against the old unconditional await; passes once it's
+    // conditional on _biomPlatformAvail actually being unknown.
+    const body = mainScript.slice(mainScript.indexOf('async function setupFaceId'), mainScript.indexOf('function removeLockPin'));
+    assert(/if\s*\(\s*_biomPlatformAvail\s*===\s*null\s*\)\s*\{\s*await probeBiometricAvailable\(\)/.test(body), 'setupFaceId() still unconditionally awaits probeBiometricAvailable() before the WebAuthn ceremony — risks losing the user-activation window on iOS');
+  });
+
+  await test('REGRESSION (Face ID silently fails to register): initLock()\'s bypassed-session path pre-warms _biomPlatformAvail', () => {
+    // Without this, a user who logs in fresh with a password (no lock
+    // screen shown this session) would have _biomPlatformAvail still
+    // unknown by the time they reach Settings > Face ID — guaranteeing
+    // setupFaceId() hits the awaited-probe path in exactly the scenario
+    // most likely to lose the user-activation window.
+    const start = mainScript.indexOf('async function initLock(');
+    const bypassBlock = mainScript.slice(start, mainScript.indexOf('await probeBiometricAvailable()', start));
+    assert(/probeBiometricAvailable\(\)/.test(bypassBlock), 'initLock() bypass branch does not pre-warm probeBiometricAvailable()');
+  });
+
+  await test('REGRESSION (Face ID silently fails to register): a failed registerBiometric() now tells the user, instead of doing nothing', () => {
+    const start = mainScript.indexOf('async function setupFaceId');
+    const fnBody = mainScript.slice(start, mainScript.indexOf('function removeLockPin'));
+    assert(/const ok = await registerBiometric\(\);[\s\S]*?if \(ok\) \{[\s\S]*?\} else \{[\s\S]*?alert\(/.test(fnBody), 'setupFaceId() still has no else-branch alert when registerBiometric() returns false — a failed setup remains silent');
+  });
+
+  await test('REGRESSION (Face ID button ordering): the Settings button awaits setupFaceId() before closing the modal', () => {
+    assert(!/onclick="setupFaceId\(\);closeModal/.test(html), 'the Face ID button still fires closeModal() immediately without waiting for setupFaceId() — the modal can close mid-ceremony');
+    assert(/onclick="setupFaceId\(\)\.then\(\(\) => closeModal/.test(html), 'the Face ID button does not chain .then(() => closeModal(...)) after setupFaceId()');
+  });
+
+  await test('REGRESSION (Face ID no visible state): the Settings button label reflects whether Face ID is actually registered', () => {
+    assert(/function updateFaceIdButtonLabel/.test(mainScript), 'updateFaceIdButtonLabel() is missing — the button always read the same text regardless of whether Face ID was ever successfully set up');
+    const initSettingsBody = mainScript.slice(mainScript.indexOf('function initSettings('), mainScript.indexOf('function initSettings(') + 800);
+    assert(/updateFaceIdButtonLabel\(\)/.test(initSettingsBody), 'initSettings() does not call updateFaceIdButtonLabel() to reflect current state when Settings opens');
+    const setupFaceIdBody = mainScript.slice(mainScript.indexOf('async function setupFaceId'), mainScript.indexOf('function removeLockPin'));
+    assert(/updateFaceIdButtonLabel\(\)/.test(setupFaceIdBody), 'setupFaceId() does not refresh the button label immediately after a setup/removal attempt');
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   console.log(`\n=== ${pass} passed, ${fail} failed ===\n`);
   // Function-level tests run real onAuthSuccess()/initLock() code in sandboxed
