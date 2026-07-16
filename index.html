@@ -1885,8 +1885,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.12</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 4:14 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.13</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 4:38 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1900,9 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.12 · 16 Jul 2026 4:14 PM AEDT';
-const BUILD_VERSION = 'v5.12';
-const BUILD_DISPLAY = '16 Jul 2026 4:14 PM AEDT';
+const BUILD = 'v5.13 · 16 Jul 2026 4:38 PM AEDT';
+const BUILD_VERSION = 'v5.13';
+const BUILD_DISPLAY = '16 Jul 2026 4:38 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2095,20 +2095,25 @@ async function onAuthSuccess() {
   document.getElementById('auth-screen').classList.remove('visible');
   document.getElementById('user-email-display').textContent = currentUser ? currentUser.email : '';
   showApp();
+  renderQuote(); // date-only, no data dependency — show it immediately, don't wait on anything
   await loadFromSupabase();
   if (!state.routine || state.routine.length === 0) seedDefaultRoutine();
   initSettings();
   initRealtimeSync();
   initFood();
-  await checkForUpdate();
-  // Check for updates every 30 minutes while the app is open
-  setInterval(checkForUpdate, 30 * 60 * 1000);
-  renderQuote();
   renderToday();  // renderToday now calls renderFocusList + renderTodoList
   initPomo();
   initRoutine();
   if (state.rssEpisodes.length) renderRSSEpisodes();
   initLock();
+  // Update check runs in the background — it fetches the whole deployed
+  // index.html from a different origin and must never block the Today
+  // page from rendering. Previously this was awaited here, ahead of
+  // renderQuote()/renderToday(), so any slowness reaching GitHub Pages
+  // (or a hung request, since it had no timeout) stalled the entire UI —
+  // "Loading today's quote…" would sit there until the fetch settled.
+  checkForUpdate();
+  setInterval(checkForUpdate, 30 * 60 * 1000);
 }
 
 function seedDefaultRoutine() {
@@ -2174,16 +2179,19 @@ function isNewerVersion(remote, current) {
 
 async function checkForUpdate() {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch('https://cirosotomonte-eng.github.io/Lumio/index.html?_=' + Date.now(), {
-      cache: 'no-store'
+      cache: 'no-store', signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (!res.ok) return;
     const text = await res.text();
     const m = text.match(/const BUILD_VERSION = '([^']+)'/);
     if (m && m[1] && isNewerVersion(m[1], BUILD_VERSION)) {
       document.getElementById('update-banner').style.display = 'block';
     }
-  } catch(e) {}
+  } catch(e) { /* aborted or network error — just skip this check, next one is in 30 min */ }
 }
 
 async function checkForUpdateManual() {
@@ -2195,9 +2203,12 @@ async function checkForUpdateManual() {
   btn.disabled = true;
   status.textContent = '';
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch('https://cirosotomonte-eng.github.io/Lumio/index.html?_=' + Date.now(), {
-      cache: 'no-store'
+      cache: 'no-store', signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (!res.ok) throw new Error('Could not reach server');
     const text = await res.text();
     const m = text.match(/const BUILD_VERSION = '([^']+)'/);
@@ -5899,7 +5910,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.12 · 16 Jul 2026 4:14 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.13 · 16 Jul 2026 4:38 PM AEDT</div>
 
 </body>
 </html>

@@ -247,6 +247,36 @@ test('FUNCTION (proactive expiry refresh): init() refreshes a session whose acce
   assert(/60000/.test(initBody), 'proactive expiry-refresh guard does not use the expected 60s threshold');
 });
 
+test('REGRESSION (Today tab stuck on "Loading today\'s quote"): checkForUpdate() must not block renderQuote()/renderToday() in onAuthSuccess', () => {
+  // checkForUpdate() fetches the entire deployed index.html from a
+  // different origin with no timeout. It used to be `await`-ed BEFORE
+  // renderQuote()/renderToday(), so any slowness reaching GitHub Pages (or
+  // a hung request) stalled the whole Today page — quote stuck on
+  // "Loading today's quote…", stats/habits empty, for as long as that
+  // fetch took. Fails against the old ordering; passes against the fix.
+  const body = mainScript.slice(mainScript.indexOf('async function onAuthSuccess'), mainScript.indexOf('function seedDefaultRoutine'));
+  assert(!/await checkForUpdate\(\)/.test(body), 'checkForUpdate() is awaited in onAuthSuccess — it can block the whole UI on a slow/hung cross-origin fetch');
+  const quoteIdx = body.indexOf('renderQuote()');
+  const todayIdx = body.indexOf('renderToday()');
+  const updateIdx = body.indexOf('checkForUpdate()');
+  assert(quoteIdx !== -1, 'renderQuote() call missing from onAuthSuccess');
+  assert(todayIdx !== -1, 'renderToday() call missing from onAuthSuccess');
+  assert(updateIdx !== -1, 'checkForUpdate() call missing from onAuthSuccess');
+  assert(quoteIdx < updateIdx, 'renderQuote() must run before the background checkForUpdate() call, not after');
+  assert(todayIdx < updateIdx, 'renderToday() must run before the background checkForUpdate() call, not after');
+});
+
+test('REGRESSION (update-check timeout): checkForUpdate() and checkForUpdateManual() both use an AbortController so a hung fetch can never block indefinitely', () => {
+  const fns = ['async function checkForUpdate(', 'async function checkForUpdateManual('];
+  fns.forEach(marker => {
+    const start = mainScript.indexOf(marker);
+    assert(start !== -1, `${marker} not found`);
+    const body = mainScript.slice(start, mainScript.indexOf('\n}\n', start));
+    assert(/AbortController/.test(body), `${marker.trim()} does not use AbortController — a hung request has no timeout`);
+    assert(/signal:\s*controller\.signal/.test(body), `${marker.trim()} does not pass the abort signal to fetch`);
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 console.log(`\n=== ${pass} passed, ${fail} failed ===\n`);
 if (fail > 0) {
