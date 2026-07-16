@@ -1885,8 +1885,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v4.9</div>
-      <div class="settings-version-time" id="settings-version-time">13 Jul 2026 4:46 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.12</div>
+      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 4:14 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1900,11 +1900,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.11 · 13 Jul 2026 4:46 PM AEDT';
-const BUILD_VERSION = 'v5.11';
-const BUILD_DISPLAY = '13 Jul 2026 4:46 PM AEDT';
-
-let authToken = null; // legacy — kept for handleSetNewPassword recovery flow compat
+const BUILD = 'v5.12 · 16 Jul 2026 4:14 PM AEDT';
+const BUILD_VERSION = 'v5.12';
+const BUILD_DISPLAY = '16 Jul 2026 4:14 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2229,10 +2227,30 @@ function dismissUpdate() {
 }
 
 // ── Supabase data ──
+// Wraps a REST call with a silent token-refresh-and-retry on 401, instead of
+// letting an expired access token look like "not authenticated" and silently
+// swallowing the failure (data would just stop loading/saving with no sign
+// the user was ever logged out — or worse, be mistaken for a logout).
+async function authFetch(url, options) {
+  let res = await fetch(url, options);
+  if (res.status === 401) {
+    try {
+      const { data, error } = await getSB().auth.refreshSession();
+      if (!error && data.session) {
+        _sbSession = data.session;
+        currentUser = data.session.user;
+        const retryOptions = { ...options, headers: { ...options.headers, ...authHeaders(true) } };
+        res = await fetch(url, retryOptions);
+      }
+    } catch(eR) { /* fall through with the original 401 response */ }
+  }
+  return res;
+}
+
 async function loadFromSupabase() {
   if (!_sbSession || !currentUser) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?user_id=eq.${currentUser.id}`, {
+    const res = await authFetch(`${SUPABASE_URL}/rest/v1/${TABLE}?user_id=eq.${currentUser.id}`, {
       headers: authHeaders(true)
     });
     const rows = await res.json();
@@ -2250,7 +2268,7 @@ async function saveToSupabase() {
   if (!_hasLoadedFromSupabase) return; // never overwrite before initial load
   const payload = { user_id: currentUser.id, data: state, updated_at: new Date().toISOString() };
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    await authFetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
       method: 'POST',
       headers: { ...authHeaders(true), Prefer: 'resolution=merge-duplicates' },
       body: JSON.stringify(payload)
@@ -5494,31 +5512,6 @@ function renderQuote() {
   document.getElementById('daily-quote-role').textContent = '';
 }
 
-async function handleSetNewPassword() {
-  const password = document.getElementById('reset-password').value;
-  const confirm = document.getElementById('reset-confirm').value;
-  const errEl = document.getElementById('reset-error');
-  const sucEl = document.getElementById('reset-success');
-  errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!password || password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
-  if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
-  try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-      method: 'PUT',
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    sucEl.textContent = 'Password updated! Signing you in…';
-    sucEl.style.display = 'block';
-    setTimeout(() => { onAuthSuccess(); }, 1500);
-  } catch(e) {
-    errEl.textContent = 'Could not update password. The reset link may have expired — request a new one.';
-    errEl.style.display = 'block';
-  }
-}
-
 function checkRecoveryToken() {
   // Supabase JS client handles recovery tokens automatically via detectSessionInUrl=false
   // but we still need to catch the hash fragment and set the session
@@ -5813,32 +5806,19 @@ async function init() {
   }, 6000);
 
   try {
-    // Step 1: Try to get existing session from Supabase JS (persisted in localStorage)
+    // Step 1: Get existing session from Supabase JS — this is the single source of
+    // truth for persisted auth. The SDK owns the sb-*-auth-token storage key and
+    // already auto-refreshes expired sessions internally; a second, hand-rolled
+    // refreshSession()/setSession() call against that same stored refresh token
+    // (as this used to do) races the SDK's own refresh and can present an
+    // already-rotated/consumed refresh token, which Supabase's rotation security
+    // treats as reuse and can invalidate the whole session — forcing a full
+    // email/password login on every reopen. Trust the SDK instead of re-parsing
+    // its storage by hand.
     let { data: { session } } = await getSB().auth.getSession();
 
-    // Step 2: If no session, try to restore using the stored refresh token
-    if (!session) {
-      try {
-        const lsKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (lsKey) {
-          const stored = JSON.parse(localStorage.getItem(lsKey));
-          if (stored && stored.refresh_token) {
-            const { data, error } = await getSB().auth.refreshSession({ refresh_token: stored.refresh_token });
-            if (!error && data.session) {
-              session = data.session;
-            } else if (stored.access_token) {
-              const { data: d2 } = await getSB().auth.setSession({
-                access_token: stored.access_token, refresh_token: stored.refresh_token
-              });
-              session = d2.session;
-            }
-          }
-        }
-      } catch(e2) { /* ignore */ }
-    }
-
-    // Step 3: Legacy migration — old Lumio stored tokens as 'lumio_token'
-    // Try to hand them to the SDK so it can take over session management
+    // Step 2: Legacy migration — old Lumio stored tokens as 'lumio_token'.
+    // Different storage key from the SDK's own, so this can't race Step 1.
     if (!session) {
       try {
         const oldToken = localStorage.getItem('lumio_token');
@@ -5856,10 +5836,10 @@ async function init() {
             localStorage.removeItem('lumio_user');
           }
         }
-      } catch(e3) { /* ignore — old token probably expired */ }
+      } catch(e2) { /* ignore — old token probably expired */ }
     }
 
-    // Step 4: 800ms retry (handles race on first load)
+    // Step 3: 800ms retry (handles race on first load, e.g. SDK still initializing)
     if (!session) {
       await new Promise(r => setTimeout(r, 800));
       const retry = await getSB().auth.getSession();
@@ -5871,6 +5851,16 @@ async function init() {
       document.getElementById('auth-screen').classList.add('visible');
       startAutofillPoller();
       return;
+    }
+
+    // Proactively refresh if the access token is already at/near expiry, so the
+    // first Supabase REST call doesn't 401 before the SDK's background timer
+    // has a chance to refresh it.
+    if (session.expires_at && (session.expires_at * 1000 - Date.now()) < 60000) {
+      try {
+        const { data: refreshed, error: refreshErr } = await getSB().auth.refreshSession();
+        if (!refreshErr && refreshed.session) session = refreshed.session;
+      } catch(eR) { /* keep the existing session if refresh fails; 401 handler covers the rest */ }
     }
 
     _sbSession = session;
@@ -5909,7 +5899,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.11 · 13 Jul 2026 4:46 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.12 · 16 Jul 2026 4:14 PM AEDT</div>
 
 </body>
 </html>
