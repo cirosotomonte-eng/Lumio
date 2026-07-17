@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Lumio">
@@ -1052,33 +1052,27 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
 
-    <form id="login-form" autocomplete="on" onsubmit="event.preventDefault(); handleAuth('login');">
+    <!-- Single email + password + (hidden) confirm — mirrors Spendly's proven
+         login markup for reliable iOS AutoFill. Deliberately NOT wrapped in a
+         <form>, and with exactly ONE current-password field in the DOM: having
+         multiple <form>s and several password inputs at once (the old two-form
+         layout) is a known way to confuse iOS's QuickType password AutoFill so
+         it never offers to prefill in standalone/home-screen mode. -->
+    <div class="auth-form" id="auth-form">
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
+        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" inputmode="email" oninput="clearAuthMessages()">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
+        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" oninput="clearAuthMessages()">
       </div>
-      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="login-submit-btn">Sign in</button>
-    </form>
-
-    <form id="signup-form" autocomplete="on" style="display:none" onsubmit="event.preventDefault(); handleAuth('signup');">
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="signup-email" name="email" placeholder="you@example.com" autocomplete="username" oninput="clearAuthMessages()">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="signup-password" name="new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
-      </div>
-      <div class="form-group">
+      <div class="form-group" id="auth-confirm-group" style="display:none">
         <label>Confirm password</label>
-        <input type="password" id="signup-confirm" name="confirm-new-password" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
+        <input type="password" id="auth-confirm" placeholder="••••••••" autocomplete="new-password" oninput="clearAuthMessages()">
       </div>
-      <button type="submit" class="btn btn-accent" style="width:100%;margin-top:4px" id="signup-submit-btn">Create account</button>
-    </form>
+      <button type="button" class="btn btn-accent" style="width:100%;margin-top:4px" id="auth-submit-btn" onclick="handleAuthSubmit()">Sign in</button>
+    </div>
 
     <div style="text-align:center;margin-top:14px" id="forgot-wrap">
       <button onclick="handleForgotPassword()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:inherit" id="forgot-link">Forgot password?</button>
@@ -1893,8 +1887,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.20</div>
-      <div class="settings-version-time" id="settings-version-time">17 Jul 2026 1:10 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.21</div>
+      <div class="settings-version-time" id="settings-version-time">17 Jul 2026 1:27 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1908,9 +1902,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.20 · 17 Jul 2026 1:10 PM AEDT';
-const BUILD_VERSION = 'v5.20';
-const BUILD_DISPLAY = '17 Jul 2026 1:10 PM AEDT';
+const BUILD = 'v5.21 · 17 Jul 2026 1:27 PM AEDT';
+const BUILD_VERSION = 'v5.21';
+const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -1990,17 +1984,23 @@ function authHeaders(useUserToken = false) {
   return { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
+// Current auth tab. A single set of inputs (auth-email/auth-password/auth-confirm)
+// serves both login and signup — mirrors Spendly. handleAuthSubmit() is the one
+// entry point wired to the submit button.
+let authMode = 'login';
+function handleAuthSubmit() { return handleAuth(authMode); }
+
 async function handleAuth(mode) {
   const isSignup = mode === 'signup';
-  const email = document.getElementById(isSignup ? 'signup-email' : 'login-email').value.trim();
-  const password = document.getElementById(isSignup ? 'signup-password' : 'login-password').value;
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
   const errEl = document.getElementById('auth-error');
   const sucEl = document.getElementById('auth-success');
-  const btn = document.getElementById(isSignup ? 'signup-submit-btn' : 'login-submit-btn');
+  const btn = document.getElementById('auth-submit-btn');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
   if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
   if (isSignup) {
-    const confirm = document.getElementById('signup-confirm').value;
+    const confirm = document.getElementById('auth-confirm').value;
     if (password !== confirm) { showAuthError('Passwords do not match.'); return; }
     if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
   }
@@ -2016,8 +2016,8 @@ async function handleAuth(mode) {
     if (isSignup && !result.data.session) {
       sucEl.textContent = 'Account created! Check your email to confirm, then sign in.';
       sucEl.style.display = 'block';
-      switchAuthTab('login');
-      btn.disabled = false; btn.textContent = 'Create account';
+      btn.disabled = false;
+      switchAuthTab('login'); // resets the button label to "Sign in" and re-enables the AutoFill poller
       return;
     }
     _sbSession = result.data.session;
@@ -2032,7 +2032,7 @@ async function handleAuth(mode) {
 }
 
 async function handleForgotPassword() {
-  const email = document.getElementById('login-email').value.trim();
+  const email = document.getElementById('auth-email').value.trim();
   if (!email) { showAuthError('Enter your email address first.'); return; }
   try {
     const { error } = await getSB().auth.resetPasswordForEmail(email, {
@@ -2054,10 +2054,10 @@ async function handleSignOut() {
   document.getElementById('update-banner').style.display = 'none';
   document.querySelector('.nav-wrap').classList.remove('visible');
   document.getElementById('auth-screen').classList.add('visible');
-  document.getElementById('login-email').value = '';
-  document.getElementById('login-password').value = '';
+  switchAuthTab('login'); // reset to the Sign in tab (also restarts the AutoFill poller)
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
   document.getElementById('auth-error').style.display = 'none';
-  startAutofillPoller();
 }
 
 async function handleSetNewPassword() {
@@ -2100,13 +2100,21 @@ function clearResetMessages() {
 
 function switchAuthTab(tab) {
   const isSignup = tab === 'signup';
+  authMode = isSignup ? 'signup' : 'login';
   document.getElementById('auth-tab-login').classList.toggle('active', !isSignup);
   document.getElementById('auth-tab-signup').classList.toggle('active', isSignup);
-  document.getElementById('login-form').style.display = isSignup ? 'none' : 'block';
-  document.getElementById('signup-form').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('auth-confirm-group').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('auth-submit-btn').textContent = isSignup ? 'Create account' : 'Sign in';
   document.getElementById('forgot-wrap').style.display = isSignup ? 'none' : 'block';
   document.getElementById('auth-error').style.display = 'none';
   document.getElementById('auth-success').style.display = 'none';
+  // The password field is a login credential on the Sign in tab and a new
+  // credential on Create account — keep the autocomplete hint honest so the
+  // password manager offers "saved password" vs "new password" correctly.
+  const pw = document.getElementById('auth-password');
+  if (pw) pw.setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+  // Login is the tab where AutoFill matters; only poll there.
+  if (isSignup) { stopAutofillPoller(); } else { startAutofillPoller(); }
 }
 
 async function onAuthSuccess() {
@@ -4727,13 +4735,13 @@ var _autofillPoller = null;
 function startAutofillPoller() {
   stopAutofillPoller();
   _autofillPoller = setInterval(() => {
-    const loginForm = document.getElementById('login-form');
-    if (!loginForm || loginForm.style.display === 'none') return;
-    const email = document.getElementById('login-email');
-    const pass  = document.getElementById('login-password');
-    const btn   = document.getElementById('login-submit-btn');
+    if (authMode !== 'login') return;
+    const email = document.getElementById('auth-email');
+    const pass  = document.getElementById('auth-password');
+    const btn   = document.getElementById('auth-submit-btn');
     if (email && pass && email.value.trim() && pass.value && btn && !btn.disabled) {
       stopAutofillPoller();
+      // Small delay so AutoFill fully completes before submitting
       setTimeout(() => handleAuth('login'), 400);
     }
   }, 300);
@@ -6043,7 +6051,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.20 · 17 Jul 2026 1:10 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.21 · 17 Jul 2026 1:27 PM AEDT</div>
 
 </body>
 </html>

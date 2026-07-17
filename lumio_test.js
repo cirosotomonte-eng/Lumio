@@ -90,8 +90,8 @@ function makeElementStub() {
 // script's own handleAuth() lets its own internal assignments do this
 // correctly, exactly as a real login would.
 async function loginViaHandleAuth(sandbox, { email = 'test@test.com', password = 'password123', userId = 'u1' } = {}) {
-  sandbox.document.getElementById('login-email').value = email;
-  sandbox.document.getElementById('login-password').value = password;
+  sandbox.document.getElementById('auth-email').value = email;
+  sandbox.document.getElementById('auth-password').value = password;
   sandbox.window.supabase.createClient = sandbox.window.supabase.createClient || (() => ({}));
   const client = sandbox.getSB();
   client.auth.signInWithPassword = async () => ({
@@ -647,6 +647,36 @@ async function main() {
     manifest.icons.forEach(ic => {
       assert(fs.existsSync(path.join(dir, ic.src)), `manifest icon "${ic.src}" does not exist on disk`);
     });
+  });
+
+  await test('REGRESSION (iOS AutoFill parity with Spendly): login screen has exactly one current-password field and no legacy two-form markup', () => {
+    // iOS QuickType password AutoFill gets confused by multiple <form>s and
+    // several password inputs present at once. Lumio's old layout had a
+    // login-form AND a signup-form, i.e. 3 password fields on the auth
+    // screen. Spendly (which AutoFills reliably) uses a single email +
+    // single password + one hidden confirm, no <form> wrapper. This mirrors
+    // that. We scope the count to the auth screen (excludes the separate
+    // recovery/reset card, which is its own hidden flow).
+    const authStart = html.indexOf('<div id="auth-screen">');
+    const authEnd = html.indexOf('id="auth-card-reset"');
+    assert(authStart !== -1 && authEnd !== -1 && authEnd > authStart, 'could not locate the auth-screen / reset-card boundaries');
+    const loginArea = html.slice(authStart, authEnd);
+    assert(!/<form[^>]+id=["']login-form["']/.test(html) && !/<form[^>]+id=["']signup-form["']/.test(html), 'the old two-<form> login markup is still present — this is what confuses iOS AutoFill');
+    const currentPw = (loginArea.match(/autocomplete=["']current-password["']/g) || []).length;
+    assert(currentPw === 1, `expected exactly 1 current-password field on the login screen, found ${currentPw}`);
+    assert(/id=["']auth-email["'][^>]*autocomplete=["']email["']/.test(loginArea), 'auth-email is missing autocomplete="email" (Spendly uses this for the identifier field)');
+    assert(/id=["']auth-submit-btn["'][^>]*onclick=["']handleAuthSubmit\(\)["']/.test(loginArea), 'auth-submit-btn is not wired to handleAuthSubmit()');
+  });
+
+  await test('REGRESSION (iOS AutoFill parity): handlers reference the unified auth-* IDs, with no dangling login-/signup- ID references', () => {
+    // After consolidating to a single input set, nothing should still call
+    // getElementById('login-email' | 'login-password' | 'signup-*') — a
+    // leftover reference would throw at runtime (null.value) exactly on the
+    // sign-in / sign-out / forgot-password paths.
+    const stale = [...mainScript.matchAll(/getElementById\(\s*['"](login-email|login-password|login-submit-btn|login-form|signup-email|signup-password|signup-confirm|signup-submit-btn|signup-form)['"]\s*\)/g)].map(m => m[1]);
+    assert(stale.length === 0, `handlers still reference removed element id(s): ${[...new Set(stale)].join(', ')}`);
+    assert(/function handleAuthSubmit\(\)/.test(mainScript), 'handleAuthSubmit() (the single submit entry point) is missing');
+    assert(/let authMode = 'login'/.test(mainScript), 'authMode state variable is missing');
   });
 
   // ─────────────────────────────────────────────────────────────────────────
