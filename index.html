@@ -5,9 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lumio">
 <meta name="theme-color" content="#f8f4ed" id="theme-color-meta">
 <title>Lumio</title>
-<link rel="manifest" href="manifest.json">
+<!-- Home-screen icon. Without a real apple-touch-icon, iOS falls back to a
+     screenshot of the page as the icon — and because Lumio's background is
+     near-white cream, that screenshot-tile is an almost-invisible pale
+     square on the home screen (findable in search, but you can't see it).
+     A real PNG here fixes that. -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=520">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=520">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=520">
+<link rel="manifest" href="manifest.json?v=520">
 <script>
 // Load Supabase JS client dynamically (same pattern as Spendly)
 (function() {
@@ -1884,8 +1893,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.19</div>
-      <div class="settings-version-time" id="settings-version-time">16 Jul 2026 6:08 PM AEDT</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.20</div>
+      <div class="settings-version-time" id="settings-version-time">17 Jul 2026 1:10 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1899,9 +1908,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.19 · 16 Jul 2026 6:08 PM AEDT';
-const BUILD_VERSION = 'v5.19';
-const BUILD_DISPLAY = '16 Jul 2026 6:08 PM AEDT';
+const BUILD = 'v5.20 · 17 Jul 2026 1:10 PM AEDT';
+const BUILD_VERSION = 'v5.20';
+const BUILD_DISPLAY = '17 Jul 2026 1:10 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -6034,7 +6043,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.19 · 16 Jul 2026 6:08 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.20 · 17 Jul 2026 1:10 PM AEDT</div>
 
 </body>
 </html>

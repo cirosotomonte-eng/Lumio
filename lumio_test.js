@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const vm = require('vm');
+const path = require('path');
 
 const filePath = process.argv[2];
 if (!filePath) {
@@ -606,6 +607,46 @@ async function main() {
     assert(/updateFaceIdButtonLabel\(\)/.test(initSettingsBody), 'initSettings() does not call updateFaceIdButtonLabel() to reflect current state when Settings opens');
     const setupFaceIdBody = mainScript.slice(mainScript.indexOf('async function setupFaceId'), mainScript.indexOf('function removeLockPin'));
     assert(/updateFaceIdButtonLabel\(\)/.test(setupFaceIdBody), 'setupFaceId() does not refresh the button label immediately after a setup/removal attempt');
+  });
+
+  await test('REGRESSION (invisible home-screen icon): a real apple-touch-icon and app title are declared', () => {
+    // With no apple-touch-icon, iOS uses a screenshot of the page as the
+    // home-screen icon. Lumio's background is near-white cream, so that
+    // tile was an almost-invisible pale square — findable in Spotlight
+    // search but not spottable on the home screen. A real PNG icon and an
+    // explicit app title fix both the visibility and the label.
+    assert(/<link[^>]+rel=["']apple-touch-icon["'][^>]+href=["']apple-touch-icon\.png/.test(html), 'no <link rel="apple-touch-icon" href="apple-touch-icon.png"> — iOS will fall back to a blank screenshot for the home-screen icon');
+    assert(/<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]+content=["']Lumio["']/.test(html), 'missing <meta name="apple-mobile-web-app-title" content="Lumio"> — the label under the home-screen icon');
+  });
+
+  await test('REGRESSION (missing referenced assets 404): every locally-referenced asset in <head> actually exists on disk', () => {
+    // The head referenced manifest.json, which did not exist in the repo at
+    // all — a silent 404. This check resolves every same-origin asset
+    // referenced from the head (manifest + icons) against the directory the
+    // index.html lives in, and fails if any is missing. Generalises the fix
+    // so any future "referenced but never committed" asset is caught here.
+    const dir = path.dirname(path.resolve(filePath));
+    const headEnd = html.indexOf('</head>');
+    const head = headEnd === -1 ? html : html.slice(0, headEnd);
+    const refs = [...head.matchAll(/(?:href|src)=["']([^"':?#]+\.(?:png|json|ico|svg|webmanifest))(?:\?[^"']*)?["']/g)].map(m => m[1]);
+    // Only same-origin, relative paths (skip absolute URLs and data: URIs).
+    const localRefs = [...new Set(refs.filter(r => !/^(https?:)?\/\//.test(r) && !r.startsWith('data:')))];
+    assert(localRefs.length > 0, 'expected at least the icon/manifest asset references in <head>');
+    const missing = localRefs.filter(r => !fs.existsSync(path.join(dir, r.replace(/^\.?\//, ''))));
+    assert(missing.length === 0, `referenced <head> asset(s) do not exist next to index.html (would 404): ${missing.join(', ')}`);
+  });
+
+  await test('REGRESSION (missing manifest): manifest.json exists, is valid JSON, and declares icons', () => {
+    const dir = path.dirname(path.resolve(filePath));
+    const manifestPath = path.join(dir, 'manifest.json');
+    assert(fs.existsSync(manifestPath), 'manifest.json is referenced from <head> but does not exist on disk');
+    let manifest;
+    try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+    catch (e) { throw new Error('manifest.json is not valid JSON: ' + e.message); }
+    assert(Array.isArray(manifest.icons) && manifest.icons.length > 0, 'manifest.json declares no icons');
+    manifest.icons.forEach(ic => {
+      assert(fs.existsSync(path.join(dir, ic.src)), `manifest icon "${ic.src}" does not exist on disk`);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
