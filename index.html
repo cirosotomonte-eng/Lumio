@@ -1912,8 +1912,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.27 · 27 Jul 2026 9:04 PM AEST';
-const BUILD_VERSION = 'v5.27';
+const BUILD = 'v5.28 · 27 Jul 2026 9:19 PM AEST';
+const BUILD_VERSION = 'v5.28';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4242,17 +4242,23 @@ function foodSelectDay(idx) {
 }
 
 function openAddToDay(dk, mealType) {
-  // Picker: choose a saved recipe to drop into this day+slot
-  const saved = state.food.savedRecipes || [];
+  // Picker: choose a saved recipe that suits this meal slot
+  const allSaved = state.food.savedRecipes || [];
+  // Only show recipes whose suitableFor includes this slot (fallback: legacy recipes with no suitableFor show for lunch/dinner only)
+  const saved = allSaved.map((r, origIdx) => ({ r, origIdx })).filter(({ r }) => {
+    const sf = r.suitableFor;
+    if (Array.isArray(sf)) return sf.includes(mealType);
+    return mealType === 'lunch' || mealType === 'dinner'; // legacy fallback
+  });
   document.getElementById('add-to-day-modal')?.remove();
   const modal = document.createElement('div');
   modal.id = 'add-to-day-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
-  const list = saved.length ? saved.map((r,i) => `
-    <button onclick="assignRecipeToDay('${dk}','${mealType}',${i})" style="width:100%;text-align:left;padding:12px;border:none;border-bottom:0.5px solid var(--border);background:none;cursor:pointer">
+  const list = saved.length ? saved.map(({ r, origIdx }) => `
+    <button onclick="assignRecipeToDay('${dk}','${mealType}',${origIdx})" style="width:100%;text-align:left;padding:12px;border:none;border-bottom:0.5px solid var(--border);background:none;cursor:pointer">
       <div style="font-size:14px;font-weight:600;color:var(--text)">${r.name}</div>
       <div style="font-size:12px;color:var(--text3)">${r.calories||'?'} cal · ${r.protein!=null?Math.round(r.protein)+'g protein':''}</div>
-    </button>`).join('') : '<div class="meal-empty">No saved recipes yet.</div>';
+    </button>`).join('') : `<div class="meal-empty">No saved ${mealType} recipes yet.<br><span style="font-size:12px;color:var(--text3)">Save one from Suggestions or My Recipes first.</span></div>`;
   modal.innerHTML = `
     <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:75vh;overflow-y:auto;padding:16px 12px 32px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px">
@@ -4292,6 +4298,14 @@ function openAddRecipeToDays(savedIdx) {
       <input type="checkbox" class="add-day-check" value="${d.dk}" style="width:18px;height:18px">
       <span style="font-size:14px;color:var(--text)">${DOW[i]} ${d.date.getDate()}</span>
     </label>`).join('');
+  // Restrict slot options to what this recipe suits
+  const allSlots = [
+    { v:'breakfast', l:'Breakfast' }, { v:'lunch', l:'Lunch' }, { v:'snack', l:'Snack' },
+    { v:'dinner', l:'Dinner' }, { v:'dessert', l:'Dessert' }
+  ];
+  const suitable = Array.isArray(recipe.suitableFor) && recipe.suitableFor.length ? recipe.suitableFor : ['lunch','dinner'];
+  const slotOpts = allSlots.filter(s => suitable.includes(s.v))
+    .map((s,i) => `<option value="${s.v}" ${i===0?'selected':''}>${s.l}</option>`).join('');
   modal.innerHTML = `
     <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:18px 16px 32px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -4300,11 +4314,7 @@ function openAddRecipeToDays(savedIdx) {
       </div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 4px">Meal slot</div>
       <select id="add-days-slot" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px">
-        <option value="breakfast">Breakfast</option>
-        <option value="lunch">Lunch</option>
-        <option value="snack">Snack</option>
-        <option value="dinner" selected>Dinner</option>
-        <option value="dessert">Dessert</option>
+        ${slotOpts}
       </select>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Days</div>
       ${dayChecks}
@@ -6304,7 +6314,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.27 · 27 Jul 2026 9:04 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.28 · 27 Jul 2026 9:19 PM AEST</div>
 
 </body>
 </html>
