@@ -1912,8 +1912,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.30 · 27 Jul 2026 9:36 PM AEST';
-const BUILD_VERSION = 'v5.30';
+const BUILD = 'v5.31 · 27 Jul 2026 9:51 PM AEST';
+const BUILD_VERSION = 'v5.31';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4431,12 +4431,13 @@ function foodMealCardHTML(recipe, m, dk) {
   // Highlight ingredients
   const lactoKw = ['milk','cream','butter','cheese','yogh','whey','ricotta','custard','condensed'];
   const ingredients = (recipe.ingredients || []).map(ing => {
+    const shown = convertToMetric(ing);
     const il = ing.toLowerCase();
     const isAvoid = avoidList.some(a => il.includes(a));
     const isLactose = hasLactose && foodContainsAny(il, lactoKw);
     const style = isAvoid ? 'color:var(--danger);font-weight:500' : isLactose ? 'color:#856404' : '';
     const prefix = isAvoid ? '⚠️ ' : isLactose ? '🥛 ' : '';
-    return `<div class="meal-ingredient" style="${style}">${prefix}${ing}</div>`;
+    return `<div class="meal-ingredient" style="${style}">${prefix}${shown}</div>`;
   }).join('');
 
   const method = (recipe.method || []).map((s, i) => `<div class="meal-method-step"><strong>${i+1}.</strong> ${s}</div>`).join('');
@@ -4663,37 +4664,47 @@ function clearShoppingChecks() {
 
 const _UNICODE_FRAC = {'½':0.5,'⅓':1/3,'⅔':2/3,'¼':0.25,'¾':0.75,'⅕':0.2,'⅖':0.4,'⅗':0.6,'⅘':0.8,'⅙':1/6,'⅚':5/6,'⅛':0.125,'⅜':0.375,'⅝':0.625,'⅞':0.875};
 
-function _parseLeadingQty(str) {
-  const s = str.replace(/^\s+/,'');
-  const lead = str.length - s.length;
-  let m = s.match(/^(\d+)\s*([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/);
-  if (m) return { value: parseInt(m[1]) + _UNICODE_FRAC[m[2]], len: lead + m[0].length };
-  m = s.match(/^([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/);
-  if (m) return { value: _UNICODE_FRAC[m[1]], len: lead + m[0].length };
-  m = s.match(/^(\d+)\/(\d+)/);
-  if (m) return { value: parseInt(m[1])/parseInt(m[2]), len: lead + m[0].length };
-  m = s.match(/^(\d+(?:\.\d+)?)/);
-  if (m) return { value: parseFloat(m[1]), len: lead + m[0].length };
-  return null;
+// Normalise all fraction forms (unicode, N/M, N⁄M, mixed) into decimals
+function _normalizeQty(str) {
+  const map = _UNICODE_FRAC;
+  str = str.replace(/(\d+)\s+(\d+)\s*[\u2044\/]\s*(\d+)/g, (m,w,a,b)=> (parseInt(w)+parseInt(a)/parseInt(b)).toString());
+  str = str.replace(/(\d+)\s*[\u2044\/]\s*(\d+)/g, (m,a,b)=> (parseInt(a)/parseInt(b)).toString());
+  str = str.replace(/(\d+)\s*([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/g, (m,d,f)=> (parseInt(d)+map[f]).toString());
+  str = str.replace(/([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/g, (m,f)=> map[f].toString());
+  return str;
+}
+function _fmtWeight(g) { if (g>=1000){const kg=Math.round(g/10)/100;return (kg%1===0?kg.toFixed(0):kg)+' kg';} return Math.max(5,Math.round(g/5)*5)+' g'; }
+function _fmtVol(ml) { if (ml>=1000){const l=Math.round(ml/10)/100;return (l%1===0?l.toFixed(0):l)+' l';} return Math.max(5,Math.round(ml/5)*5)+' ml'; }
+
+// Convert imperial units to metric (g/kg/ml/l), no scaling. Keeps tbs/tsp/whole items.
+function convertToMetric(raw) {
+  let s = _normalizeQty(raw);
+  s = s.replace(/(\d+(?:\.\d+)?)\s*lb\s+(\d+(?:\.\d+)?)\s*oz\b/gi,(m,lb,oz)=>_fmtWeight(parseFloat(lb)*453.592+parseFloat(oz)*28.3495));
+  s = s.replace(/(\d+(?:\.\d+)?)\s*lbs?\b/gi,(m,lb)=>_fmtWeight(parseFloat(lb)*453.592));
+  s = s.replace(/(\d+(?:\.\d+)?)\s*fl\.?\s*oz\b/gi,(m,f)=>_fmtVol(parseFloat(f)*29.5735));
+  s = s.replace(/(\d+(?:\.\d+)?)\s*oz\b/gi,(m,oz)=>_fmtWeight(parseFloat(oz)*28.3495));
+  s = s.replace(/(\d+(?:\.\d+)?)\s*cups?\b/gi,(m,c)=>_fmtVol(parseFloat(c)*236.6));
+  s = s.replace(/(\d+(?:\.\d+)?)\s*pints?\b/gi,(m,p)=>_fmtVol(parseFloat(p)*473.2));
+  return s;
 }
 
-function _fmtQty(v) {
-  const whole = Math.floor(v + 1e-9);
-  const frac = v - whole;
-  const fracMap = [[0.5,'½'],[1/3,'⅓'],[2/3,'⅔'],[0.25,'¼'],[0.75,'¾'],[0.125,'⅛'],[0.375,'⅜'],[0.625,'⅝'],[0.875,'⅞']];
-  if (frac < 0.04) return String(whole);
-  let best = null, bestDiff = 0.05;
-  for (const [f,g] of fracMap) { const d = Math.abs(frac-f); if (d < bestDiff) { best = g; bestDiff = d; } }
-  if (best) return (whole > 0 ? whole : '') + best;
-  return (Math.round(v*100)/100).toString();
-}
-
-function scaleIngredient(str, factor) {
+// Scale the leading quantity of an already-metric ingredient exactly once
+function scaleMetric(str, factor) {
   if (!factor || factor === 1) return str;
-  const q = _parseLeadingQty(str);
-  if (!q) return str;
-  return _fmtQty(q.value * factor) + str.slice(q.len);
+  let m = str.match(/^(\s*)(\d+(?:\.\d+)?)\s*(kg|g)\b(.*)$/i);
+  if (m) { const grams = parseFloat(m[2])*(m[3].toLowerCase()==='kg'?1000:1)*factor; return m[1]+_fmtWeight(grams)+m[4]; }
+  m = str.match(/^(\s*)(\d+(?:\.\d+)?)\s*(l|ml)\b(.*)$/i);
+  if (m) { const ml = parseFloat(m[2])*(m[3].toLowerCase()==='l'?1000:1)*factor; return m[1]+_fmtVol(ml)+m[4]; }
+  m = str.match(/^(\s*)(\d+(?:\.\d+)?)(.*)$/);
+  if (m) { const v=parseFloat(m[2])*factor; const fmt=(v%1===0)?v.toString():(Math.round(v*100)/100).toString(); return m[1]+fmt+m[3]; }
+  return str;
 }
+
+// Full pipeline: metric units + scaled by servings factor
+function formatIngredient(raw, factor) { return scaleMetric(convertToMetric(raw), factor || 1); }
+
+// Back-compat alias
+function scaleIngredient(str, factor) { return formatIngredient(str, factor); }
 
 let recipeServings = {}; // recipeId -> chosen servings for display
 
@@ -6402,7 +6413,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.30 · 27 Jul 2026 9:36 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.31 · 27 Jul 2026 9:51 PM AEST</div>
 
 </body>
 </html>
