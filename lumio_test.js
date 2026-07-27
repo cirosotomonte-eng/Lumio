@@ -37,6 +37,9 @@ check('daily calorie total present', /totalCal/.test(mainScript));
 check('suitableFor filtering present', /suitableFor/.test(mainScript));
 check('scraper writes scrapedPool (Lumio reads it)', /scrapedPool/.test(mainScript));
 check('servings open-state preserved', /openIds/.test(mainScript));
+check('isSuggestionSaved dedup present', /function isSuggestionSaved/.test(mainScript));
+check('normRecipeName helper present', /function _normRecipeName/.test(mainScript));
+check('save stores sourceId for dedup', /sourceId:/.test(mainScript));
 
 // ── Layer 3: extract & test pure functions in a sandbox ────────────────
 // Pull the scaler helpers out and eval them in isolation.
@@ -63,7 +66,8 @@ try {
     extractFn('convertToMetric', mainScript),
     extractFn('scaleMetric', mainScript),
     extractFn('formatIngredient', mainScript),
-    'return { convertToMetric, scaleMetric, formatIngredient };'
+    extractFn('_normRecipeName', mainScript),
+    'return { convertToMetric, scaleMetric, formatIngredient, _normRecipeName };'
   ].join('\n');
   Object.assign(sandbox, new Function(code)());
 } catch (e) {
@@ -89,6 +93,13 @@ if (sandbox.formatIngredient) {
   check('scale "2 tbs" x2 = "4 tbs"', F('2 tbs lime juice', 2) === '4 tbs lime juice');
   check('scale unquantified unchanged', F('salt & pepper to taste', 2) === 'salt & pepper to taste');
   check('factor 1 leaves metric (no double)', F('16 oz turkey', 1) === '455 g turkey');
+}
+
+if (sandbox._normRecipeName) {
+  const N = sandbox._normRecipeName;
+  check('normName strips (fat-loss) suffix', N('Sweet Potato Cottage Pie (fat-loss)') === N('Sweet Potato Cottage Pie'));
+  check('normName strips (dairy-free)', N('Eggplant Lasagne (dairy-free, fat-loss)') === 'eggplant lasagne');
+  check('normName lowercases + trims punctuation', N('6-ingredient Turkey Nourish Bowl!') === '6 ingredient turkey nourish bowl');
 }
 
 // ── Report ─────────────────────────────────────────────────────────────
