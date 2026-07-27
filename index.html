@@ -1531,6 +1531,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       <button class="food-tab-btn active" onclick="switchFoodTab('plan',this)">This week</button>
       <button class="food-tab-btn" onclick="switchFoodTab('shop',this)">Shopping</button>
       <button class="food-tab-btn" onclick="switchFoodTab('saved',this)">My Recipes</button>
+      <button class="food-tab-btn" onclick="switchFoodTab('suggest',this)">Suggestions</button>
     </div>
     <div id="food-tab-plan">
       <div class="food-day-pills" id="food-day-pills"></div>
@@ -1552,6 +1553,10 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
     <div id="food-tab-saved" style="display:none">
       <div id="food-saved-recipes"></div>
+    </div>
+    <div id="food-tab-suggest" style="display:none">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.5">This week's Centr recipes, scraped for review. Tell Claude which you'd like adapted for lunch or dinner — nothing here is added to your plan automatically.</div>
+      <div id="food-suggestions"></div>
     </div>
   </div>
 
@@ -1892,7 +1897,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.23</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
       <div class="settings-version-time" id="settings-version-time">17 Jul 2026 1:27 PM AEDT</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -1907,8 +1912,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.23 · 27 Jul 2026 4:06 PM AEST';
-const BUILD_VERSION = 'v5.23';
+const BUILD = 'v5.24 · 27 Jul 2026 4:51 PM AEST';
+const BUILD_VERSION = 'v5.24';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4061,8 +4066,46 @@ function switchFoodTab(tab, btn) {
   document.getElementById('food-tab-plan').style.display  = tab === 'plan'  ? '' : 'none';
   document.getElementById('food-tab-shop').style.display  = tab === 'shop'  ? '' : 'none';
   document.getElementById('food-tab-saved').style.display = tab === 'saved' ? '' : 'none';
+  document.getElementById('food-tab-suggest').style.display = tab === 'suggest' ? '' : 'none';
   if (tab === 'shop')  renderShoppingList();
   if (tab === 'saved') renderSavedRecipes();
+  if (tab === 'suggest') renderSuggestions();
+}
+
+function renderSuggestions() {
+  const el = document.getElementById('food-suggestions');
+  if (!el) return;
+  const pool = state.food && state.food.scrapedPool;
+  if (!pool || !pool.weekPlan || Object.keys(pool.weekPlan).length === 0) {
+    el.innerHTML = `<div class="food-no-plan"><div class="food-no-plan-emoji">🍽️</div><div class="food-no-plan-title">No suggestions yet</div><div class="food-no-plan-sub">The Centr scraper runs Thursday mornings and drops the week's recipes here for review.</div></div>`;
+    return;
+  }
+  // Gather unique recipes from the pool
+  const seen = {};
+  const recipes = [];
+  Object.values(pool.weekPlan).forEach(meals => {
+    Object.entries(meals).forEach(([mealType, r]) => {
+      if (r && r.name && !seen[r.name]) {
+        seen[r.name] = true;
+        recipes.push({ ...r, meal: mealType });
+      }
+    });
+  });
+  const scrapedDate = pool.scrapedAt ? new Date(pool.scrapedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) : '';
+  el.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${recipes.length} recipes · scraped ${scrapedDate}</div>` +
+    recipes.map(r => {
+      const cal = r.calories || r.energy || '?';
+      const p = r.protein != null ? Math.round(r.protein) : '?';
+      const c = r.carbs != null ? Math.round(r.carbs) : '?';
+      const f = r.fat != null ? Math.round(r.fat) : '?';
+      const tags = (r.tags || []).join(' · ');
+      return `
+        <div class="card" style="margin-bottom:10px;padding:12px">
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">${r.name}</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">${r.meal}${tags ? ' · ' + tags : ''}</div>
+          <div style="font-size:12px;color:var(--text2)">${cal} kcal · ${p}g protein · ${c}g carbs · ${f}g fat</div>
+        </div>`;
+    }).join('');
 }
 
 function renderFood() {
@@ -6113,7 +6156,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.23 · 27 Jul 2026 4:06 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.24 · 27 Jul 2026 4:51 PM AEST</div>
 
 </body>
 </html>
