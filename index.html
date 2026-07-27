@@ -1912,8 +1912,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.29 · 27 Jul 2026 9:26 PM AEST';
-const BUILD_VERSION = 'v5.29';
+const BUILD = 'v5.30 · 27 Jul 2026 9:36 PM AEST';
+const BUILD_VERSION = 'v5.30';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4704,7 +4704,18 @@ function setRecipeServings(idx, delta) {
   const cur = recipeServings[r.id] != null ? recipeServings[r.id] : base;
   const next = Math.max(1, Math.min(14, cur + delta));
   recipeServings[r.id] = next;
+  // Capture which recipe cards are currently open so re-render doesn't collapse them
+  const openIds = [...document.querySelectorAll('.meal-body')]
+    .filter(b => b.id.startsWith('saved-recipe-') && b.style.display !== 'none')
+    .map(b => b.id);
   renderSavedRecipes();
+  // Restore open state
+  openIds.forEach(id => {
+    const body = document.getElementById(id);
+    const chv = document.getElementById(id + '-chv');
+    if (body) body.style.display = 'block';
+    if (chv) chv.classList.add('open');
+  });
 }
 
 function renderSavedRecipes() {
@@ -6391,7 +6402,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.29 · 27 Jul 2026 9:26 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.30 · 27 Jul 2026 9:36 PM AEST</div>
 
 </body>
 </html>
