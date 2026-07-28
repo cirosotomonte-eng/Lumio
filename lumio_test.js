@@ -40,6 +40,21 @@ check('servings open-state preserved', /openIds/.test(mainScript));
 check('isSuggestionSaved dedup present', /function isSuggestionSaved/.test(mainScript));
 check('normRecipeName helper present', /function _normRecipeName/.test(mainScript));
 check('save stores sourceId for dedup', /sourceId:/.test(mainScript));
+check('dairy detection helper present', /function isDairyIngredient/.test(mainScript));
+check('shopping delete present', /function deleteShopItem/.test(mainScript));
+check('shopping clear-all present', /function clearShoppingList/.test(mainScript));
+check('add recipe to shopping present', /function addRecipeToShopping/.test(mainScript));
+
+// isDairyIngredient behaviour
+try {
+  const fn = extractFn('isDairyIngredient', mainScript);
+  const kw = mainScript.match(/const DAIRY_KW = \[[^\]]*\];/);
+  const dairy = new Function(kw[0] + '\n' + fn + '\nreturn isDairyIngredient;')();
+  check('dairy: ricotta is dairy', dairy('12 oz ricotta') === true);
+  check('dairy: parmesan is dairy', dairy('grated parmesan') === true);
+  check('dairy: lactose-free milk is NOT dairy', dairy('150ml lactose-free milk') === false);
+  check('dairy: chicken is NOT dairy', dairy('9 oz chicken breast') === false);
+} catch(e) { fails.push('dairy extraction: ' + e.message); fail++; }
 
 // ── Layer 3: extract & test pure functions in a sandbox ────────────────
 // Pull the scaler helpers out and eval them in isolation.
