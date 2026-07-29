@@ -63,6 +63,11 @@ check('skills overdue nudge present', /Overdue/.test(mainScript));
 check('suggestions meal sections present', /🌅 Breakfast/.test(mainScript));
 check('my recipes New badge present', /savedAt && \(Date\.now\(\) - recipe\.savedAt\)/.test(mainScript));
 check('save stamps savedAt', /savedAt: Date\.now\(\)/.test(mainScript));
+check('image backfill present', /function backfillRecipeImages/.test(mainScript));
+check('image resolver present', /function recipeImage/.test(mainScript));
+check('photo upload present', /function triggerRecipePhoto/.test(mainScript));
+check('image compression present', /function compressImage/.test(mainScript));
+check('section placeholder present', /Select section…/.test(mainScript));
 
 // categoriseShopItem: the ground-turkey bug regression
 try {
