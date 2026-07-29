@@ -1947,8 +1947,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.39 · 30 Jul 2026 9:01 AM AEST';
-const BUILD_VERSION = 'v5.39';
+const BUILD = 'v5.40 · 30 Jul 2026 9:05 AM AEST';
+const BUILD_VERSION = 'v5.40';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4967,8 +4967,96 @@ function setRecipeServings(idx, delta) {
   });
 }
 
+// Resolve the best image for a recipe: user upload > scraped Centr image
+function recipeImage(r) {
+  return (r && (r.userImage || r.scrapedImageUrl || r.imageUrlFallback)) || '';
+}
+
+// Backfill: copy Centr images onto hand-adapted recipes by matching names against the scraped pool
+function backfillRecipeImages() {
+  if (!state.food) return false;
+  const saved = state.food.savedRecipes || [];
+  const pool = state.food.scrapedPool && state.food.scrapedPool.weekPlan;
+  // Build a name->image lookup from the current scraped pool AND the week plan
+  const lookup = {};
+  const addSource = (planObj) => {
+    if (!planObj) return;
+    Object.values(planObj).forEach(meals => Object.values(meals).forEach(r => {
+      const img = r && (r.scrapedImageUrl || r.imageUrlFallback);
+      if (r && r.name && img) lookup[_normRecipeName(r.name)] = img;
+    }));
+  };
+  addSource(pool);
+  addSource(state.food.weekPlan);
+  let changed = false;
+  saved.forEach(r => {
+    if (r.userImage || r.scrapedImageUrl) return; // already has an image
+    const match = lookup[_normRecipeName(r.name)];
+    if (match) { r.scrapedImageUrl = match; changed = true; }
+  });
+  if (changed) saveToSupabase();
+  return changed;
+}
+
+let _pendingPhotoIdx = null;
+function triggerRecipePhoto(idx) {
+  _pendingPhotoIdx = idx;
+  let input = document.getElementById('recipe-photo-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.id = 'recipe-photo-input';
+    input.style.display = 'none';
+    input.addEventListener('change', handleRecipePhoto);
+    document.body.appendChild(input);
+  }
+  input.value = '';
+  input.click();
+}
+
+async function handleRecipePhoto(e) {
+  const file = e.target.files && e.target.files[0];
+  if (file == null || _pendingPhotoIdx == null) return;
+  const recipe = (state.food.savedRecipes || [])[_pendingPhotoIdx];
+  if (!recipe) return;
+  try {
+    const dataUrl = await compressImage(file, 500, 0.7);
+    recipe.userImage = dataUrl;
+    saveToSupabase();
+    renderSavedRecipes();
+  } catch (err) {
+    alert('Could not process that image. Try a different photo.');
+  }
+  _pendingPhotoIdx = null;
+}
+
+// Resize to max dimension and JPEG-compress → data URL (keeps Supabase small)
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        let { width, height } = im;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(im, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      im.onerror = reject;
+      im.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function renderSavedRecipes() {
   if (!state.food) return;
+  backfillRecipeImages();
   const saved = state.food.savedRecipes || [];
   // Self-heal: ensure every recipe has the correct baseServings
   const _baseMap = {
@@ -5003,7 +5091,7 @@ function renderSavedRecipes() {
       return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${shown}</div>`;
     }).join('');
     const method = (recipe.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
-    const img = recipe.scrapedImageUrl || recipe.imageUrlFallback || '';
+    const img = recipeImage(recipe);
     const pm = primaryMeal(recipe);
     const isUnsorted = !['breakfast','lunch','dinner','snack','dessert','reference'].includes(pm);
     const mealLabel = isNote ? 'Reference' : (isUnsorted ? '' : pm.charAt(0).toUpperCase() + pm.slice(1));
@@ -5072,7 +5160,8 @@ function renderSavedRecipes() {
           <button onclick="event.stopPropagation();openAddRecipeToDays(${i})" style="flex:1;padding:11px;border:none;background:var(--accent);color:white;border-radius:var(--rad);font-size:13px;font-weight:600;cursor:pointer">＋ Add to day</button>
           <button onclick="event.stopPropagation();addRecipeToShopping(${i})" style="flex:1;padding:11px;border:1.5px solid var(--accent);background:none;color:var(--accent);border-radius:var(--rad);font-size:13px;font-weight:600;cursor:pointer">🛒 Shopping</button>
         </div>
-        <button onclick="event.stopPropagation();removeSavedRecipe(${i})" style="width:100%;padding:8px;margin-top:8px;border:none;background:none;color:var(--text3);font-size:12px;cursor:pointer">Delete recipe</button>
+        <button onclick="event.stopPropagation();triggerRecipePhoto(${i})" style="width:100%;padding:9px;margin-top:8px;border:1px solid var(--border);background:none;color:var(--text2);border-radius:var(--rad);font-size:13px;cursor:pointer">📷 ${img ? 'Change photo' : 'Add photo'}</button>
+        <button onclick="event.stopPropagation();removeSavedRecipe(${i})" style="width:100%;padding:8px;margin-top:6px;border:none;background:none;color:var(--text3);font-size:12px;cursor:pointer">Delete recipe</button>
       </div>
     </div>`;
   };
@@ -6762,7 +6851,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.39 · 30 Jul 2026 9:01 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.40 · 30 Jul 2026 9:05 AM AEST</div>
 
 </body>
 </html>
