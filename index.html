@@ -1468,7 +1468,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         <input type="text" id="skill-name-input" placeholder="Skill to learn (e.g. AI agent orchestration)" style="flex:1;min-width:0;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
       </div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
-        <input type="text" id="skill-source-input" placeholder="Source / note (optional, e.g. Senior BA job ad)" style="flex:1;min-width:0;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
+        <input type="text" id="skill-source-input" placeholder="Source / note (optional)" style="flex:1;min-width:0;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
+        <input type="date" id="skill-date-input" title="Target date (optional)" style="padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text);flex-shrink:0">
         <button onclick="addSkill()" style="border:none;background:var(--accent);color:white;border-radius:var(--rad);padding:0 16px;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0">Add</button>
       </div>
       <div id="skills-list"></div>
@@ -1926,8 +1927,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.35 · 29 Jul 2026 10:58 AM AEST';
-const BUILD_VERSION = 'v5.35';
+const BUILD = 'v5.36 · 30 Jul 2026 7:52 AM AEST';
+const BUILD_VERSION = 'v5.36';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -3569,10 +3570,26 @@ function renderSkills() {
   const sorted = [...skills].sort((a, b) => (order[a.status] - order[b.status]) || (b.created - a.created));
   el.innerHTML = sorted.map(s => {
     const st = SKILL_STATUS[s.status] || SKILL_STATUS.todo;
+    // Target date nudge (only when not yet learned)
+    let dateBadge = '';
+    if (s.targetDate && s.status !== 'done') {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const target = new Date(s.targetDate + 'T00:00:00');
+      const days = Math.round((target - today) / 86400000);
+      const dateStr = target.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+      if (days < 0) dateBadge = `<span style="font-size:10px;color:#842029;background:#f8d7da;border-radius:100px;padding:2px 7px;white-space:nowrap">⚠ Overdue · ${dateStr}</span>`;
+      else if (days <= 7) dateBadge = `<span style="font-size:10px;color:#664d03;background:#fff3cd;border-radius:100px;padding:2px 7px;white-space:nowrap">⏳ ${days === 0 ? 'Due today' : 'Due in ' + days + 'd'}</span>`;
+      else dateBadge = `<span style="font-size:10px;color:var(--text3);white-space:nowrap">🎯 ${dateStr}</span>`;
+    } else if (s.targetDate && s.status === 'done') {
+      dateBadge = '';
+    }
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;color:var(--text);${s.status==='done'?'text-decoration:line-through;opacity:0.6':''}">${s.name}</div>
-        ${s.source ? `<div style="font-size:11px;color:var(--text3);margin-top:1px">${s.source}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap">
+          ${s.source ? `<span style="font-size:11px;color:var(--text3)">${s.source}</span>` : ''}
+          ${dateBadge}
+        </div>
       </div>
       <button onclick="cycleSkillStatus(${s.id})" style="border:none;background:${st.bg};color:${st.color};border-radius:100px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">${st.label}</button>
       <button onclick="deleteSkill(${s.id})" style="border:none;background:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0">✕</button>
@@ -3583,11 +3600,12 @@ function renderSkills() {
 function addSkill() {
   const nameEl = document.getElementById('skill-name-input');
   const srcEl = document.getElementById('skill-source-input');
+  const dateEl = document.getElementById('skill-date-input');
   const name = (nameEl.value || '').trim();
   if (!name) { nameEl.focus(); return; }
   if (!state.skills) state.skills = [];
-  state.skills.push({ id: Date.now(), name, source: (srcEl.value || '').trim(), status: 'todo', created: Date.now() });
-  nameEl.value = ''; srcEl.value = '';
+  state.skills.push({ id: Date.now(), name, source: (srcEl.value || '').trim(), targetDate: dateEl.value || null, status: 'todo', created: Date.now() });
+  nameEl.value = ''; srcEl.value = ''; dateEl.value = '';
   saveToSupabase();
   renderSkills();
 }
@@ -4163,8 +4181,9 @@ function renderSuggestions() {
     });
   });
   const scrapedDate = pool.scrapedAt ? new Date(pool.scrapedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) : '';
-  el.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${recipes.length} recipes · scraped ${scrapedDate}</div>` +
-    recipes.map((r, idx) => {
+  window._currentSuggestions = recipes;
+
+  const cardHTML = (r, idx) => {
       const cal = r.calories || r.energy || '?';
       const p = r.protein != null ? Math.round(r.protein) : '?';
       const c = r.carbs != null ? Math.round(r.carbs) : '?';
@@ -4186,7 +4205,7 @@ function renderSuggestions() {
             <div onclick="toggleMealBody('${bodyId}')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div style="flex:1;min-width:0">
                 <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">${r.name}</div>
-                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">${r.meal}${tags ? ' · ' + tags : ''}</div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">${tags || ''}</div>
                 <div style="font-size:12px;color:var(--text2)">${cal} kcal · ${p}g protein · ${c}g carbs · ${f}g fat</div>
                 ${hasDairy ? '<div style="font-size:11px;color:#856404;margin-top:4px">🥛 Contains dairy — I can suggest lactose-free swaps</div>' : ''}
               </div>
@@ -4200,9 +4219,36 @@ function renderSuggestions() {
             <button onclick="saveSuggestionToRecipes(${idx})" ${alreadySaved ? 'disabled' : ''} style="width:100%;padding:9px;border:none;border-radius:var(--rad);font-size:13px;font-weight:600;cursor:${alreadySaved?'default':'pointer'};background:${alreadySaved?'var(--surface2)':'var(--accent)'};color:${alreadySaved?'var(--text3)':'white'};margin-top:10px">${alreadySaved ? '✓ Already in My Recipes' : '＋ Save to My Recipes'}</button>
           </div>
         </div>`;
-    }).join('');
-  // Stash current suggestions list so the save button can reference by index
-  window._currentSuggestions = recipes;
+  };
+
+  // Group into meal-type sections (one section per recipe, by its Centr meal)
+  const sections = [
+    { key: 'breakfast', label: '🌅 Breakfast' },
+    { key: 'lunch', label: '☀️ Lunch' },
+    { key: 'dinner', label: '🌙 Dinner' },
+    { key: 'snack', label: '🥤 Snack' },
+    { key: 'dessert', label: '🍨 Dessert' },
+  ];
+  const grouped = {};
+  recipes.forEach((r, idx) => {
+    const m = (r.meal || 'other').toLowerCase();
+    (grouped[m] = grouped[m] || []).push(idx);
+  });
+  let html = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${recipes.length} recipes · scraped ${scrapedDate}</div>`;
+  sections.forEach(sec => {
+    const idxs = grouped[sec.key];
+    if (!idxs || !idxs.length) return;
+    html += `<div class="shop-category-header" style="margin:8px 0 10px">${sec.label}</div>`;
+    html += idxs.map(idx => cardHTML(recipes[idx], idx)).join('');
+  });
+  // Any recipes without a recognised meal type
+  const known = new Set(sections.map(s => s.key));
+  const otherIdxs = recipes.map((r,i)=>i).filter(i => !known.has((recipes[i].meal||'other').toLowerCase()));
+  if (otherIdxs.length) {
+    html += `<div class="shop-category-header" style="margin:8px 0 10px">🍽️ Other</div>`;
+    html += otherIdxs.map(idx => cardHTML(recipes[idx], idx)).join('');
+  }
+  el.innerHTML = html;
 }
 
 // Normalise a recipe name for comparison: lowercase, strip adaptation suffixes & punctuation
@@ -4244,7 +4290,9 @@ function saveSuggestionToRecipes(idx) {
     method: r.method || [],
     scrapedImageUrl: r.scrapedImageUrl || r.imageUrlFallback || '',
     saved: true,
-    fromSuggestions: true
+    fromSuggestions: true,
+    savedAt: Date.now(),
+    mealType: r.meal || null
   });
   saveToSupabase();
   renderSuggestions();
@@ -4908,13 +4956,15 @@ function renderSavedRecipes() {
     el.innerHTML = '<div class="meal-empty">No saved recipes yet — save one from Suggestions.</div>';
     return;
   }
-  el.innerHTML = saved.map((recipe, i) => {
+  const savedCardHTML = (recipe, i) => {
     const bodyId = `saved-recipe-${i}`;
     const isNote = (recipe.suitableFor && recipe.suitableFor.length === 0) || (recipe.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE');
     const base = recipe.baseServings || 1;
     const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
     const factor = servings / base;
     const tags = (recipe.tags || []).map(t => `<span class="meal-tag ${t.toLowerCase()}">${t}</span>`).join('');
+    const isNew = recipe.savedAt && (Date.now() - recipe.savedAt) < 5*86400000;
+    const newBadge = isNew ? `<span style="font-size:10px;font-weight:700;color:white;background:var(--accent);border-radius:100px;padding:2px 7px;margin-left:6px;vertical-align:middle">NEW</span>` : '';
     const ingredients = (recipe.ingredients || []).map(ing => {
       const shown = isNote ? ing : scaleIngredient(ing, factor);
       const dairy = !isNote && isDairyIngredient(ing);
@@ -4922,7 +4972,6 @@ function renderSavedRecipes() {
     }).join('');
     const method = (recipe.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
     const img = recipe.scrapedImageUrl || recipe.imageUrlFallback || '';
-    // Servings control + scaled macros (only for real recipes, not notes)
     const perCal = recipe.calories || 0, perP = recipe.protein || 0;
     const servingsControl = isNote ? '' : `
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--rad);padding:8px 12px;margin-bottom:10px">
@@ -4938,8 +4987,8 @@ function renderSavedRecipes() {
       ${img ? `<img src="${img}" alt="${recipe.name}" loading="lazy" style="width:100%;height:130px;object-fit:cover;display:block;border-radius:var(--rad) var(--rad) 0 0" onerror="this.style.display='none'">` : ''}
       <div class="saved-recipe-header" onclick="toggleMealBody('${bodyId}')">
         <div style="flex:1;min-width:0">
-          <div class="saved-recipe-name">${recipe.name}</div>
-          <div class="saved-recipe-meta">${recipe.mealType || ''} ${recipe.calories ? '· ' + recipe.calories + ' cal/serving' : ''}</div>
+          <div class="saved-recipe-name">${recipe.name}${newBadge}</div>
+          <div class="saved-recipe-meta">${recipe.calories ? recipe.calories + ' cal/serving' : ''}</div>
           ${tags ? `<div class="meal-tags" style="margin-top:4px">${tags}</div>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -4956,7 +5005,42 @@ function renderSavedRecipes() {
         ${method ? `<div class="meal-method-title">${isNote ? 'Notes' : 'Method'}</div>${method}` : ''}
       </div>
     </div>`;
-  }).join('');
+  };
+
+  // Group by primary meal type (one section per recipe)
+  const primaryMeal = (r) => {
+    if ((r.suitableFor && r.suitableFor.length === 0) || (r.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE')) return 'reference';
+    return (r.mealType || (r.suitableFor && r.suitableFor[0]) || 'other').toLowerCase();
+  };
+  const sections = [
+    { key: 'breakfast', label: '🌅 Breakfast' },
+    { key: 'lunch', label: '☀️ Lunch' },
+    { key: 'dinner', label: '🌙 Dinner' },
+    { key: 'snack', label: '🥤 Snack' },
+    { key: 'dessert', label: '🍨 Dessert' },
+    { key: 'reference', label: '📝 Reference' },
+  ];
+  const grouped = {};
+  saved.forEach((r, i) => {
+    const m = primaryMeal(r);
+    (grouped[m] = grouped[m] || []).push(i);
+  });
+  let html = '';
+  sections.forEach(sec => {
+    const idxs = grouped[sec.key];
+    if (!idxs || !idxs.length) return;
+    // New recipes float to the top of their section
+    idxs.sort((a,b) => ((saved[b].savedAt||0) - (saved[a].savedAt||0)));
+    html += `<div class="shop-category-header" style="margin:8px 0 10px">${sec.label}</div>`;
+    html += idxs.map(i => savedCardHTML(saved[i], i)).join('');
+  });
+  const known = new Set(sections.map(s=>s.key));
+  const otherIdxs = saved.map((r,i)=>i).filter(i => !known.has(primaryMeal(saved[i])));
+  if (otherIdxs.length) {
+    html += `<div class="shop-category-header" style="margin:8px 0 10px">🍽️ Other</div>`;
+    html += otherIdxs.map(i => savedCardHTML(saved[i], i)).join('');
+  }
+  el.innerHTML = html;
 }
 
 function addRecipeToShopping(idx) {
@@ -6608,7 +6692,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.35 · 29 Jul 2026 10:58 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.36 · 30 Jul 2026 7:52 AM AEST</div>
 
 </body>
 </html>
