@@ -1927,8 +1927,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.36 · 30 Jul 2026 7:52 AM AEST';
-const BUILD_VERSION = 'v5.36';
+const BUILD = 'v5.37 · 30 Jul 2026 8:44 AM AEST';
+const BUILD_VERSION = 'v5.37';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4914,6 +4914,18 @@ function scaleIngredient(str, factor) { return formatIngredient(str, factor); }
 
 let recipeServings = {}; // recipeId -> chosen servings for display
 
+function setRecipeMeal(idx, meal) {
+  const r = (state.food.savedRecipes || [])[idx];
+  if (!r) return;
+  r.mealType = meal;
+  // Keep suitableFor consistent so the add-to-day picker matches
+  if (!Array.isArray(r.suitableFor) || r.suitableFor.length === 0 || !r.suitableFor.includes(meal)) {
+    r.suitableFor = [meal];
+  }
+  saveToSupabase();
+  renderSavedRecipes();
+}
+
 function setRecipeServings(idx, delta) {
   const r = (state.food.savedRecipes || [])[idx];
   if (!r) return;
@@ -4999,6 +5011,12 @@ function renderSavedRecipes() {
       </div>
       <div class="meal-body" id="${bodyId}" style="display:none">
         <div class="meal-divider"></div>
+        ${isNote ? '' : `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;color:var(--text2)">Section</div>
+          <select onchange="event.stopPropagation();setRecipeMeal(${i}, this.value)" onclick="event.stopPropagation()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
+            ${['breakfast','lunch','dinner','snack','dessert'].map(m => `<option value="${m}" ${primaryMeal(recipe)===m?'selected':''}>${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('')}
+          </select>
+        </div>`}
         ${servingsControl}
         ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients${isNote ? '' : ` (for ${servings})`}</div>${ingredients}</div>` : ''}
         ${isNote ? '' : `<button onclick="event.stopPropagation();addRecipeToShopping(${i})" style="width:100%;padding:10px;margin-top:10px;border:1.5px solid var(--accent);background:var(--accent);color:white;border-radius:var(--rad);font-size:13px;font-weight:600;cursor:pointer">🛒 Add ${servings} serving${servings>1?'s':''} to shopping list</button>`}
@@ -6692,7 +6710,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.36 · 30 Jul 2026 7:52 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.37 · 30 Jul 2026 8:44 AM AEST</div>
 
 </body>
 </html>
