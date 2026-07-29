@@ -56,6 +56,20 @@ try {
   check('dairy: chicken is NOT dairy', dairy('9 oz chicken breast') === false);
 } catch(e) { fails.push('dairy extraction: ' + e.message); fail++; }
 
+check('skills feature present', /function renderSkills/.test(mainScript) && /function addSkill/.test(mainScript));
+check('skills in state model', /skills: \[\]/.test(mainScript));
+
+// categoriseShopItem: the ground-turkey bug regression
+try {
+  const cats = mainScript.match(/const SHOP_CATEGORIES = \{[\s\S]*?\n\};/);
+  const fn = extractFn('categoriseShopItem', mainScript);
+  const cat = new Function(cats[0] + '\n' + fn + '\nreturn categoriseShopItem;')();
+  check('category: ground turkey is Protein (not Pantry)', cat('16 oz ground turkey') === 'Protein');
+  check('category: chicken breast is Protein', cat('9 oz chicken breast') === 'Protein');
+  check('category: avocado is Produce', cat('1 avocado') === 'Produce');
+  check('category: sourdough is Pantry', cat('50g sourdough bread') === 'Pantry');
+} catch(e) { fails.push('categoriser extraction: ' + e.message); fail++; }
+
 // ── Layer 3: extract & test pure functions in a sandbox ────────────────
 // Pull the scaler helpers out and eval them in isolation.
 function extractFn(name, src) {
