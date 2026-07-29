@@ -1947,8 +1947,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.38 · 30 Jul 2026 8:53 AM AEST';
-const BUILD_VERSION = 'v5.38';
+const BUILD = 'v5.39 · 30 Jul 2026 9:01 AM AEST';
+const BUILD_VERSION = 'v5.39';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -5004,9 +5004,11 @@ function renderSavedRecipes() {
     }).join('');
     const method = (recipe.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
     const img = recipe.scrapedImageUrl || recipe.imageUrlFallback || '';
-    const mealLabel = isNote ? 'Reference' : (primaryMeal(recipe).charAt(0).toUpperCase() + primaryMeal(recipe).slice(1));
+    const pm = primaryMeal(recipe);
+    const isUnsorted = !['breakfast','lunch','dinner','snack','dessert','reference'].includes(pm);
+    const mealLabel = isNote ? 'Reference' : (isUnsorted ? '' : pm.charAt(0).toUpperCase() + pm.slice(1));
     const mealEmojiMap = { breakfast:'🌅', lunch:'☀️', dinner:'🌙', snack:'🥤', dessert:'🍨', reference:'📝', other:'🍽️' };
-    const thumbEmoji = mealEmojiMap[primaryMeal(recipe)] || '🍽️';
+    const thumbEmoji = mealEmojiMap[pm] || '🍽️';
 
     // ── Collapsed header: thumbnail left, info right, chevron ──
     const thumb = img
@@ -5018,7 +5020,7 @@ function renderSavedRecipes() {
         ${thumb}
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.25">${recipe.name}${newBadge}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">${mealLabel}${recipe.calories ? ` · ${recipe.calories} cal` : ''}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${[mealLabel, recipe.calories ? `${recipe.calories} cal` : ''].filter(Boolean).join(' · ') || 'Tap to set section'}</div>
           ${tags ? `<div class="meal-tags" style="margin-top:5px">${tags}</div>` : ''}
         </div>
         <span class="meal-chevron" id="${bodyId}-chv" style="font-size:20px;color:var(--text2);flex-shrink:0">⌄</span>
@@ -5045,6 +5047,7 @@ function renderSavedRecipes() {
           <span class="recipe-control-label">Section</span>
           <div class="select-wrap">
             <select onchange="event.stopPropagation();setRecipeMeal(${i}, this.value)" onclick="event.stopPropagation()">
+              <option value="" disabled ${!['breakfast','lunch','dinner','snack','dessert'].includes(primaryMeal(recipe)) ? 'selected' : ''}>Select section…</option>
               ${['breakfast','lunch','dinner','snack','dessert'].map(m => `<option value="${m}" ${primaryMeal(recipe)===m?'selected':''}>${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('')}
             </select>
             <span class="select-chevron">⌄</span>
@@ -6759,7 +6762,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.38 · 30 Jul 2026 8:53 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.39 · 30 Jul 2026 9:01 AM AEST</div>
 
 </body>
 </html>
