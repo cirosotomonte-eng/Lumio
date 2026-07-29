@@ -1462,6 +1462,20 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="card">
       <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">🎯 Skills &amp; learning</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input type="text" id="skill-name-input" placeholder="Skill to learn (e.g. AI agent orchestration)" style="flex:1;min-width:0;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <input type="text" id="skill-source-input" placeholder="Source / note (optional, e.g. Senior BA job ad)" style="flex:1;min-width:0;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rad);font-size:13px;background:var(--surface2);color:var(--text)">
+        <button onclick="addSkill()" style="border:none;background:var(--accent);color:white;border-radius:var(--rad);padding:0 16px;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0">Add</button>
+      </div>
+      <div id="skills-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mb-12">
         <div class="card-label" style="margin-bottom:0">Podcast episodes</div>
         <button class="btn btn-sm" onclick="openModal('modal-rss')">Load feed</button>
       </div>
@@ -1912,8 +1926,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.34 · 29 Jul 2026 9:09 AM AEST';
-const BUILD_VERSION = 'v5.34';
+const BUILD = 'v5.35 · 29 Jul 2026 10:58 AM AEST';
+const BUILD_VERSION = 'v5.35';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -1938,6 +1952,7 @@ let state = {
     {name:'Data & metrics', pct:60},
   ],
   kb: [],
+  skills: [],   // [{ id, name, source, status: 'todo'|'learning'|'done', created }]
   reflections: [],
   weeklyReviews: [],
   rssEpisodes: [],
@@ -3538,6 +3553,59 @@ function renderWorkReflections() {
 // ── Knowledge base ──
 let kbTagFilter = 'all';
 
+const SKILL_STATUS = { todo: { label: 'To learn', color: '#856404', bg: '#fff3cd' }, learning: { label: 'Learning', color: '#0b5ed7', bg: '#cfe2ff' }, done: { label: 'Learned', color: '#0f5132', bg: '#d1e7dd' } };
+const SKILL_NEXT = { todo: 'learning', learning: 'done', done: 'todo' };
+
+function renderSkills() {
+  const el = document.getElementById('skills-list');
+  if (!el) return;
+  const skills = state.skills || [];
+  if (!skills.length) {
+    el.innerHTML = `<div class="text-muted text-sm" style="padding:6px 0">No skills yet. Spot one in a job ad? Add it above and track it from To learn → Learning → Learned.</div>`;
+    return;
+  }
+  // Sort: todo first, then learning, then done
+  const order = { todo: 0, learning: 1, done: 2 };
+  const sorted = [...skills].sort((a, b) => (order[a.status] - order[b.status]) || (b.created - a.created));
+  el.innerHTML = sorted.map(s => {
+    const st = SKILL_STATUS[s.status] || SKILL_STATUS.todo;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;color:var(--text);${s.status==='done'?'text-decoration:line-through;opacity:0.6':''}">${s.name}</div>
+        ${s.source ? `<div style="font-size:11px;color:var(--text3);margin-top:1px">${s.source}</div>` : ''}
+      </div>
+      <button onclick="cycleSkillStatus(${s.id})" style="border:none;background:${st.bg};color:${st.color};border-radius:100px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">${st.label}</button>
+      <button onclick="deleteSkill(${s.id})" style="border:none;background:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addSkill() {
+  const nameEl = document.getElementById('skill-name-input');
+  const srcEl = document.getElementById('skill-source-input');
+  const name = (nameEl.value || '').trim();
+  if (!name) { nameEl.focus(); return; }
+  if (!state.skills) state.skills = [];
+  state.skills.push({ id: Date.now(), name, source: (srcEl.value || '').trim(), status: 'todo', created: Date.now() });
+  nameEl.value = ''; srcEl.value = '';
+  saveToSupabase();
+  renderSkills();
+}
+
+function cycleSkillStatus(id) {
+  const s = (state.skills || []).find(x => x.id === id);
+  if (!s) return;
+  s.status = SKILL_NEXT[s.status] || 'todo';
+  saveToSupabase();
+  renderSkills();
+}
+
+function deleteSkill(id) {
+  state.skills = (state.skills || []).filter(x => x.id !== id);
+  saveToSupabase();
+  renderSkills();
+}
+
 function filterKB(tag, el) {
   kbTagFilter = tag;
   document.querySelectorAll('#kb-tag-tabs .pill-tab').forEach(t => t.classList.remove('active'));
@@ -3546,6 +3614,7 @@ function filterKB(tag, el) {
 }
 
 function renderKB() {
+  renderSkills();
   const query = (document.getElementById('kb-search')?.value || '').toLowerCase();
   const allTags = [...new Set(state.kb.flatMap(e => e.tags || []))];
   const tabsEl = document.getElementById('kb-tag-tabs');
@@ -4582,8 +4651,10 @@ const SHOP_CATEGORIES = {
     'sweet potato','pumpkin','corn','celery','asparagus','cabbage','broccolini','bok choy','silverbeet',
     'herbs','coriander','parsley','basil','mint','chilli','spring onion','shallot','leek','beetroot',
     'eggplant','cauliflower','fennel','mango','strawberr','blueberr','raspberr','grape','orange','fresh'],
-  protein: ['chicken','beef','pork','lamb','fish','salmon','tuna','prawn','shrimp','egg','tofu',
-    'tempeh','lentil','chickpea','bean','kidney bean','black bean','edamame','protein powder','mince'],
+  protein: ['chicken','turkey','duck','beef','veal','pork','lamb','goat','kangaroo','fish','salmon','tuna',
+    'trout','cod','snapper','barramundi','mackerel','sardine','anchovy','prawn','shrimp','crab','scallop',
+    'mussel','oyster','squid','egg','tofu','tempeh','lentil','chickpea','bean','kidney bean','black bean',
+    'edamame','protein powder','mince','sausage','bacon','ham','chorizo','prosciutto'],
   dairyFree: ['coconut milk','almond milk','oat milk','soy milk','lactose-free','dairy-free',
     'coconut cream','coconut yoghurt','coconut water'],
   spices: ['salt','pepper','cumin','coriander seed','paprika','turmeric','cinnamon','oregano','thyme',
@@ -6537,7 +6608,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.34 · 29 Jul 2026 9:09 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.35 · 29 Jul 2026 10:58 AM AEST</div>
 
 </body>
 </html>
