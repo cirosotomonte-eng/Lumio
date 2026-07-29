@@ -58,6 +58,11 @@ try {
 
 check('skills feature present', /function renderSkills/.test(mainScript) && /function addSkill/.test(mainScript));
 check('skills in state model', /skills: \[\]/.test(mainScript));
+check('skills target date present', /targetDate/.test(mainScript));
+check('skills overdue nudge present', /Overdue/.test(mainScript));
+check('suggestions meal sections present', /🌅 Breakfast/.test(mainScript));
+check('my recipes New badge present', /savedAt && \(Date\.now\(\) - recipe\.savedAt\)/.test(mainScript));
+check('save stamps savedAt', /savedAt: Date\.now\(\)/.test(mainScript));
 
 // categoriseShopItem: the ground-turkey bug regression
 try {
