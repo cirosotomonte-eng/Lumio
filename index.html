@@ -667,7 +667,15 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
   font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.auto-plan-btn:disabled { opacity: 0.7; cursor: default; }.meal-section-header { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+.auto-plan-btn:disabled { opacity: 0.7; cursor: default; }
+.week-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.week-nav-arrow {
+  width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); border-radius: 100px; font-size: 20px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.week-nav-arrow:active { background: var(--border); }
+.week-nav-label { font-size: 13px; font-weight: 600; color: var(--text); text-align: center; }.meal-section-header { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
 .meal-empty-add {
   width: 100%; padding: 16px; border: 1.5px dashed var(--border); background: none;
   color: var(--text3); border-radius: var(--rad); font-size: 13px; font-weight: 500;
@@ -1587,6 +1595,11 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
     <div id="food-tab-plan">
       <button class="auto-plan-btn" id="auto-plan-btn" onclick="autoPlanWeek()">✨ Auto-plan my week</button>
+      <div class="week-nav" id="food-week-nav">
+        <button class="week-nav-arrow" onclick="foodChangeWeek(-1)" title="Previous week">‹</button>
+        <div class="week-nav-label" id="food-week-nav-label">This week</div>
+        <button class="week-nav-arrow" onclick="foodChangeWeek(1)" title="Next week">›</button>
+      </div>
       <div class="food-day-pills" id="food-day-pills"></div>
       <div id="food-meals-container"></div>
     </div>
@@ -1951,7 +1964,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">05 Aug 2026 4:17 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">05 Aug 2026 4:27 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1965,9 +1978,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.44 · 05 Aug 2026 4:17 PM AEST';
-const BUILD_VERSION = 'v5.44';
-const BUILD_DISPLAY = '05 Aug 2026 4:17 PM AEST';
+const BUILD = 'v5.45 · 05 Aug 2026 4:27 PM AEST';
+const BUILD_VERSION = 'v5.45';
+const BUILD_DISPLAY = '05 Aug 2026 4:27 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4176,6 +4189,7 @@ function initFood() {
 
 let foodActiveTab = 'plan';
 let foodActiveDayIndex = 0;
+let foodWeekOffset = 0; // 0 = current/planned week, +1 = next week, -1 = last week
 
 async function refreshFood() {
   const btn = document.getElementById('food-refresh-btn');
@@ -4377,6 +4391,7 @@ function foodWeekDates() {
     startMon = foodMondayOfCurrentWeek();
   }
   const dates = [];
+  startMon.setDate(startMon.getDate() + (foodWeekOffset * 7));
   for (let i = 0; i < 7; i++) {
     const d = new Date(startMon);
     d.setDate(startMon.getDate() + i);
@@ -4393,35 +4408,45 @@ function renderFoodWeekPlan() {
   const dates = foodWeekDates();
   const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const plan = state.food.weekPlan || {};
-  const hasPlan = Object.keys(plan).length > 0;
+  const anyPlanEver = Object.keys(plan).length > 0;
 
-  // Week label
+  // Week label + nav label
   const mon = dates[0];
   const sun = dates[6];
   const fmt = d => d.date.toLocaleDateString('en-AU', { day:'numeric', month:'short' });
-  document.getElementById('food-week-label').textContent = hasPlan
-    ? `${fmt(mon)} – ${fmt(sun)}`  : '';
+  const range = `${fmt(mon)} – ${fmt(sun)}`;
+  document.getElementById('food-week-label').textContent = range;
+  const navLabelEl = document.getElementById('food-week-nav-label');
+  if (navLabelEl) {
+    const rel = foodWeekOffset === 0 ? 'This week' : foodWeekOffset === 1 ? 'Next week' : foodWeekOffset === -1 ? 'Last week'
+      : foodWeekOffset > 1 ? `In ${foodWeekOffset} weeks` : `${Math.abs(foodWeekOffset)} weeks ago`;
+    navLabelEl.innerHTML = `${rel} <span style="color:var(--text3);font-weight:400">· ${range}</span>`;
+  }
+  // Auto-plan button reflects the week being viewed
+  const apBtn = document.getElementById('auto-plan-btn');
+  if (apBtn && !apBtn.disabled) {
+    apBtn.innerHTML = foodWeekOffset === 0 ? '✨ Auto-plan my week' : foodWeekOffset === 1 ? '✨ Auto-plan next week' : '✨ Auto-plan this week';
+  }
 
-  // Day pills
+  // First-run empty state: only when the user has never had any plan at all
   const pillsEl = document.getElementById('food-day-pills');
-  if (!hasPlan) {
+  if (!anyPlanEver) {
     pillsEl.innerHTML = '';
     document.getElementById('food-meals-container').innerHTML = `
       <div class="food-no-plan">
         <div class="food-no-plan-emoji">🍽️</div>
         <div class="food-no-plan-title">No meal plan yet</div>
-        <div class="food-no-plan-sub">Your weekly Centr meal plan will appear here every Thursday morning automatically.</div>
+        <div class="food-no-plan-sub">Your Centr plan arrives every Thursday — or tap ✨ Auto-plan to build a week from your saved recipes.</div>
       </div>`;
     return;
   }
 
-  // Find default active day — today if in this week, else first day with meals
+  // Default active day — today if in this week, else first day with meals, else Monday
   const todayIdx = dates.findIndex(d => d.dk === today);
   if (foodActiveDayIndex === 0) {
     if (todayIdx >= 0) {
       foodActiveDayIndex = todayIdx;
     } else {
-      // Show first day that has meals
       const firstWithMeals = dates.findIndex(d => dayHasMeals(plan[d.dk]));
       foodActiveDayIndex = firstWithMeals >= 0 ? firstWithMeals : 0;
     }
@@ -4443,6 +4468,12 @@ function renderFoodWeekPlan() {
 
 function foodSelectDay(idx) {
   foodActiveDayIndex = idx;
+  renderFoodWeekPlan();
+}
+
+function foodChangeWeek(delta) {
+  foodWeekOffset += delta;
+  foodActiveDayIndex = 0; // recompute default day for the new week
   renderFoodWeekPlan();
 }
 
@@ -4650,7 +4681,7 @@ function showAutoPlanPreview() {
   modal.innerHTML = `
     <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:18px 16px 28px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:16px;font-weight:700;color:var(--text)">✨ Your week</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">✨ ${foodWeekOffset === 0 ? 'This week' : foodWeekOffset === 1 ? 'Next week' : 'Your week'}</div>
         <button onclick="closeAutoPlan()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
       </div>
       ${plan.notes ? `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--rad);padding:8px 10px;margin-bottom:10px">${plan.notes}</div>` : ''}
@@ -7126,7 +7157,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.44 · 05 Aug 2026 4:17 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.45 · 05 Aug 2026 4:27 PM AEST</div>
 
 </body>
 </html>
