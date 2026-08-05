@@ -75,6 +75,8 @@ check('This Week section headers present', /meal-section-header/.test(mainScript
 check('auto-plan feature present', /function autoPlanWeek/.test(mainScript) && /function applyAutoPlan/.test(mainScript));
 check('auto-plan uses Spendly worker', /spendly-ai-proxy\.cirosotomonte\.workers\.dev/.test(mainScript));
 check('auto-plan preview before apply', /function showAutoPlanPreview/.test(mainScript));
+check('week navigation present', /function foodChangeWeek/.test(mainScript) && /foodWeekOffset/.test(mainScript));
+check('week offset applied to dates', /startMon\.setDate\(startMon\.getDate\(\) \+ \(foodWeekOffset \* 7\)\)/.test(mainScript));
 
 // Dairy swap correctness
 try {
