@@ -77,6 +77,10 @@ check('auto-plan uses Spendly worker', /spendly-ai-proxy\.cirosotomonte\.workers
 check('auto-plan preview before apply', /function showAutoPlanPreview/.test(mainScript));
 check('week navigation present', /function foodChangeWeek/.test(mainScript) && /foodWeekOffset/.test(mainScript));
 check('week offset applied to dates', /startMon\.setDate\(startMon\.getDate\(\) \+ \(foodWeekOffset \* 7\)\)/.test(mainScript));
+check('add-to-day servings spread present', /function placeRecipeAcrossDays/.test(mainScript) && /addToDayServings/.test(mainScript));
+check('add-to-day picker shows recipe images', /function openAddToDay/.test(mainScript) && /recipeImage\(r\)/.test(mainScript));
+check('shopping scales by placement count', /counts\[recipe\.id\] = \(counts\[recipe\.id\] \|\| 0\) \+ 1/.test(mainScript) && /factor = servings \/ base/.test(mainScript));
+check('single-slot skip logic present', /if \(list\.length > 0\) continue/.test(mainScript));
 
 // Dairy swap correctness
 try {
