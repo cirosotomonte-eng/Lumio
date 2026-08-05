@@ -661,7 +661,13 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .saved-recipe-name { font-size: 14px; font-weight: 500; color: var(--text); }
 .saved-recipe-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .meal-section { margin-bottom: 20px; }
-.meal-section-header { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+.auto-plan-btn {
+  width: 100%; padding: 13px; margin-bottom: 14px; border: none; border-radius: var(--rad);
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.auto-plan-btn:disabled { opacity: 0.7; cursor: default; }.meal-section-header { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
 .meal-empty-add {
   width: 100%; padding: 16px; border: 1.5px dashed var(--border); background: none;
   color: var(--text3); border-radius: var(--rad); font-size: 13px; font-weight: 500;
@@ -1580,6 +1586,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       <button class="food-tab-btn" onclick="switchFoodTab('shop',this)">Shopping</button>
     </div>
     <div id="food-tab-plan">
+      <button class="auto-plan-btn" id="auto-plan-btn" onclick="autoPlanWeek()">✨ Auto-plan my week</button>
       <div class="food-day-pills" id="food-day-pills"></div>
       <div id="food-meals-container"></div>
     </div>
@@ -1944,7 +1951,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">05 Aug 2026 4:08 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">05 Aug 2026 4:17 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1958,9 +1965,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.43 · 05 Aug 2026 4:08 PM AEST';
-const BUILD_VERSION = 'v5.43';
-const BUILD_DISPLAY = '05 Aug 2026 4:08 PM AEST';
+const BUILD = 'v5.44 · 05 Aug 2026 4:17 PM AEST';
+const BUILD_VERSION = 'v5.44';
+const BUILD_DISPLAY = '05 Aug 2026 4:17 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4510,6 +4517,223 @@ function removeMealFromDay(dk, mealType, recipeId) {
   renderFoodWeekPlan();
 }
 
+// ── AI auto-plan (via Spendly Cloudflare Worker proxy) ──────────────────────
+const AI_WORKER_URL = 'https://spendly-ai-proxy.cirosotomonte.workers.dev';
+const CALORIE_TARGET = 1950;
+
+// Curated dairy → lactose-free swaps (most specific first)
+const DAIRY_SWAP_MAP = [
+  ['condensed milk', 'coconut condensed milk'],
+  ['cream cheese', 'lactose-free cream cheese'],
+  ['mascarpone', 'lactose-free cream cheese'],
+  ['parmesan', 'nutritional yeast'],
+  ['mozzarella', 'lactose-free mozzarella'],
+  ['ricotta', 'lactose-free ricotta'],
+  ['feta', 'lactose-free feta'],
+  ['yoghurt', 'coconut yoghurt'],
+  ['yogurt', 'coconut yoghurt'],
+  ['custard', 'lactose-free custard'],
+  ['ghee', 'olive oil'],
+  ['butter', 'olive oil'],
+  ['cream', 'coconut cream'],
+  ['cheese', 'lactose-free cheese'],
+  ['milk', 'lactose-free milk'],
+];
+function swapDairyIngredient(ing) {
+  if (!isDairyIngredient(ing)) return { text: ing, swapped: false };
+  for (const [k, v] of DAIRY_SWAP_MAP) {
+    const re = new RegExp('\\b' + k + '\\b', 'i');
+    if (re.test(ing)) return { text: ing.replace(re, v), swapped: true };
+  }
+  return { text: ing, swapped: false };
+}
+
+function recipePrimaryMeal(r) {
+  return (r.mealType || (Array.isArray(r.suitableFor) && r.suitableFor[0]) || 'other').toLowerCase();
+}
+function isReferenceRecipe(r) {
+  return (r.suitableFor && r.suitableFor.length === 0) || (r.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE');
+}
+
+let _autoPlanResult = null;
+
+async function autoPlanWeek() {
+  const saved = (state.food.savedRecipes || []).filter(r => !isReferenceRecipe(r));
+  if (saved.length < 3) {
+    alert('Add a few more recipes to My Recipes first — I need a handful to build a varied week.');
+    return;
+  }
+  const btn = document.getElementById('auto-plan-btn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ldots"><span></span><span></span><span></span></span> Planning…';
+  try {
+    const recipeList = saved.map(r => ({
+      id: String(r.id), name: r.name, meal: recipePrimaryMeal(r),
+      calories: r.calories || 0, protein: Math.round(r.protein || 0)
+    }));
+    const prompt =
+`You are a meal planner for someone on a fat-loss plan. Build a 7-day plan (Mon–Sun) by selecting ONLY from their saved recipes below (use the exact ids).
+
+Rules:
+- Aim each day close to ${CALORIE_TARGET} calories (within ~150) and maximise protein.
+- "lunch" and "dinner": exactly ONE recipe id each (or null if none suit).
+- "breakfast", "snack", "dessert": an array of zero or more recipe ids.
+- Only assign a recipe to a section that matches its "meal". Never invent ids.
+- Repeating recipes across days is fine (they meal-prep), but add some variety.
+
+Saved recipes (JSON): ${JSON.stringify(recipeList)}
+
+Daily target: ${CALORIE_TARGET} calories.
+
+Return JSON ONLY, no markdown, shape:
+{"days":{"Mon":{"breakfast":[],"lunch":null,"snack":[],"dinner":null,"dessert":[]},"Tue":{...},"Wed":{...},"Thu":{...},"Fri":{...},"Sat":{...},"Sun":{...}},"notes":"one short line on calorie/protein balance or any gaps"}`;
+
+    const res = await fetch(AI_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) throw new Error('AI service returned ' + res.status);
+    const data = await res.json();
+    const text = (data.content && data.content[0] && data.content[0].text || '').replace(/```json|```/g, '').trim();
+    const plan = JSON.parse(text);
+    if (!plan || !plan.days) throw new Error('Unexpected plan format');
+    _autoPlanResult = { plan, saved };
+    showAutoPlanPreview();
+  } catch (e) {
+    alert('Could not generate a plan: ' + e.message + '\n\nThe AI service may be unavailable — try again in a moment.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+
+function showAutoPlanPreview() {
+  if (!_autoPlanResult) return;
+  const { plan, saved } = _autoPlanResult;
+  const byId = {};
+  saved.forEach(r => { byId[String(r.id)] = r; });
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const mealOrder = [['breakfast','🌅'],['lunch','☀️'],['snack','🥤'],['dinner','🌙'],['dessert','🍨']];
+
+  let anyDairy = false;
+  const dayHtml = DOW.map(dow => {
+    const day = plan.days[dow] || {};
+    let dayCal = 0;
+    const lines = mealOrder.map(([mt, emoji]) => {
+      let ids = day[mt];
+      if (ids == null) ids = [];
+      if (!Array.isArray(ids)) ids = [ids];
+      const names = ids.map(id => byId[String(id)]).filter(Boolean).map(r => {
+        dayCal += (r.calories || 0);
+        if ((r.ingredients || []).some(isDairyIngredient)) anyDairy = true;
+        return r.name;
+      });
+      if (!names.length) return '';
+      return `<div style="font-size:12px;color:var(--text2);margin:1px 0">${emoji} ${names.join(', ')}</div>`;
+    }).filter(Boolean).join('');
+    const over = dayCal > CALORIE_TARGET + 200;
+    return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${dow}</div>
+        <div style="font-size:11px;color:${over?'var(--danger)':'var(--text3)'}">${Math.round(dayCal)} cal</div>
+      </div>
+      ${lines || '<div style="font-size:12px;color:var(--text3)">—</div>'}
+    </div>`;
+  }).join('');
+
+  document.getElementById('auto-plan-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'auto-plan-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1200;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:18px 16px 28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:16px;font-weight:700;color:var(--text)">✨ Your week</div>
+        <button onclick="closeAutoPlan()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
+      </div>
+      ${plan.notes ? `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--rad);padding:8px 10px;margin-bottom:10px">${plan.notes}</div>` : ''}
+      ${dayHtml}
+      <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.5">
+        Applying will replace this week's plan${anyDairy ? ', swap any dairy for lactose-free' : ''}, and rebuild your shopping list (clearing what's there now).
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button onclick="closeAutoPlan()" style="flex:1;padding:12px;border:1px solid var(--border);background:none;color:var(--text2);border-radius:var(--rad);font-size:14px;font-weight:600;cursor:pointer">Cancel</button>
+        <button onclick="applyAutoPlan()" style="flex:2;padding:12px;border:none;background:var(--accent);color:white;border-radius:var(--rad);font-size:14px;font-weight:700;cursor:pointer">Apply to my week</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closeAutoPlan(); });
+  document.body.appendChild(modal);
+}
+
+function closeAutoPlan() { document.getElementById('auto-plan-modal')?.remove(); }
+
+function applyAutoPlan() {
+  if (!_autoPlanResult) return;
+  const { plan, saved } = _autoPlanResult;
+  const byId = {};
+  saved.forEach(r => { byId[String(r.id)] = r; });
+  const dates = foodWeekDates();
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // Rebuild the 7 days from the plan
+  DOW.forEach((dow, i) => {
+    const dk = dates[i].dk;
+    state.food.weekPlan[dk] = {};
+    const day = plan.days[dow] || {};
+    ['breakfast','lunch','snack','dinner','dessert'].forEach(mt => {
+      let ids = day[mt];
+      if (ids == null) ids = [];
+      if (!Array.isArray(ids)) ids = [ids];
+      const recipes = ids.map(id => byId[String(id)]).filter(Boolean);
+      recipes.forEach(r => addMealToDay(dk, mt, r));
+    });
+  });
+
+  // Clear the shopping list, then add the plan's ingredients (dairy-swapped), one set per unique recipe
+  state.food.shoppingExtra = [];
+  state.food.shoppingRemoved = {};
+  state.food.shoppingChecked = {};
+  Object.values(state.food.weekPlan).forEach(day => {
+    Object.values(day).forEach(v => {
+      (Array.isArray(v) ? v : [v]).forEach(r => { if (r) r.addedToShop = false; });
+    });
+  });
+  const mealEmoji = { breakfast:'🌅', lunch:'☀️', snack:'🥤', dinner:'🌙', dessert:'🍨' };
+  const addedRecipeIds = new Set();
+  const collect = [];
+  Object.values(state.food.weekPlan).forEach(day => {
+    Object.entries(day).forEach(([mt, v]) => {
+      (Array.isArray(v) ? v : [v]).forEach(r => {
+        if (!r || addedRecipeIds.has(String(r.id))) return;
+        addedRecipeIds.add(String(r.id));
+        collect.push({ r, mt });
+      });
+    });
+  });
+  collect.forEach(({ r, mt }) => {
+    (r.ingredients || []).forEach(ing => {
+      const swap = swapDairyIngredient(ing);
+      const key = `auto::${r.id}::${ing.trim().toLowerCase()}`;
+      state.food.shoppingExtra.push({
+        name: convertToMetric(swap.text),
+        category: categoriseShopItem(swap.text),
+        recipeName: r.name + (swap.swapped ? ' · lactose-free swap' : ''),
+        emoji: mealEmoji[mt] || '🍽️',
+        dairy: false,
+        key
+      });
+    });
+  });
+
+  saveToSupabase();
+  closeAutoPlan();
+  foodActiveDayIndex = 0;
+  renderFoodWeekPlan();
+  alert('Your week is planned and the shopping list is ready. 🎉');
+}
+
 function assignRecipeToDay(dk, mealType, savedIdx) {
   const recipe = (state.food.savedRecipes || [])[savedIdx];
   if (!recipe) return;
@@ -6902,7 +7126,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.43 · 05 Aug 2026 4:08 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.44 · 05 Aug 2026 4:17 PM AEST</div>
 
 </body>
 </html>
