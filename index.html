@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1947,8 +1950,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.40 · 30 Jul 2026 9:05 AM AEST';
-const BUILD_VERSION = 'v5.40';
+const BUILD = 'v5.41 · 05 Aug 2026 3:08 PM AEST';
+const BUILD_VERSION = 'v5.41';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -2222,7 +2225,7 @@ async function onAuthSuccess() {
   // renderQuote()/renderToday(), so any slowness reaching GitHub Pages
   // (or a hung request, since it had no timeout) stalled the entire UI —
   // "Loading today's quote…" would sit there until the fetch settled.
-  checkForUpdate();
+  checkForUpdate(true);
   setInterval(checkForUpdate, 30 * 60 * 1000);
 
   // Automatic reconciliation pass, ~1.5s after login: reload the saved
@@ -2307,7 +2310,7 @@ function isNewerVersion(remote, current) {
   return false;
 }
 
-async function checkForUpdate() {
+async function checkForUpdate(isStartup) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -2319,6 +2322,16 @@ async function checkForUpdate() {
     const text = await res.text();
     const m = text.match(/const BUILD_VERSION = '([^']+)'/);
     if (m && m[1] && isNewerVersion(m[1], BUILD_VERSION)) {
+      // On app open, pull the freshest version automatically — but guard against
+      // reload loops: only auto-reload once per detected version per session.
+      if (isStartup) {
+        const already = sessionStorage.getItem('lumio_autoUpdatedTo');
+        if (already !== m[1]) {
+          sessionStorage.setItem('lumio_autoUpdatedTo', m[1]);
+          window.location.reload(true);
+          return;
+        }
+      }
       document.getElementById('update-banner').style.display = 'block';
     }
   } catch(e) { /* aborted or network error — just skip this check, next one is in 30 min */ }
@@ -6851,7 +6864,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.40 · 30 Jul 2026 9:05 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.41 · 05 Aug 2026 3:08 PM AEST</div>
 
 </body>
 </html>
