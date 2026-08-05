@@ -70,6 +70,19 @@ check('image compression present', /function compressImage/.test(mainScript));
 check('section placeholder present', /Select section…/.test(mainScript));
 check('auto-update on startup present', /lumio_autoUpdatedTo/.test(mainScript));
 check('cache-control meta present', /Cache-Control.*no-cache/.test(html));
+check('meal-list helpers present', /function getMealList/.test(mainScript) && /function addMealToDay/.test(mainScript) && /function removeMealFromDay/.test(mainScript));
+check('This Week section headers present', /meal-section-header/.test(mainScript));
+check('exclude/strikethrough removed from meal card', !/excludeRecipe/.test(mainScript));
+
+// getMealList + add/remove behaviour (multi vs single)
+try {
+  const multi = mainScript.match(/const MULTI_MEALS = \[[^\]]*\];/);
+  const gml = extractFn('getMealList', mainScript);
+  const getMealList = new Function(multi[0] + '\n' + gml + '\nreturn getMealList;')();
+  check('getMealList wraps single recipe', JSON.stringify(getMealList({lunch:{id:1}}, 'lunch')) === '[{"id":1}]');
+  check('getMealList passes array through', getMealList({breakfast:[{id:1},{id:2}]}, 'breakfast').length === 2);
+  check('getMealList empty for missing', getMealList({}, 'dinner').length === 0);
+} catch(e) { fails.push('getMealList extraction: ' + e.message); fail++; }
 
 // categoriseShopItem: the ground-turkey bug regression
 try {
