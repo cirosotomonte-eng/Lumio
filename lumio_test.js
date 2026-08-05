@@ -68,6 +68,8 @@ check('image resolver present', /function recipeImage/.test(mainScript));
 check('photo upload present', /function triggerRecipePhoto/.test(mainScript));
 check('image compression present', /function compressImage/.test(mainScript));
 check('section placeholder present', /Select section…/.test(mainScript));
+check('auto-update on startup present', /lumio_autoUpdatedTo/.test(mainScript));
+check('cache-control meta present', /Cache-Control.*no-cache/.test(html));
 
 // categoriseShopItem: the ground-turkey bug regression
 try {
