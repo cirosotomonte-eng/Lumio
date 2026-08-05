@@ -72,6 +72,23 @@ check('auto-update on startup present', /lumio_autoUpdatedTo/.test(mainScript));
 check('cache-control meta present', /Cache-Control.*no-cache/.test(html));
 check('meal-list helpers present', /function getMealList/.test(mainScript) && /function addMealToDay/.test(mainScript) && /function removeMealFromDay/.test(mainScript));
 check('This Week section headers present', /meal-section-header/.test(mainScript));
+check('auto-plan feature present', /function autoPlanWeek/.test(mainScript) && /function applyAutoPlan/.test(mainScript));
+check('auto-plan uses Spendly worker', /spendly-ai-proxy\.cirosotomonte\.workers\.dev/.test(mainScript));
+check('auto-plan preview before apply', /function showAutoPlanPreview/.test(mainScript));
+
+// Dairy swap correctness
+try {
+  const swapFn = extractFn('swapDairyIngredient', mainScript);
+  const dairyKw = mainScript.match(/const DAIRY_KW = \[[^\]]*\];/);
+  const isDairy = extractFn('isDairyIngredient', mainScript);
+  const swapMap = mainScript.match(/const DAIRY_SWAP_MAP = \[[\s\S]*?\];/);
+  const swap = new Function(dairyKw[0] + '\n' + swapMap[0] + '\n' + isDairy + '\n' + swapFn + '\nreturn swapDairyIngredient;')();
+  check('swap: ricotta → lactose-free ricotta', swap('12 oz ricotta').text.includes('lactose-free ricotta'));
+  check('swap: parmesan → nutritional yeast', swap('grated parmesan').text.includes('nutritional yeast'));
+  check('swap: milk → lactose-free milk', swap('200ml milk').text.includes('lactose-free milk'));
+  check('swap: chicken unchanged', swap('200g chicken breast').swapped === false);
+  check('swap: lactose-free milk not double-swapped', swap('200ml lactose-free milk').swapped === false);
+} catch(e) { fails.push('swapDairy extraction: ' + e.message); fail++; }
 check('exclude/strikethrough removed from meal card', !/excludeRecipe/.test(mainScript));
 
 // getMealList + add/remove behaviour (multi vs single)
