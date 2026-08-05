@@ -660,6 +660,14 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 }
 .saved-recipe-name { font-size: 14px; font-weight: 500; color: var(--text); }
 .saved-recipe-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.meal-section { margin-bottom: 20px; }
+.meal-section-header { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+.meal-empty-add {
+  width: 100%; padding: 16px; border: 1.5px dashed var(--border); background: none;
+  color: var(--text3); border-radius: var(--rad); font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.meal-empty-add:hover, .meal-empty-add:active { border-color: var(--accent); color: var(--accent); }
 .recipe-control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .recipe-control-label { font-size: 13px; color: var(--text2); }
 .select-wrap { position: relative; display: inline-flex; align-items: center; }
@@ -1950,8 +1958,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.41 · 05 Aug 2026 3:08 PM AEST';
-const BUILD_VERSION = 'v5.41';
+const BUILD = 'v5.42 · 05 Aug 2026 3:58 PM AEST';
+const BUILD_VERSION = 'v5.42';
 const BUILD_DISPLAY = '17 Jul 2026 1:27 PM AEDT';
 
 const PROXIES = [
@@ -4407,14 +4415,14 @@ function renderFoodWeekPlan() {
       foodActiveDayIndex = todayIdx;
     } else {
       // Show first day that has meals
-      const firstWithMeals = dates.findIndex(d => plan[d.dk] && (plan[d.dk].breakfast || plan[d.dk].lunch || plan[d.dk].dinner));
+      const firstWithMeals = dates.findIndex(d => dayHasMeals(plan[d.dk]));
       foodActiveDayIndex = firstWithMeals >= 0 ? firstWithMeals : 0;
     }
   }
 
   pillsEl.innerHTML = dates.map((d, i) => {
     const isToday = d.dk === today;
-    const hasMeals = plan[d.dk] && (plan[d.dk].breakfast || plan[d.dk].lunch || plan[d.dk].dinner);
+    const hasMeals = dayHasMeals(plan[d.dk]);
     const cls = ['food-day-pill',
       i === foodActiveDayIndex ? 'active' : '',
       isToday && i !== foodActiveDayIndex ? 'today' : ''
@@ -4463,11 +4471,49 @@ function openAddToDay(dk, mealType) {
 
 function closeAddToDay() { document.getElementById('add-to-day-modal')?.remove(); }
 
+const MULTI_MEALS = ['breakfast', 'snack', 'dessert'];
+
+function dayHasMeals(dayPlan) {
+  if (!dayPlan) return false;
+  return ['breakfast','lunch','snack','dinner','dessert'].some(mt => getMealList(dayPlan, mt).length > 0);
+}
+
+// Always return an array for a meal slot (single recipe → wrapped, array → as-is, empty → [])
+function getMealList(dayPlan, mealType) {
+  const v = dayPlan && dayPlan[mealType];
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+function addMealToDay(dk, mealType, recipe) {
+  if (!state.food.weekPlan[dk]) state.food.weekPlan[dk] = {};
+  if (MULTI_MEALS.includes(mealType)) {
+    const cur = getMealList(state.food.weekPlan[dk], mealType);
+    if (!cur.some(r => String(r.id) === String(recipe.id))) cur.push(recipe);
+    state.food.weekPlan[dk][mealType] = cur;
+  } else {
+    state.food.weekPlan[dk][mealType] = recipe; // lunch/dinner: single, replaces
+  }
+}
+
+function removeMealFromDay(dk, mealType, recipeId) {
+  const dayPlan = state.food.weekPlan && state.food.weekPlan[dk];
+  if (!dayPlan) return;
+  const v = dayPlan[mealType];
+  if (Array.isArray(v)) {
+    dayPlan[mealType] = v.filter(r => String(r.id) !== String(recipeId));
+    if (!dayPlan[mealType].length) delete dayPlan[mealType];
+  } else {
+    delete dayPlan[mealType];
+  }
+  saveToSupabase();
+  renderFoodWeekPlan();
+}
+
 function assignRecipeToDay(dk, mealType, savedIdx) {
   const recipe = (state.food.savedRecipes || [])[savedIdx];
   if (!recipe) return;
-  if (!state.food.weekPlan[dk]) state.food.weekPlan[dk] = {};
-  state.food.weekPlan[dk][mealType] = recipe;
+  addMealToDay(dk, mealType, recipe);
   closeAddToDay();
   saveToSupabase();
   renderFoodWeekPlan();
@@ -4523,8 +4569,7 @@ function confirmAddDays(savedIdx) {
   const checked = [...document.querySelectorAll('.add-day-check:checked')].map(c => c.value);
   if (!checked.length) { closeAddDays(); return; }
   checked.forEach(dk => {
-    if (!state.food.weekPlan[dk]) state.food.weekPlan[dk] = {};
-    state.food.weekPlan[dk][slot] = recipe;
+    addMealToDay(dk, slot, recipe);
   });
   closeAddDays();
   saveToSupabase();
@@ -4541,22 +4586,21 @@ function renderFoodDay(idx) {
   const meals = [
     { type: 'breakfast', label: 'Breakfast', emoji: '🌅' },
     { type: 'lunch',     label: 'Lunch',     emoji: '☀️' },
-    { type: 'snack',     label: 'Snack',     emoji: '🥤' },
+    { type: 'snack',     label: 'Snacks',    emoji: '🥤' },
     { type: 'dinner',    label: 'Dinner',    emoji: '🌙' },
     { type: 'dessert',   label: 'Dessert',   emoji: '🍨' },
   ];
 
-  // Daily calorie + protein total (1 serving of each assigned recipe)
+  // Daily calorie + protein total across every recipe in every section
   let totalCal = 0, totalProtein = 0;
   meals.forEach(m => {
-    const r = dayPlan[m.type];
-    if (r) { totalCal += (r.calories || 0); totalProtein += (r.protein || 0); }
+    getMealList(dayPlan, m.type).forEach(r => { totalCal += (r.calories || 0); totalProtein += (r.protein || 0); });
   });
   const target = 1950;
   const pct = Math.min(100, Math.round((totalCal / target) * 100));
   const overBudget = totalCal > target;
   const totalHtml = `
-    <div style="background:var(--surface2);border-radius:var(--rad);padding:12px 14px;margin-bottom:14px">
+    <div style="background:var(--surface2);border-radius:var(--rad);padding:12px 14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
         <div><span style="font-size:24px;font-weight:700;color:${overBudget?'var(--danger)':'var(--text)'}">${Math.round(totalCal)}</span><span style="font-size:13px;color:var(--text3)"> / ${target} cal</span></div>
         <div style="font-size:13px;color:var(--text2)">${Math.round(totalProtein)}g protein</div>
@@ -4567,9 +4611,17 @@ function renderFoodDay(idx) {
     </div>`;
 
   container.innerHTML = totalHtml + meals.map(m => {
-    const recipe = dayPlan[m.type];
-    if (!recipe) return `<div class="meal-card"><div class="meal-card-header" style="opacity:0.5"><div><div class="meal-type-label">${m.label}</div><div class="meal-name">No meal planned</div></div><button onclick="openAddToDay('${dk}','${m.type}')" style="border:none;background:var(--accent);color:white;border-radius:100px;width:26px;height:26px;font-size:16px;cursor:pointer;flex-shrink:0">＋</button></div></div>`;
-    return foodMealCardHTML(recipe, m, dk);
+    const list = getMealList(dayPlan, m.type);
+    const isMulti = MULTI_MEALS.includes(m.type);
+    const header = `<div class="meal-section-header">${m.emoji} ${m.label}</div>`;
+    let body;
+    if (!list.length) {
+      body = `<button class="meal-empty-add" onclick="openAddToDay('${dk}','${m.type}')">＋ Add ${m.label.toLowerCase().replace(/s$/, '')}</button>`;
+    } else {
+      body = list.map(r => foodMealCardHTML(r, m, dk)).join('');
+      if (isMulti) body += `<button class="meal-empty-add" style="padding:10px" onclick="openAddToDay('${dk}','${m.type}')">＋ Add another</button>`;
+    }
+    return `<div class="meal-section">${header}${body}</div>`;
   }).join('');
 }
 
@@ -4654,28 +4706,25 @@ function foodMealCardHTML(recipe, m, dk) {
 
   // Add to shopping list button
   const shopBtnHtml = `
-    <button onclick="toggleAddToShop('${dk}','${m.type}')"
+    <button onclick="toggleAddToShop('${dk}','${m.type}','${recipe.id}')"
       style="width:100%;padding:11px;border-radius:var(--rad);border:1.5px solid ${isInShop ? 'var(--accent2)' : 'var(--accent)'};
       background:${isInShop ? 'var(--accent2)' : 'var(--accent)'};color:white;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px">
       ${isInShop ? '✓ Added to shopping list' : '🛒 Add to shopping list'}
     </button>`;
 
-  return `<div class="meal-card" style="${isExcluded ? 'opacity:0.4' : ''}">
+  return `<div class="meal-card">
     ${imgHtml}
     <div class="meal-card-header" onclick="toggleMealBody('${bodyId}')">
       <div style="flex:1;min-width:0">
-        <div class="meal-type-label">${m.emoji} ${m.label}</div>
-        <div class="meal-name" style="${isExcluded ? 'text-decoration:line-through' : ''}">${recipe.name}</div>
+        <div class="meal-name">${recipe.name}</div>
         ${meta ? `<div class="meal-meta">${meta}</div>` : ''}
         <div class="meal-tags" style="margin-top:4px">${tags}${flagBadges}${isInShop ? '<span class="meal-tag" style="background:var(--accent2-bg);color:var(--accent2)">🛒 In list</span>' : ''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button class="meal-save-btn" onclick="event.stopPropagation();toggleSaveRecipe('${dk}','${m.type}')" title="${isSaved ? 'Unsave' : 'Save'}">${isSaved ? '❤️' : '🤍'}</button>
-        <button onclick="event.stopPropagation();excludeRecipe('${dk}','${m.type}')"
+        <button class="meal-save-btn" onclick="event.stopPropagation();toggleSaveRecipe('${dk}','${m.type}','${recipe.id}')" title="${isSaved ? 'Unsave' : 'Save'}">${isSaved ? '❤️' : '🤍'}</button>
+        <button onclick="event.stopPropagation();removeMealFromDay('${dk}','${m.type}','${recipe.id}')"
           style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:var(--text3)"
-          title="${isExcluded ? 'Restore' : 'Hide'}">
-          ${isExcluded ? '↩' : '✕'}
-        </button>
+          title="Remove from this day">✕</button>
         <span class="meal-chevron" id="${bodyId}-chv">▾</span>
       </div>
     </div>
@@ -4698,9 +4747,9 @@ function toggleMealBody(id) {
   if (chv) chv.classList.toggle('open', !open);
 }
 
-function toggleSaveRecipe(dk, mealType) {
+function toggleSaveRecipe(dk, mealType, recipeId) {
   if (!state.food) return;
-  const recipe = (state.food.weekPlan[dk] || {})[mealType];
+  const recipe = getMealList(state.food.weekPlan[dk] || {}, mealType).find(r => String(r.id) === String(recipeId));
   if (!recipe) return;
   const saved = state.food.savedRecipes || [];
   const idx = saved.findIndex(r => r.id === recipe.id);
@@ -4711,18 +4760,6 @@ function toggleSaveRecipe(dk, mealType) {
   }
   saveToSupabase();
   renderFoodWeekPlan();
-}
-
-function excludeRecipe(dk, mealType) {
-  if (!state.food || !state.food.weekPlan[dk]) return;
-  const recipe = state.food.weekPlan[dk][mealType];
-  if (!recipe) return;
-  recipe.excluded = !recipe.excluded;
-  // If excluding, also remove from shopping list
-  if (recipe.excluded) recipe.addedToShop = false;
-  saveToSupabase();
-  renderFoodWeekPlan();
-  if (foodActiveTab === 'shop') renderShoppingList();
 }
 
 // ── Shopping list: computed live from weekPlan (not stored separately) ──
@@ -4752,9 +4789,9 @@ function categoriseShopItem(ingredient) {
   return 'Pantry';
 }
 
-function toggleAddToShop(dk, mealType) {
+function toggleAddToShop(dk, mealType, recipeId) {
   if (!state.food || !state.food.weekPlan[dk]) return;
-  const recipe = state.food.weekPlan[dk][mealType];
+  const recipe = getMealList(state.food.weekPlan[dk], mealType).find(r => String(r.id) === String(recipeId));
   if (!recipe) return;
   recipe.addedToShop = !recipe.addedToShop;
   saveToSupabase();
@@ -4779,24 +4816,25 @@ function buildShoppingListFromPlan() {
   const seenRecipes = new Set();
   Object.entries(plan).sort(([a],[b]) => a.localeCompare(b)).forEach(([dk, dayPlan]) => {
     ['breakfast','lunch','snack','dinner','dessert'].forEach(mealType => {
-      const recipe = dayPlan[mealType];
-      if (!recipe || !recipe.addedToShop || recipe.excluded) return;
-      if (seenRecipes.has(recipe.id)) return;
-      seenRecipes.add(recipe.id);
-      const seenIngs = new Set();
-      (recipe.ingredients || []).forEach(ing => {
-        const key = ing.trim().toLowerCase();
-        if (seenIngs.has(key)) return;
-        seenIngs.add(key);
-        const itemKey = `${recipe.id}::${key}`;
-        if (removed[itemKey]) return;
-        items.push({
-          name: convertToMetric(ing),
-          category: categoriseShopItem(ing),
-          recipeName: recipe.name,
-          emoji: mealEmoji[mealType] || '🍽️',
-          dairy: isDairyIngredient(ing),
-          key: itemKey
+      getMealList(dayPlan, mealType).forEach(recipe => {
+        if (!recipe || !recipe.addedToShop || recipe.excluded) return;
+        if (seenRecipes.has(recipe.id)) return;
+        seenRecipes.add(recipe.id);
+        const seenIngs = new Set();
+        (recipe.ingredients || []).forEach(ing => {
+          const key = ing.trim().toLowerCase();
+          if (seenIngs.has(key)) return;
+          seenIngs.add(key);
+          const itemKey = `${recipe.id}::${key}`;
+          if (removed[itemKey]) return;
+          items.push({
+            name: convertToMetric(ing),
+            category: categoriseShopItem(ing),
+            recipeName: recipe.name,
+            emoji: mealEmoji[mealType] || '🍽️',
+            dairy: isDairyIngredient(ing),
+            key: itemKey
+          });
         });
       });
     });
@@ -6864,7 +6902,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.41 · 05 Aug 2026 3:08 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.42 · 05 Aug 2026 3:58 PM AEST</div>
 
 </body>
 </html>
