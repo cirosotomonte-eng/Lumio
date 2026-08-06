@@ -1979,7 +1979,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 7:55 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 9:56 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1993,9 +1993,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.52 · 07 Aug 2026 7:55 AM AEST';
-const BUILD_VERSION = 'v5.52';
-const BUILD_DISPLAY = '07 Aug 2026 7:55 AM AEST';
+const BUILD = 'v5.53 · 07 Aug 2026 9:56 AM AEST';
+const BUILD_VERSION = 'v5.53';
+const BUILD_DISPLAY = '07 Aug 2026 9:56 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4270,7 +4270,7 @@ function renderSuggestions() {
       const alreadySaved = isSuggestionSaved(r);
       const ingredients = (r.ingredients || []).map(ing => {
         const dairy = isDairyIngredient(ing);
-        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${formatIngredient(ing,1)}</div>`;
+        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${formatIngredient(ing,2)}</div>`;
       }).join('');
       const method = (r.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
       const bodyId = `suggest-body-${idx}`;
@@ -5218,52 +5218,104 @@ function isDairyIngredient(ing) {
   return DAIRY_KW.some(k => il.includes(k));
 }
 
+// Parse an ingredient string into { qty, unit, name } for combining
+const _SHOP_UNITS = 'g|kg|ml|l|tsp|tbsp|tbs|cup|cups|oz|lb|pinch|clove|cloves|sprig|sprigs|handful';
+function parseIngredient(str) {
+  let s = (str || '').trim();
+  let qty = null, rest = s;
+  const fracChars = Object.keys(_UNICODE_FRAC).join('');
+  let m = s.match(new RegExp('^(\\d+(?:\\.\\d+)?)\\s*([' + fracChars + '])?\\s*(.*)$'));
+  if (m && (m[1] || m[2])) {
+    qty = (m[1] ? parseFloat(m[1]) : 0) + (m[2] ? _UNICODE_FRAC[m[2]] : 0);
+    rest = m[3];
+  } else {
+    m = s.match(new RegExp('^([' + fracChars + '])\\s*(.*)$'));
+    if (m) { qty = _UNICODE_FRAC[m[1]]; rest = m[2]; }
+  }
+  let unit = '';
+  const um = rest.match(new RegExp('^(' + _SHOP_UNITS + ')\\b\\s*(.*)$', 'i'));
+  if (um) { unit = um[1].toLowerCase(); rest = um[2]; }
+  return { qty, unit, name: rest.trim(), raw: str };
+}
+
+const _SHOP_PREP = ['finely','roughly','thinly','thickly','sliced','shredded','chopped','diced','minced','grated','crushed','picked','optional','fresh','to taste','trimmed','halved','peeled','deseeded','cooked','pre-cooked'];
+function normalizeIngredientName(name) {
+  let n = (name || '').toLowerCase();
+  n = n.replace(/\([^)]*\)/g, ' ');
+  n = n.replace(/\bor\b.*$/, ' ');
+  _SHOP_PREP.forEach(w => { n = n.replace(new RegExp('\\b' + w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'g'), ' '); });
+  n = n.replace(/[&,]|\band\b/g, ' ');
+  n = n.split(/\s+/).filter(Boolean).sort().join(' ');
+  return n.trim();
+}
+
+function combineIngredientParts(parts) {
+  const byUnit = {}; let name = '';
+  parts.forEach(p => {
+    if (!name || (p.name && p.name.length < name.length)) name = p.name;
+    if (p.qty == null) return;
+    const u = p.unit || '';
+    byUnit[u] = (byUnit[u] || 0) + p.qty;
+  });
+  const amts = Object.entries(byUnit).map(([u, q]) => _fmtNum(q) + (u ? (' ' + u) : ''));
+  const amtStr = amts.join(' + ');
+  return (amtStr ? amtStr + ' ' : '') + name;
+}
+
 function buildShoppingListFromPlan() {
   const plan = (state.food && state.food.weekPlan) || {};
-  const items = [];
   const mealEmoji = { breakfast: '🌅', lunch: '☀️', snack: '🥤', dinner: '🌙', dessert: '🍨' };
   const removed = state.food.shoppingRemoved || {};
 
-  // Count how many day-slots each addedToShop recipe occupies (= total servings for the week)
-  const counts = {}, firstMeal = {}, recipeById = {};
+  // Gather every scaled ingredient entry from planned recipes (scaled by how many days placed) + extras
+  const entries = [];
+  const counts = {}, recipeById = {}, firstMeal = {};
   Object.values(plan).forEach(dayPlan => {
     ['breakfast','lunch','snack','dinner','dessert'].forEach(mealType => {
       getMealList(dayPlan, mealType).forEach(recipe => {
         if (!recipe || !recipe.addedToShop || recipe.excluded) return;
         counts[recipe.id] = (counts[recipe.id] || 0) + 1;
-        if (!(recipe.id in firstMeal)) firstMeal[recipe.id] = mealType;
         recipeById[recipe.id] = recipe;
+        if (!(recipe.id in firstMeal)) firstMeal[recipe.id] = mealType;
       });
     });
   });
-
   Object.keys(counts).forEach(rid => {
     const recipe = recipeById[rid];
-    const servings = counts[rid];
-    const base = recipe.baseServings || 1;
-    const factor = servings / base; // scale ingredients to the number of servings placed
-    const seenIngs = new Set();
+    const factor = counts[rid] / (recipe.baseServings || 1);
+    const seen = new Set();
     (recipe.ingredients || []).forEach(ing => {
-      const key = ing.trim().toLowerCase();
-      if (seenIngs.has(key)) return;
-      seenIngs.add(key);
-      const itemKey = `${recipe.id}::${key}`;
-      if (removed[itemKey]) return;
-      items.push({
-        name: scaleIngredient(ing, factor),
-        category: categoriseShopItem(ing),
-        recipeName: recipe.name + (servings > 1 ? ` ×${servings}` : ''),
-        emoji: mealEmoji[firstMeal[rid]] || '🍽️',
-        dairy: isDairyIngredient(ing),
-        key: itemKey
-      });
+      const k = ing.trim().toLowerCase();
+      if (seen.has(k)) return; seen.add(k);
+      entries.push({ display: scaleIngredient(ing, factor), category: categoriseShopItem(ing), dairy: isDairyIngredient(ing), emoji: mealEmoji[firstMeal[rid]] || '🍽️', recipeName: recipe.name });
     });
   });
-
-  // Extra items added from My Recipes (independent of This Week)
   (state.food.shoppingExtra || []).forEach(x => {
-    if (removed[x.key]) return;
-    items.push({ ...x, dairy: x.dairy != null ? x.dairy : isDairyIngredient(x.name) });
+    entries.push({ display: x.name, category: x.category, dairy: x.dairy != null ? x.dairy : isDairyIngredient(x.name), emoji: x.emoji || '🍽️', recipeName: x.recipeName });
+  });
+
+  // Group by normalised name so the same ingredient across recipes becomes ONE line
+  const groups = {};
+  entries.forEach(e => {
+    const p = parseIngredient(e.display);
+    const key = 'ing::' + (normalizeIngredientName(p.name) || e.display.toLowerCase());
+    if (!groups[key]) groups[key] = { parts: [], category: e.category, dairy: e.dairy, emoji: e.emoji, recipes: new Set(), key };
+    groups[key].parts.push(p);
+    groups[key].recipes.add(e.recipeName);
+    if (e.dairy) groups[key].dairy = true;
+  });
+
+  const items = [];
+  Object.values(groups).forEach(g => {
+    if (removed[g.key]) return;
+    items.push({
+      name: combineIngredientParts(g.parts),
+      category: g.category,
+      dairy: g.dairy,
+      emoji: g.emoji,
+      recipeName: [...g.recipes].slice(0, 3).join(', ') + (g.recipes.size > 3 ? ` +${g.recipes.size - 3}` : ''),
+      key: g.key
+    });
   });
   return items;
 }
@@ -5416,6 +5468,7 @@ function formatIngredient(raw, factor) { return scaleMetric(convertToMetric(raw)
 function scaleIngredient(str, factor) { return formatIngredient(str, factor); }
 
 let recipeServings = {}; // recipeId -> chosen servings for display
+const DEFAULT_RECIPE_SERVINGS = 2; // Centr recipes are shown for 2 servings by default (data is 1-serving, so ×2)
 
 function setRecipeMeal(idx, meal) {
   const r = (state.food.savedRecipes || [])[idx];
@@ -5558,7 +5611,7 @@ function renderSavedRecipes() {
     const bodyId = `saved-recipe-${i}`;
     const isNote = (recipe.suitableFor && recipe.suitableFor.length === 0) || (recipe.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE');
     const base = recipe.baseServings || 1;
-    const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
+    const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : DEFAULT_RECIPE_SERVINGS;
     const factor = servings / base;
     const tags = (recipe.tags || []).map(t => `<span class="meal-tag ${t.toLowerCase()}">${t}</span>`).join('');
     const isNew = recipe.savedAt && (Date.now() - recipe.savedAt) < 5*86400000;
@@ -5680,7 +5733,7 @@ function addRecipeToShopping(idx) {
   const recipe = (state.food.savedRecipes || [])[idx];
   if (!recipe) return;
   const base = recipe.baseServings || 1;
-  const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
+  const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : DEFAULT_RECIPE_SERVINGS;
   const factor = servings / base;
   if (!state.food.shoppingExtra) state.food.shoppingExtra = [];
   const mealEmoji = { breakfast:'🌅', lunch:'☀️', snack:'🥤', dinner:'🌙', dessert:'🍨' };
@@ -7356,7 +7409,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.52 · 07 Aug 2026 7:55 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.53 · 07 Aug 2026 9:56 AM AEST</div>
 
 </body>
 </html>
