@@ -86,6 +86,8 @@ check('single-slot skip logic present', /if \(list\.length > 0\) continue/.test(
 check('complete delete removes from planned days', /function removeSavedRecipe/.test(mainScript) && /Remove from every planned day/.test(mainScript));
 check('adding to a day auto-adds to shopping', /recipe\.addedToShop = true; \/\/ adding to a day/.test(mainScript));
 check('servings adjustable from day card', /function spreadRecipeAdjust/.test(mainScript) && /function countRecipeSpread/.test(mainScript));
+check('recipes base to 1 serving (Centr pages are 1-serving)', /if \(r\.baseServings !== 1\) \{ r\.baseServings = 1;/.test(mainScript) && !/'saved-cottage-pie':3/.test(mainScript));
+check('fraction formatter present', /function _fmtNum/.test(mainScript));
 
 // Dairy swap correctness
 try {
@@ -143,6 +145,7 @@ try {
   const code = [
     fracConst ? fracConst[0] : '',
     extractFn('_normalizeQty', mainScript),
+    extractFn('_fmtNum', mainScript),
     extractFn('_fmtWeight', mainScript),
     extractFn('_fmtVol', mainScript),
     extractFn('convertToMetric', mainScript),
@@ -173,6 +176,11 @@ if (sandbox.formatIngredient) {
   check('scale "5 fl oz" x2 = "300 ml"', F('5 fl oz stock', 2) === '300 ml stock');
   check('scale "2 eggs" x2 = "4 eggs"', F('2 eggs', 2) === '4 eggs');
   check('scale "2 tbs" x2 = "4 tbs"', F('2 tbs lime juice', 2) === '4 tbs lime juice');
+  // Fraction display: decimals render as nice fractions, and scale correctly
+  check('quarter avocado shows ¼', F('0.25 avocado sliced', 1) === '¼ avocado sliced');
+  check('quarter avocado x2 shows ½', F('0.25 avocado sliced', 2) === '½ avocado sliced');
+  check('half tsp shows ½', F('0.5 tsp sesame seeds', 1) === '½ tsp sesame seeds');
+  check('unicode ¼ normalises then displays ¼', F('¼ avocado', 1) === '¼ avocado');
   check('scale unquantified unchanged', F('salt & pepper to taste', 2) === 'salt & pepper to taste');
   check('factor 1 leaves metric (no double)', F('16 oz turkey', 1) === '455 g turkey');
 }
