@@ -76,6 +76,8 @@ check('auto-plan feature present', /function autoPlanWeek/.test(mainScript) && /
 check('auto-plan uses Spendly worker', /spendly-ai-proxy\.cirosotomonte\.workers\.dev/.test(mainScript));
 check('auto-plan preview before apply', /function showAutoPlanPreview/.test(mainScript));
 check('week navigation present', /function foodChangeWeek/.test(mainScript) && /foodWeekOffset/.test(mainScript));
+check('this week bases on current week not scraper week', /const startMon = foodMondayOfCurrentWeek\(\);/.test(mainScript) && !/const planWeek = state\.food && state\.food\.shoppingListWeek;[\s\S]{0,120}startMon = new Date/.test(mainScript));
+check('no navigation into past weeks', /foodWeekOffset = Math\.max\(0, foodWeekOffset \+ delta\)/.test(mainScript));
 check('week offset applied to dates', /startMon\.setDate\(startMon\.getDate\(\) \+ \(foodWeekOffset \* 7\)\)/.test(mainScript));
 check('add-to-day servings spread present', /function placeRecipeAcrossDays/.test(mainScript) && /addToDayServings/.test(mainScript));
 check('add-to-day picker shows recipe images', /function openAddToDay/.test(mainScript) && /recipeImage\(r\)/.test(mainScript));
