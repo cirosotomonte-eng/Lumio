@@ -1964,7 +1964,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">06 Aug 2026 12:57 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">06 Aug 2026 1:08 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1978,9 +1978,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.47 · 06 Aug 2026 12:57 PM AEST';
-const BUILD_VERSION = 'v5.47';
-const BUILD_DISPLAY = '06 Aug 2026 12:57 PM AEST';
+const BUILD = 'v5.48 · 06 Aug 2026 1:08 PM AEST';
+const BUILD_VERSION = 'v5.48';
+const BUILD_DISPLAY = '06 Aug 2026 1:08 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4551,6 +4551,7 @@ function placeRecipeAcrossDays(startDk, mealType, savedIdx) {
     } else {
       if (list.length > 0) continue; // single slot already taken
     }
+    recipe.addedToShop = true; // adding to a day puts its ingredients in the shopping list
     addMealToDay(dk, mealType, recipe);
     placed++;
   }
@@ -4962,6 +4963,61 @@ function foodContainsAny(text, keywords) {
   return keywords.some(k => text.includes(k));
 }
 
+function countRecipeSpread(mealType, recipeId) {
+  const dates = foodWeekDates();
+  let n = 0;
+  dates.forEach(d => {
+    const list = getMealList(state.food.weekPlan[d.dk] || {}, mealType);
+    if (list.some(r => String(r.id) === String(recipeId))) n++;
+  });
+  return n;
+}
+
+function getPlannedRecipe(mealType, recipeId) {
+  const dates = foodWeekDates();
+  for (const d of dates) {
+    const list = getMealList(state.food.weekPlan[d.dk] || {}, mealType);
+    const r = list.find(x => String(x.id) === String(recipeId));
+    if (r) return r;
+  }
+  return null;
+}
+
+// Change how many days a recipe is spread across (its servings) from the day card
+function spreadRecipeAdjust(mealType, recipeId, delta) {
+  const dates = foodWeekDates();
+  const recipe = getPlannedRecipe(mealType, recipeId);
+  if (!recipe) return;
+  const isMulti = MULTI_MEALS.includes(mealType);
+  if (delta > 0) {
+    let placedNew = false;
+    for (let i = 0; i < dates.length; i++) {
+      const dk = dates[i].dk;
+      const list = getMealList(state.food.weekPlan[dk] || {}, mealType);
+      if (list.some(r => String(r.id) === String(recipeId))) continue; // already here
+      if (!isMulti && list.length > 0) continue; // single slot taken by another recipe
+      recipe.addedToShop = true;
+      addMealToDay(dk, mealType, recipe);
+      placedNew = true;
+      break;
+    }
+    if (!placedNew) { alert('No more free days this week for this recipe.'); return; }
+  } else {
+    // remove from the last day it's placed in this week
+    const placedIdx = dates.map((d, i) => i).filter(i =>
+      getMealList(state.food.weekPlan[dates[i].dk] || {}, mealType).some(r => String(r.id) === String(recipeId)));
+    if (!placedIdx.length) return;
+    const dk = dates[placedIdx[placedIdx.length - 1]].dk;
+    const day = state.food.weekPlan[dk];
+    const v = day[mealType];
+    if (Array.isArray(v)) { day[mealType] = v.filter(r => String(r.id) !== String(recipeId)); if (!day[mealType].length) delete day[mealType]; }
+    else delete day[mealType];
+  }
+  saveToSupabase();
+  renderFoodWeekPlan();
+  if (foodActiveTab === 'shop') renderShoppingList();
+}
+
 function foodMealCardHTML(recipe, m, dk) {
   const isSaved = (state.food.savedRecipes || []).some(r => r.id === recipe.id);
   const bodyId = `meal-body-${dk}-${m.type}`;
@@ -5044,6 +5100,14 @@ function foodMealCardHTML(recipe, m, dk) {
     </div>
     <div class="meal-body" id="${bodyId}" style="display:none">
       <div class="meal-divider"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--rad);padding:9px 12px;margin-bottom:12px">
+        <div style="font-size:13px;color:var(--text2)">Servings <span style="color:var(--text3);font-size:11px">· ${countRecipeSpread(m.type, recipe.id)} day${countRecipeSpread(m.type, recipe.id)>1?'s':''} this week</span></div>
+        <div class="stepper">
+          <button onclick="event.stopPropagation();spreadRecipeAdjust('${m.type}','${recipe.id}',-1)">−</button>
+          <span class="stepper-val">${countRecipeSpread(m.type, recipe.id)}</span>
+          <button onclick="event.stopPropagation();spreadRecipeAdjust('${m.type}','${recipe.id}',1)">+</button>
+        </div>
+      </div>
       ${nutritionHtml}
       ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients</div>${ingredients}</div>` : ''}
       ${method ? `<div style="margin-top:12px"><div class="meal-method-title">Method</div>${method}</div>` : ''}
@@ -5613,9 +5677,40 @@ function addRecipeToShopping(idx) {
 
 function removeSavedRecipe(idx) {
   if (!state.food) return;
+  const recipe = state.food.savedRecipes[idx];
+  if (!recipe) return;
+  // Count where it's planned so we can warn
+  let placements = 0;
+  Object.values(state.food.weekPlan || {}).forEach(day => {
+    Object.keys(day).forEach(mt => {
+      placements += getMealList(day, mt).filter(r => String(r.id) === String(recipe.id)).length;
+    });
+  });
+  const msg = placements > 0
+    ? `Delete "${recipe.name}"? It's planned on ${placements} day${placements>1?'s':''} — it'll be removed from those days and your shopping list too.`
+    : `Delete "${recipe.name}"? This can't be undone.`;
+  if (!confirm(msg)) return;
+  // Remove from every planned day
+  Object.keys(state.food.weekPlan || {}).forEach(dk => {
+    const day = state.food.weekPlan[dk];
+    Object.keys(day).forEach(mt => {
+      const v = day[mt];
+      if (Array.isArray(v)) {
+        day[mt] = v.filter(r => String(r.id) !== String(recipe.id));
+        if (!day[mt].length) delete day[mt];
+      } else if (v && String(v.id) === String(recipe.id)) {
+        delete day[mt];
+      }
+    });
+  });
+  // Remove any shopping entries tied to it
+  if (state.food.shoppingExtra) {
+    state.food.shoppingExtra = state.food.shoppingExtra.filter(x => !String(x.key).includes(String(recipe.id)));
+  }
   state.food.savedRecipes.splice(idx, 1);
   saveToSupabase();
   renderSavedRecipes();
+  if (foodActiveTab === 'plan') renderFoodWeekPlan();
 }
 
 // ── Routine ──
@@ -7227,7 +7322,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.47 · 06 Aug 2026 12:57 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.48 · 06 Aug 2026 1:08 PM AEST</div>
 
 </body>
 </html>
