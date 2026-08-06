@@ -88,6 +88,9 @@ check('adding to a day auto-adds to shopping', /recipe\.addedToShop = true; \/\/
 check('servings adjustable from day card', /function spreadRecipeAdjust/.test(mainScript) && /function countRecipeSpread/.test(mainScript));
 check('recipes base to 1 serving (Centr pages are 1-serving)', /if \(r\.baseServings !== 1\) \{ r\.baseServings = 1;/.test(mainScript) && !/'saved-cottage-pie':3/.test(mainScript));
 check('fraction formatter present', /function _fmtNum/.test(mainScript));
+check('day card shows recipe image', /const imgSrc = recipeImage\(recipe\);/.test(mainScript) && /meal-card-banner/.test(mainScript));
+check('day card has prominent corner remove btn', /class="meal-remove-btn"/.test(mainScript));
+check('servings adjust keeps card open', /function renderFoodWeekPlanKeepingOpen/.test(mainScript) && (mainScript.match(/renderFoodWeekPlanKeepingOpen\(\)/g) || []).length >= 2);
 
 // Dairy swap correctness
 try {
