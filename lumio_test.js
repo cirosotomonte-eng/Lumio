@@ -89,6 +89,27 @@ check('servings adjustable from day card', /function spreadRecipeAdjust/.test(ma
 check('recipes base to 1 serving (Centr pages are 1-serving)', /if \(r\.baseServings !== 1\) \{ r\.baseServings = 1;/.test(mainScript) && !/'saved-cottage-pie':3/.test(mainScript));
 check('fraction formatter present', /function _fmtNum/.test(mainScript));
 check('day card shows recipe image', /const imgSrc = recipeImage\(recipe\);/.test(mainScript) && /meal-card-banner/.test(mainScript));
+check('recipes default to 2-serving display', /const DEFAULT_RECIPE_SERVINGS = 2/.test(mainScript) && /: DEFAULT_RECIPE_SERVINGS;/.test(mainScript));
+check('suggestions show 2-serving ingredients', /formatIngredient\(ing,2\)/.test(mainScript));
+check('shopping combines shared ingredients', /function combineIngredientParts/.test(mainScript) && /function normalizeIngredientName/.test(mainScript));
+
+// Ingredient combining behaviour
+try {
+  const uf = mainScript.match(/const _UNICODE_FRAC = \{[^}]*\};/)[0];
+  const fmt = extractFn('_fmtNum', mainScript);
+  const su = mainScript.match(/const _SHOP_UNITS = '[^']*';/)[0];
+  const sp = mainScript.match(/const _SHOP_PREP = \[[^\]]*\];/)[0];
+  const parse = extractFn('parseIngredient', mainScript);
+  const norm = extractFn('normalizeIngredientName', mainScript);
+  const comb = extractFn('combineIngredientParts', mainScript);
+  const F = new Function(uf+'\n'+fmt+'\n'+su+'\n'+sp+'\n'+parse+'\n'+norm+'\n'+comb+'\nreturn {parseIngredient,normalizeIngredientName,combineIngredientParts};')();
+  const nk = s => F.normalizeIngredientName(F.parseIngredient(s).name);
+  check('combine: salt&pepper variants merge', nk('salt & pepper, to taste') === nk('pepper & salt to taste'));
+  check('combine: red cabbage prep-variants merge', nk('160 ml red cabbage finely shredded (or green cabbage)') === nk('80 ml red cabbage'));
+  check('combine: sums same unit', F.combineIngredientParts([F.parseIngredient('80 ml red cabbage'), F.parseIngredient('80 ml red cabbage')]) === '160 ml red cabbage');
+  check('combine: lists un-summable units', F.combineIngredientParts([F.parseIngredient('2 tsp sauce'), F.parseIngredient('1 tbs sauce')]) === '2 tsp + 1 tbs sauce');
+  check('combine: sums fractions ½+¼=¾', F.combineIngredientParts([F.parseIngredient('½ avocado'), F.parseIngredient('¼ avocado')]) === '¾ avocado');
+} catch(e) { fails.push('combine extraction: ' + e.message); fail++; }
 check('day card has prominent corner remove btn', /class="meal-remove-btn"/.test(mainScript));
 check('servings adjust keeps card open', /function renderFoodWeekPlanKeepingOpen/.test(mainScript) && (mainScript.match(/renderFoodWeekPlanKeepingOpen\(\)/g) || []).length >= 2);
 
