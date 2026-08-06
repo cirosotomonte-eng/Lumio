@@ -1964,7 +1964,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">06 Aug 2026 1:14 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">06 Aug 2026 4:33 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1978,9 +1978,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.49 · 06 Aug 2026 1:14 PM AEST';
-const BUILD_VERSION = 'v5.49';
-const BUILD_DISPLAY = '06 Aug 2026 1:14 PM AEST';
+const BUILD = 'v5.50 · 06 Aug 2026 4:33 PM AEST';
+const BUILD_VERSION = 'v5.50';
+const BUILD_DISPLAY = '06 Aug 2026 4:33 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4255,7 +4255,7 @@ function renderSuggestions() {
       const alreadySaved = isSuggestionSaved(r);
       const ingredients = (r.ingredients || []).map(ing => {
         const dairy = isDairyIngredient(ing);
-        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${convertToMetric(ing)}</div>`;
+        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${formatIngredient(ing,1)}</div>`;
       }).join('');
       const method = (r.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
       const bodyId = `suggest-body-${idx}`;
@@ -5043,7 +5043,7 @@ function foodMealCardHTML(recipe, m, dk) {
   // Highlight ingredients
   const lactoKw = ['milk','cream','butter','cheese','yogh','whey','ricotta','custard','condensed'];
   const ingredients = (recipe.ingredients || []).map(ing => {
-    const shown = convertToMetric(ing);
+    const shown = formatIngredient(ing,1);
     const il = ing.toLowerCase();
     const isAvoid = avoidList.some(a => il.includes(a));
     const isLactose = hasLactose && foodContainsAny(il, lactoKw);
@@ -5331,6 +5331,17 @@ function clearShoppingChecks() {
 const _UNICODE_FRAC = {'½':0.5,'⅓':1/3,'⅔':2/3,'¼':0.25,'¾':0.75,'⅕':0.2,'⅖':0.4,'⅗':0.6,'⅘':0.8,'⅙':1/6,'⅚':5/6,'⅛':0.125,'⅜':0.375,'⅝':0.625,'⅞':0.875};
 
 // Normalise all fraction forms (unicode, N/M, N⁄M, mixed) into decimals
+function _fmtNum(v) {
+  const whole = Math.floor(v + 1e-9);
+  const frac = v - whole;
+  const fracMap = [[0.5,'½'],[0.25,'¼'],[0.75,'¾'],[1/3,'⅓'],[2/3,'⅔'],[0.125,'⅛'],[0.375,'⅜'],[0.625,'⅝'],[0.875,'⅞']];
+  let bestCh = '', bestD = 0.04;
+  for (const [val, ch] of fracMap) { const d = Math.abs(frac - val); if (d < bestD) { bestD = d; bestCh = ch; } }
+  if (bestCh) return whole > 0 ? whole + bestCh : bestCh;
+  if (Math.abs(frac) < 1e-9) return String(whole);
+  return (Math.round(v * 100) / 100).toString();
+}
+
 function _normalizeQty(str) {
   const map = _UNICODE_FRAC;
   str = str.replace(/(\d+)\s+(\d+)\s*[\u2044\/]\s*(\d+)/g, (m,w,a,b)=> (parseInt(w)+parseInt(a)/parseInt(b)).toString());
@@ -5356,13 +5367,13 @@ function convertToMetric(raw) {
 
 // Scale the leading quantity of an already-metric ingredient exactly once
 function scaleMetric(str, factor) {
-  if (!factor || factor === 1) return str;
+  factor = factor || 1;
   let m = str.match(/^(\s*)(\d+(?:\.\d+)?)\s*(kg|g)\b(.*)$/i);
   if (m) { const grams = parseFloat(m[2])*(m[3].toLowerCase()==='kg'?1000:1)*factor; return m[1]+_fmtWeight(grams)+m[4]; }
   m = str.match(/^(\s*)(\d+(?:\.\d+)?)\s*(l|ml)\b(.*)$/i);
   if (m) { const ml = parseFloat(m[2])*(m[3].toLowerCase()==='l'?1000:1)*factor; return m[1]+_fmtVol(ml)+m[4]; }
   m = str.match(/^(\s*)(\d+(?:\.\d+)?)(.*)$/);
-  if (m) { const v=parseFloat(m[2])*factor; const fmt=(v%1===0)?v.toString():(Math.round(v*100)/100).toString(); return m[1]+fmt+m[3]; }
+  if (m) { const v=parseFloat(m[2])*factor; return m[1]+_fmtNum(v)+m[3]; }
   return str;
 }
 
@@ -5498,17 +5509,12 @@ function renderSavedRecipes() {
   if (!state.food) return;
   backfillRecipeImages();
   const saved = state.food.savedRecipes || [];
-  // Self-heal: ensure every recipe has the correct baseServings
-  const _baseMap = {
-    'saved-breakfast':1, 'saved-protein-snack':1, 'saved-creami-dessert':1,
-    'saved-peanut-chicken':2, 'saved-cottage-pie':3, 'saved-turkey-bowl':2,
-    'saved-salmon-rice-cakes':2, 'saved-lancashire-hotpot':2, 'saved-eggplant-lasagne':2,
-    'saved-grain-tips':1
-  };
+  // Centr recipe pages list ingredients "based on 1 serving", so every recipe's
+  // base is 1 serving. (The old hardcoded 2/3 map treated 1-serving amounts as
+  // 2- or 3-serving, which halved/thirded the displayed quantities.)
   let _healed = false;
   saved.forEach(r => {
-    const want = _baseMap[r.id] || (r.name && r.name.includes('Turkey Nourish') ? 2 : (r.baseServings || 2));
-    if (r.baseServings !== want) { r.baseServings = want; _healed = true; }
+    if (r.baseServings !== 1) { r.baseServings = 1; _healed = true; }
   });
   if (_healed) saveToSupabase();
   const el = document.getElementById('food-saved-recipes');
@@ -7318,7 +7324,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.49 · 06 Aug 2026 1:14 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.50 · 06 Aug 2026 4:33 PM AEST</div>
 
 </body>
 </html>
