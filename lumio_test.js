@@ -83,6 +83,9 @@ check('add-to-day servings spread present', /function placeRecipeAcrossDays/.tes
 check('add-to-day picker shows recipe images', /function openAddToDay/.test(mainScript) && /recipeImage\(r\)/.test(mainScript));
 check('shopping scales by placement count', /counts\[recipe\.id\] = \(counts\[recipe\.id\] \|\| 0\) \+ 1/.test(mainScript) && /factor = servings \/ base/.test(mainScript));
 check('single-slot skip logic present', /if \(list\.length > 0\) continue/.test(mainScript));
+check('complete delete removes from planned days', /function removeSavedRecipe/.test(mainScript) && /Remove from every planned day/.test(mainScript));
+check('adding to a day auto-adds to shopping', /recipe\.addedToShop = true; \/\/ adding to a day/.test(mainScript));
+check('servings adjustable from day card', /function spreadRecipeAdjust/.test(mainScript) && /function countRecipeSpread/.test(mainScript));
 
 // Dairy swap correctness
 try {
