@@ -92,6 +92,7 @@ check('day card shows recipe image', /const imgSrc = recipeImage\(recipe\);/.tes
 check('recipes default to 2-serving display', /const DEFAULT_RECIPE_SERVINGS = 2/.test(mainScript) && /: DEFAULT_RECIPE_SERVINGS;/.test(mainScript));
 check('suggestions show 2-serving ingredients', /formatIngredient\(ing,2\)/.test(mainScript));
 check('shopping combines shared ingredients', /function combineIngredientParts/.test(mainScript) && /function normalizeIngredientName/.test(mainScript));
+check('pomodoro alarm volume 0.5 + vibration', /linearRampToValueAtTime\(0\.5,/.test(mainScript) && /navigator\.vibrate\(\[250, 120, 250\]\)/.test(mainScript));
 
 // Ingredient combining behaviour
 try {
