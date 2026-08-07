@@ -1979,7 +1979,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 9:56 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 2:27 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1993,9 +1993,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.53 · 07 Aug 2026 9:56 AM AEST';
-const BUILD_VERSION = 'v5.53';
-const BUILD_DISPLAY = '07 Aug 2026 9:56 AM AEST';
+const BUILD = 'v5.54 · 07 Aug 2026 2:27 PM AEST';
+const BUILD_VERSION = 'v5.54';
+const BUILD_DISPLAY = '07 Aug 2026 2:27 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -6534,6 +6534,7 @@ function showPomoAlert(msg) {
 }
 
 function playPomoSound(type) {
+  try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch(e) {}
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const notes = type === 'focus' ? [523, 659] : type === 'break' ? [784, 659] : [784, 880, 784];
@@ -6544,7 +6545,7 @@ function playPomoSound(type) {
       osc.frequency.value = freq;
       osc.type = 'sine';
       gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.18);
-      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.18 + 0.02);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + i * 0.18 + 0.02);
       gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.18 + 0.25);
       osc.start(ctx.currentTime + i * 0.18);
       osc.stop(ctx.currentTime + i * 0.18 + 0.3);
@@ -7409,7 +7410,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.53 · 07 Aug 2026 9:56 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.54 · 07 Aug 2026 2:27 PM AEST</div>
 
 </body>
 </html>
