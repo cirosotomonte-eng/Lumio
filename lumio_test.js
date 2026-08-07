@@ -96,6 +96,7 @@ check('pomodoro alarm volume 0.5 + vibration', /linearRampToValueAtTime\(0\.5,/.
 check('pomodoro cycle persists across reloads, resets on new day', /pomoCycle/.test(mainScript) && /state\.pomoCycle = \{ round: pomoState\.round, date: todayDateKey\(\) \}/.test(mainScript) && /state\.pomoCycle\.date === today/.test(mainScript));
 check('logPomoSession intact', /function logPomoSession\(\)/.test(mainScript) && /state\.pomoLog\[key\]\+\+/.test(mainScript));
 check('global sticky header present', /id="app-header"/.test(html) && /#app-header \{[^}]*position: sticky/.test(html));
+check('page-header centers (icon buttons dont push title down)', /\.page-header \{[\s\S]*?align-items: center;[\s\S]*?\}/.test(html) && !/\.page-header \{[\s\S]*?align-items: baseline/.test(html));
 check('tab switch scrolls to top', /function showPage/.test(mainScript) && /window\.scrollTo\(0, 0\); \/\/ anchor to the top/.test(mainScript));
 check('manual update applies immediately', /function checkForUpdateManual[\s\S]*?setTimeout\(\(\) => doUpdate\(\), 400\)/.test(mainScript));
 
