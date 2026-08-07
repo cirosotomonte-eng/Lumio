@@ -169,7 +169,9 @@ nav {
   border-bottom: 0.5px solid transparent;
 }
 #app-header .page-header { padding: 16px 0 8px; }
-#app-header .quote-card { padding: 0 0 12px; }
+#app-header .quote-card { padding: 0 0 10px; }
+/* Per-page headers sit tight under the sticky header (no big gap after the quote) */
+.page > .page-header { padding-top: 4px; }
 
 /* ── Pages ── */
 .page { display: none; padding: 0 16px; }
@@ -1991,7 +1993,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 4:01 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 4:19 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2005,9 +2007,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.56 · 07 Aug 2026 4:01 PM AEST';
-const BUILD_VERSION = 'v5.56';
-const BUILD_DISPLAY = '07 Aug 2026 4:01 PM AEST';
+const BUILD = 'v5.57 · 07 Aug 2026 4:19 PM AEST';
+const BUILD_VERSION = 'v5.57';
+const BUILD_DISPLAY = '07 Aug 2026 4:19 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2281,8 +2283,8 @@ async function onAuthSuccess() {
   // renderQuote()/renderToday(), so any slowness reaching GitHub Pages
   // (or a hung request, since it had no timeout) stalled the entire UI —
   // "Loading today's quote…" would sit there until the fetch settled.
-  checkForUpdate(true);
-  setInterval(checkForUpdate, 30 * 60 * 1000);
+  checkForUpdate();
+  setInterval(checkForUpdate, 5 * 60 * 1000);
 
   // Automatic reconciliation pass, ~1.5s after login: reload the saved
   // state and re-render Today unconditionally, whether or not the first
@@ -2366,7 +2368,9 @@ function isNewerVersion(remote, current) {
   return false;
 }
 
-async function checkForUpdate(isStartup) {
+let _pendingUpdateVersion = null;
+
+async function checkForUpdate() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -2378,19 +2382,14 @@ async function checkForUpdate(isStartup) {
     const text = await res.text();
     const m = text.match(/const BUILD_VERSION = '([^']+)'/);
     if (m && m[1] && isNewerVersion(m[1], BUILD_VERSION)) {
-      // On app open, pull the freshest version automatically — but guard against
-      // reload loops: only auto-reload once per detected version per session.
-      if (isStartup) {
-        const already = sessionStorage.getItem('lumio_autoUpdatedTo');
-        if (already !== m[1]) {
-          sessionStorage.setItem('lumio_autoUpdatedTo', m[1]);
-          window.location.reload(true);
-          return;
-        }
-      }
+      // Proactively surface a banner (don't silently reload — the user wants to see it)
+      if (sessionStorage.getItem('lumio_updateDismissed') === m[1]) return; // they dismissed this exact version
+      _pendingUpdateVersion = m[1];
+      const t = document.querySelector('.update-banner-text');
+      if (t) t.innerHTML = '<strong>Update available</strong> — ' + m[1] + ' is ready';
       document.getElementById('update-banner').style.display = 'block';
     }
-  } catch(e) { /* aborted or network error — just skip this check, next one is in 30 min */ }
+  } catch(e) { /* network error — next check will retry */ }
 }
 
 async function checkForUpdateManual() {
@@ -2434,6 +2433,7 @@ function doUpdate() {
 }
 
 function dismissUpdate() {
+  if (_pendingUpdateVersion) sessionStorage.setItem('lumio_updateDismissed', _pendingUpdateVersion);
   document.getElementById('update-banner').style.display = 'none';
 }
 
@@ -7437,7 +7437,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.56 · 07 Aug 2026 4:01 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.57 · 07 Aug 2026 4:19 PM AEST</div>
 
 </body>
 </html>
