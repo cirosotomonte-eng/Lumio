@@ -68,7 +68,7 @@ check('image resolver present', /function recipeImage/.test(mainScript));
 check('photo upload present', /function triggerRecipePhoto/.test(mainScript));
 check('image compression present', /function compressImage/.test(mainScript));
 check('section placeholder present', /Select section…/.test(mainScript));
-check('auto-update on startup present', /lumio_autoUpdatedTo/.test(mainScript));
+check('update check surfaces a banner proactively', /function checkForUpdate\(\)/.test(mainScript) && /update-banner'\)\.style\.display = 'block'/.test(mainScript) && /setInterval\(checkForUpdate, 5 \* 60 \* 1000\)/.test(mainScript));
 check('cache-control meta present', /Cache-Control.*no-cache/.test(html));
 check('meal-list helpers present', /function getMealList/.test(mainScript) && /function addMealToDay/.test(mainScript) && /function removeMealFromDay/.test(mainScript));
 check('This Week section headers present', /meal-section-header/.test(mainScript));
