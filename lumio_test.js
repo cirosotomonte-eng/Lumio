@@ -93,6 +93,8 @@ check('recipes default to 2-serving display', /const DEFAULT_RECIPE_SERVINGS = 2
 check('suggestions show 2-serving ingredients', /formatIngredient\(ing,2\)/.test(mainScript));
 check('shopping combines shared ingredients', /function combineIngredientParts/.test(mainScript) && /function normalizeIngredientName/.test(mainScript));
 check('pomodoro alarm volume 0.5 + vibration', /linearRampToValueAtTime\(0\.5,/.test(mainScript) && /navigator\.vibrate\(\[250, 120, 250\]\)/.test(mainScript));
+check('pomodoro cycle persists across reloads, resets on new day', /pomoCycle/.test(mainScript) && /state\.pomoCycle = \{ round: pomoState\.round, date: todayDateKey\(\) \}/.test(mainScript) && /state\.pomoCycle\.date === today/.test(mainScript));
+check('logPomoSession intact', /function logPomoSession\(\)/.test(mainScript) && /state\.pomoLog\[key\]\+\+/.test(mainScript));
 
 // Ingredient combining behaviour
 try {
