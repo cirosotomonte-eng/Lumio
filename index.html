@@ -162,6 +162,15 @@ nav {
 }
 .nav-btn svg { width: 18px; height: 18px; }
 
+/* ── Global sticky header (all tabs) ── */
+#app-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg); padding: 0 16px;
+  border-bottom: 0.5px solid transparent;
+}
+#app-header .page-header { padding: 16px 0 8px; }
+#app-header .quote-card { padding: 0 0 12px; }
+
 /* ── Pages ── */
 .page { display: none; padding: 0 16px; }
 .page.active { display: block; }
@@ -1176,8 +1185,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
 <div id="app" style="display:none">
 
-  <!-- ═══════════════════════════════ TODAY ═══════════════════════════════ -->
-  <div id="page-today" class="page active">
+  <!-- ═══ GLOBAL STICKY HEADER (shown on every tab) ═══ -->
+  <div id="app-header">
     <div class="page-header">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px">
@@ -1203,7 +1212,10 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       <div class="quote-author" id="daily-quote-author"></div>
       <div class="quote-role" id="daily-quote-role"></div>
     </div>
+  </div>
 
+  <!-- ═══════════════════════════════ TODAY ═══════════════════════════════ -->
+  <div id="page-today" class="page active">
     <div class="stats-row">
       <div class="stat-box">
         <div class="stat-num" id="stat-streak" style="color:var(--accent)">0</div>
@@ -1979,7 +1991,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 3:46 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 4:01 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -1993,9 +2005,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.55 · 07 Aug 2026 3:46 PM AEST';
-const BUILD_VERSION = 'v5.55';
-const BUILD_DISPLAY = '07 Aug 2026 3:46 PM AEST';
+const BUILD = 'v5.56 · 07 Aug 2026 4:01 PM AEST';
+const BUILD_VERSION = 'v5.56';
+const BUILD_DISPLAY = '07 Aug 2026 4:01 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2401,8 +2413,9 @@ async function checkForUpdateManual() {
     const m = text.match(/const BUILD_VERSION = '([^']+)'/);
     if (m && m[1] && isNewerVersion(m[1], BUILD_VERSION)) {
       status.style.color = 'var(--accent)';
-      status.textContent = m[1] + ' is available — tap Update now below';
-      document.getElementById('update-banner').style.display = 'block';
+      status.textContent = 'Updating to ' + m[1] + '…';
+      setTimeout(() => doUpdate(), 400); // just update — no banner, no extra tap
+      return;
     } else {
       status.style.color = 'var(--accent2)';
       status.textContent = 'You\'re on the latest version ✓';
@@ -2480,6 +2493,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
+  window.scrollTo(0, 0); // anchor to the top of the newly shown tab
   if (name === 'habits') renderHabits();
   if (name === 'growth') renderGrowth();
   if (name === 'knowledge') renderKB();
@@ -7423,7 +7437,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.55 · 07 Aug 2026 3:46 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.56 · 07 Aug 2026 4:01 PM AEST</div>
 
 </body>
 </html>
