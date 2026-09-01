@@ -1285,10 +1285,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         </div>
         <span style="font-size:11px;color:var(--text3)">drag or → to focus</span>
       </div>
-      <div class="focus-add-row">
-        <input type="text" id="todo-work-input" placeholder="Add a work task…" onkeydown="if(event.key==='Enter')addTodoItem('work')">
-        <button class="btn btn-sm" style="background:#eef2ff;color:#3d47a0;border-color:#c8d0f0" onclick="addTodoItem('work')">Add</button>
-      </div>
+      <button class="btn btn-sm" style="width:100%;background:#eef2ff;color:#3d47a0;border-color:#c8d0f0" onclick="openTodoModal('work')">＋ Add task</button>
       <div id="todo-work-list"></div>
     </div>
 
@@ -1300,10 +1297,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         </div>
         <span style="font-size:11px;color:var(--text3)">drag or → to focus</span>
       </div>
-      <div class="focus-add-row">
-        <input type="text" id="todo-personal-input" placeholder="Add a personal task…" onkeydown="if(event.key==='Enter')addTodoItem('personal')">
-        <button class="btn btn-sm" style="background:#e4f0e8;color:#1e5c3a;border-color:#b0d4bc" onclick="addTodoItem('personal')">Add</button>
-      </div>
+      <button class="btn btn-sm" style="width:100%;background:#e4f0e8;color:#1e5c3a;border-color:#b0d4bc" onclick="openTodoModal('personal')">＋ Add task</button>
       <div id="todo-personal-list"></div>
     </div>
 
@@ -1993,7 +1987,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">07 Aug 2026 4:48 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 9:29 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2007,9 +2001,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.59 · 07 Aug 2026 4:48 PM AEST';
-const BUILD_VERSION = 'v5.59';
-const BUILD_DISPLAY = '07 Aug 2026 4:48 PM AEST';
+const BUILD = 'v5.60 · 02 Sep 2026 9:29 AM AEST';
+const BUILD_VERSION = 'v5.60';
+const BUILD_DISPLAY = '02 Sep 2026 9:29 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2021,7 +2015,7 @@ const PROXIES = [
 let state = {
   focus: '',           // legacy — kept for data compat, unused
   focusItems: [],      // { id, text, done, createdDate }
-  todos: [],           // { id, text, category: 'work'|'personal', createdAt }
+  todos: [],           // { id, text, category, notes, url, dueDate, createdAt }
   habits: [],
   habitLog: {},
   goals: [],
@@ -2863,19 +2857,6 @@ function copyFocusHistory() {
 }
 
 // ── To-do list ──
-function addTodoItem(category) {
-  const inputId = category === 'work' ? 'todo-work-input' : 'todo-personal-input';
-  const inp = document.getElementById(inputId);
-  if (!inp) return;
-  const text = inp.value.trim();
-  if (!text) return;
-  if (!state.todos) state.todos = [];
-  state.todos.push({ id: 'td' + Date.now(), text, category, notes: '', url: '', createdAt: todayDateKey() });
-  inp.value = '';
-  saveToSupabase();
-  renderTodoList();
-}
-
 function deleteTodoItem(id) {
   if (!state.todos) return;
   state.todos = state.todos.filter(i => i.id !== id);
@@ -2903,27 +2884,47 @@ function editTodoItem(id, el) {
   });
 }
 
+function openTodoModal(category) { _todoModal(null, category); }
+
 function openTodoDetail(id) {
   const item = (state.todos || []).find(i => i.id === id);
-  if (!item) return;
-  // Remove existing modal
+  if (item) _todoModal(item, item.category || 'personal');
+}
+
+function _todoFmtDate(dk) {
+  if (!dk) return '';
+  const d = new Date(dk + 'T00:00:00');
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function _todoModal(item, category) {
+  const isNew = !item;
+  const text = item ? item.text : '';
+  const notes = item ? (item.notes || '') : '';
+  const url = item ? (item.url || '') : '';
+  const due = item ? (item.dueDate || '') : '';
   document.getElementById('todo-detail-modal')?.remove();
   const modal = document.createElement('div');
   modal.id = 'todo-detail-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
+  const lbl = 'font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px';
+  const fld = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box';
   modal.innerHTML = `
-    <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:20px 16px 36px;box-shadow:0 -4px 24px rgba(0,0,0,0.15)">
+    <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:20px 16px 36px;box-shadow:0 -4px 24px rgba(0,0,0,0.15)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:15px;font-weight:600;color:var(--text)">Task details</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text)">${isNew ? 'New task' : 'Task details'}</div>
         <button onclick="closeTodoDetail()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">Task</div>
-      <input id="td-detail-text" value="${item.text.replace(/"/g,'&quot;')}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box">
-      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">Notes</div>
-      <textarea id="td-detail-notes" placeholder="Add notes…" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box;height:80px;resize:none;font-family:inherit">${item.notes || ''}</textarea>
-      <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">URL</div>
-      <input id="td-detail-url" value="${(item.url||'').replace(/"/g,'&quot;')}" placeholder="https://…" type="url" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:16px;box-sizing:border-box">
-      <button onclick="saveTodoDetail('${id}')" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--rad);font-size:15px;font-weight:600;cursor:pointer">Save</button>
+      <div style="${lbl}">Task</div>
+      <input id="td-detail-text" value="${text.replace(/"/g,'&quot;')}" placeholder="What needs doing?" style="${fld}">
+      <div style="${lbl}">Due date <span style="text-transform:none;font-weight:400;color:var(--text3)">· optional</span></div>
+      <input id="td-detail-due" type="date" value="${due}" style="${fld}">
+      <div style="${lbl}">Notes</div>
+      <textarea id="td-detail-notes" placeholder="Add notes…" style="${fld};height:80px;resize:none;font-family:inherit">${notes}</textarea>
+      <div style="${lbl}">URL</div>
+      <input id="td-detail-url" value="${url.replace(/"/g,'&quot;')}" placeholder="https://…" type="url" style="${fld}">
+      ${!isNew ? `<div style="font-size:11px;color:var(--text3);margin-bottom:16px">📅 Created ${_todoFmtDate(item.createdAt)}</div>` : ''}
+      <button onclick="saveTodoModal('${isNew ? '' : item.id}','${category}')" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--rad);font-size:15px;font-weight:600;cursor:pointer">${isNew ? 'Add task' : 'Save'}</button>
     </div>`;
   modal.addEventListener('click', e => { if (e.target === modal) closeTodoDetail(); });
   document.body.appendChild(modal);
@@ -2934,12 +2935,19 @@ function closeTodoDetail() {
   document.getElementById('todo-detail-modal')?.remove();
 }
 
-function saveTodoDetail(id) {
-  const item = (state.todos || []).find(i => i.id === id);
-  if (!item) return;
-  item.text  = document.getElementById('td-detail-text').value.trim() || item.text;
-  item.notes = document.getElementById('td-detail-notes').value.trim();
-  item.url   = document.getElementById('td-detail-url').value.trim();
+function saveTodoModal(id, category) {
+  const text = document.getElementById('td-detail-text').value.trim();
+  if (!text) { document.getElementById('td-detail-text').focus(); return; }
+  const due   = document.getElementById('td-detail-due').value || '';
+  const notes = document.getElementById('td-detail-notes').value.trim();
+  const url   = document.getElementById('td-detail-url').value.trim();
+  if (id) {
+    const item = (state.todos || []).find(i => i.id === id);
+    if (item) { item.text = text; item.dueDate = due; item.notes = notes; item.url = url; }
+  } else {
+    if (!state.todos) state.todos = [];
+    state.todos.push({ id: 'td' + Date.now(), text, category: category || 'personal', notes, url, dueDate: due, createdAt: todayDateKey() });
+  }
   closeTodoDetail();
   saveToSupabase();
   renderTodoList();
@@ -2963,6 +2971,18 @@ function moveTodoToFocus(id) {
   renderFocusList();
 }
 
+function todoDueChip(due) {
+  const today = todayDateKey();
+  const dd = new Date(due + 'T00:00:00'), td = new Date(today + 'T00:00:00');
+  const days = Math.round((dd - td) / 86400000);
+  const label = dd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  let bg = 'var(--surface2)', col = 'var(--text3)', icon = '📅', pre = '';
+  if (days < 0)       { bg = '#fde8e8'; col = '#c0392b'; icon = '⚠'; pre = 'Overdue · '; }
+  else if (days === 0){ bg = '#fff3e0'; col = '#e65100'; icon = '⏳'; pre = 'Today · '; }
+  else if (days <= 2) { bg = '#fff3e0'; col = '#e65100'; icon = '⏳'; }
+  return `<span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:${bg};color:${col};margin-top:4px">${icon} ${pre}${label}</span>`;
+}
+
 function renderTodoList() {
   if (!state.todos) state.todos = [];
   const work     = state.todos.filter(i => i.category === 'work');
@@ -2978,6 +2998,7 @@ function renderTodoList() {
     el.innerHTML = items.map(item => {
       const hasNotes = item.notes && item.notes.trim();
       const hasUrl = item.url && item.url.trim();
+      const dueChip = item.dueDate ? todoDueChip(item.dueDate) : '';
       return `
     <div class="todo-item" data-todo-id="${item.id}">
       <div class="todo-drag-handle" data-drag-id="${item.id}" ontouchstart="todoDragStart(event,'${item.id}')" title="Drag to focus">
@@ -2985,6 +3006,7 @@ function renderTodoList() {
       </div>
       <div style="flex:1;min-width:0">
         <div class="todo-text" ondblclick="editTodoItem('${item.id}', this)" title="Double-tap to edit">${item.text}</div>
+        ${dueChip}
         ${hasNotes ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.notes}</div>` : ''}
         ${hasUrl ? `<a href="${item.url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;margin-top:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔗 ${item.url}</a>` : ''}
       </div>
@@ -7437,7 +7459,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.59 · 07 Aug 2026 4:48 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.60 · 02 Sep 2026 9:29 AM AEST</div>
 
 </body>
 </html>
