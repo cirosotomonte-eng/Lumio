@@ -97,6 +97,10 @@ check('pomodoro cycle persists across reloads, resets on new day', /pomoCycle/.t
 check('logPomoSession intact', /function logPomoSession\(\)/.test(mainScript) && /state\.pomoLog\[key\]\+\+/.test(mainScript));
 check('global sticky header present', /id="app-header"/.test(html) && /#app-header \{[^}]*position: sticky/.test(html));
 check('page-food is inside #app (no 110px padding gap)', html.indexOf('id="page-food"') < html.indexOf('</div><!-- /app -->') && html.indexOf('</div><!-- /app -->') !== -1);
+check('todo Add opens modal (no quick-add input)', /onclick="openTodoModal\('work'\)"/.test(html) && !/id="todo-work-input"/.test(html));
+check('todo modal has due date + created date', /function _todoModal/.test(mainScript) && /id="td-detail-due" type="date"/.test(mainScript) && /Created \$\{_todoFmtDate\(item\.createdAt\)\}/.test(mainScript));
+check('todo save captures dueDate + createdAt', /function saveTodoModal/.test(mainScript) && /dueDate: due, createdAt: todayDateKey\(\)/.test(mainScript));
+check('todo due-date chip present', /function todoDueChip/.test(mainScript) && /Overdue · /.test(mainScript));
 check('page-header centers (icon buttons dont push title down)', /\.page-header \{[\s\S]*?align-items: center;[\s\S]*?\}/.test(html) && !/\.page-header \{[\s\S]*?align-items: baseline/.test(html));
 check('tab switch scrolls to top', /function showPage/.test(mainScript) && /window\.scrollTo\(0, 0\); \/\/ anchor to the top/.test(mainScript));
 check('manual update applies immediately', /function checkForUpdateManual[\s\S]*?setTimeout\(\(\) => doUpdate\(\), 400\)/.test(mainScript));
