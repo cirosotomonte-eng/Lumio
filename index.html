@@ -1987,7 +1987,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 9:29 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 10:04 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2001,9 +2001,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.60 · 02 Sep 2026 9:29 AM AEST';
-const BUILD_VERSION = 'v5.60';
-const BUILD_DISPLAY = '02 Sep 2026 9:29 AM AEST';
+const BUILD = 'v5.61 · 02 Sep 2026 10:04 AM AEST';
+const BUILD_VERSION = 'v5.61';
+const BUILD_DISPLAY = '02 Sep 2026 10:04 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2014,7 +2014,7 @@ const PROXIES = [
 // ── State ──
 let state = {
   focus: '',           // legacy — kept for data compat, unused
-  focusItems: [],      // { id, text, done, createdDate }
+  focusItems: [],      // { id, text, done, createdDate, category, notes, url, dueDate, taskCreatedAt }
   todos: [],           // { id, text, category, notes, url, dueDate, createdAt }
   habits: [],
   habitLog: {},
@@ -2720,6 +2720,8 @@ function focusItemHTML(item, isOverdue, isPast) {
   const checkClick = isPast ? '' : `onclick="toggleFocusItem('${item.id}')"`;
   const editClick  = isPast ? '' : `ondblclick="startEditFocusItem('${item.id}', this)" onclick="startEditFocusItemSingle('${item.id}', this, event)"`;
   const catDot     = item.category ? `<div class="focus-cat-dot ${item.category}" title="${item.category}"></div>` : '';
+  const dueChip    = item.dueDate ? todoDueChip(item.dueDate) : '';
+  const openBtn    = `<button class="focus-delete" onclick="openFocusDetail('${item.id}')" title="Details" style="font-size:15px">⋯</button>`;
 
   let deleteBtn = '';
   let overdueMeta = '';
@@ -2741,8 +2743,10 @@ function focusItemHTML(item, isOverdue, isPast) {
     ${catDot}
     <div style="flex:1;min-width:0">
       <div class="${textClass}" data-id="${item.id}" ${editClick}>${item.text}</div>
+      ${dueChip}
       ${overdueMeta}
     </div>
+    ${openBtn}
     ${deleteBtn}
   </div>`;
 }
@@ -2963,8 +2967,12 @@ function moveTodoToFocus(id) {
     id: 'fi' + Date.now(),
     text: item.text,
     done: false,
-    createdDate: todayDateKey(),
-    category: item.category || 'personal'
+    createdDate: todayDateKey(),          // when added to focus (drives today/overdue logic)
+    category: item.category || 'personal',
+    notes: item.notes || '',
+    url: item.url || '',
+    dueDate: item.dueDate || '',
+    taskCreatedAt: item.createdAt || todayDateKey()  // original task creation date
   });
   saveToSupabase();
   renderTodoList();
@@ -2981,6 +2989,50 @@ function todoDueChip(due) {
   else if (days === 0){ bg = '#fff3e0'; col = '#e65100'; icon = '⏳'; pre = 'Today · '; }
   else if (days <= 2) { bg = '#fff3e0'; col = '#e65100'; icon = '⏳'; }
   return `<span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:${bg};color:${col};margin-top:4px">${icon} ${pre}${label}</span>`;
+}
+
+function openFocusDetail(id) {
+  const item = (state.focusItems || []).find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('todo-detail-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'todo-detail-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
+  const lbl = 'font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px';
+  const fld = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);font-size:14px;background:var(--surface2);color:var(--text);margin-bottom:12px;box-sizing:border-box';
+  const created = item.taskCreatedAt ? `📅 Created ${_todoFmtDate(item.taskCreatedAt)}` : '';
+  const addedToFocus = item.createdDate ? `⭐ In focus since ${_todoFmtDate(item.createdDate)}` : '';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:20px 16px 36px;box-shadow:0 -4px 24px rgba(0,0,0,0.15)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:600;color:var(--text)">Focus task</div>
+        <button onclick="closeTodoDetail()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
+      </div>
+      <div style="${lbl}">Task</div>
+      <input id="td-detail-text" value="${(item.text||'').replace(/"/g,'&quot;')}" style="${fld}">
+      <div style="${lbl}">Due date <span style="text-transform:none;font-weight:400;color:var(--text3)">· optional</span></div>
+      <input id="td-detail-due" type="date" value="${item.dueDate || ''}" style="${fld}">
+      <div style="${lbl}">Notes</div>
+      <textarea id="td-detail-notes" placeholder="Add notes…" style="${fld};height:80px;resize:none;font-family:inherit">${item.notes || ''}</textarea>
+      <div style="${lbl}">URL</div>
+      <input id="td-detail-url" value="${(item.url||'').replace(/"/g,'&quot;')}" placeholder="https://…" type="url" style="${fld}">
+      ${(created || addedToFocus) ? `<div style="font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.7">${created}${created && addedToFocus ? '<br>' : ''}${addedToFocus}</div>` : ''}
+      <button onclick="saveFocusDetail('${id}')" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--rad);font-size:15px;font-weight:600;cursor:pointer">Save</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closeTodoDetail(); });
+  document.body.appendChild(modal);
+}
+
+function saveFocusDetail(id) {
+  const item = (state.focusItems || []).find(i => i.id === id);
+  if (!item) return;
+  item.text    = document.getElementById('td-detail-text').value.trim() || item.text;
+  item.dueDate = document.getElementById('td-detail-due').value || '';
+  item.notes   = document.getElementById('td-detail-notes').value.trim();
+  item.url     = document.getElementById('td-detail-url').value.trim();
+  closeTodoDetail();
+  saveToSupabase();
+  renderFocusList();
 }
 
 function renderTodoList() {
@@ -7459,7 +7511,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.60 · 02 Sep 2026 9:29 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.61 · 02 Sep 2026 10:04 AM AEST</div>
 
 </body>
 </html>
