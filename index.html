@@ -1987,7 +1987,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 11:52 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 11:59 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2001,9 +2001,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.66 · 02 Sep 2026 11:52 AM AEST';
-const BUILD_VERSION = 'v5.66';
-const BUILD_DISPLAY = '02 Sep 2026 11:52 AM AEST';
+const BUILD = 'v5.67 · 02 Sep 2026 11:59 AM AEST';
+const BUILD_VERSION = 'v5.67';
+const BUILD_DISPLAY = '02 Sep 2026 11:59 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -3734,30 +3734,48 @@ function saveWorkReflection() {
   renderWorkReflections();
 }
 
+let reflectionFilter = 'all';
+function setReflectionFilter(f) { reflectionFilter = f; renderWorkReflections(); }
+
 function renderWorkReflections() {
   const el = document.getElementById('reflections-list');
   if (!el) return;
-  const all = (state.reflections || []);
-  if (!all.length) {
+  const all = state.reflections || [];
+  const wins = [], improves = [];
+  all.forEach(r => {
+    if (r.source === 'daily') {
+      if (r.win)     wins.push({ date: r.dateLabel, text: r.win, tags: r.tags });
+      if (r.improve) improves.push({ date: r.dateLabel, text: r.improve, tags: r.tags });
+    } else if (r.text) {
+      wins.push({ date: r.dateLabel, text: r.text, tags: r.tags }); // manual reflections read as wins/notes
+    }
+  });
+  if (!wins.length && !improves.length) {
     el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No reflections yet</div></div>';
     return;
   }
-  el.innerHTML = all.slice(0, 12).map(r => {
-    const tags = (r.tags && r.tags.length) ? '<div style="margin-top:6px">' + r.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : '';
-    if (r.source === 'daily') {
-      const win     = r.win     ? `<div class="reflection-text" style="margin-top:2px"><span style="color:var(--accent2);font-weight:600">✅ Win — </span>${r.win}</div>` : '';
-      const improve = r.improve ? `<div class="reflection-text" style="margin-top:4px"><span style="color:#e65100;font-weight:600">↗ Improve — </span>${r.improve}</div>` : '';
-      return `<div class="reflection-card">
-        <div class="reflection-date">${r.dateLabel} · daily</div>
-        ${win}${improve}${tags}
-      </div>`;
-    }
-    return `<div class="reflection-card">
-      <div class="reflection-date">${r.dateLabel}</div>
-      <div class="reflection-text">${r.text || ''}</div>
-      ${tags}
+  const fBtn = (val, label) => `<button onclick="setReflectionFilter('${val}')" style="border:none;border-radius:100px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;${reflectionFilter===val?'background:var(--accent);color:#fff':'background:var(--surface2);color:var(--text3)'}">${label}</button>`;
+  const filters = `<div style="display:flex;gap:6px;margin-bottom:12px">${fBtn('all','All')}${fBtn('wins','✅ Wins')}${fBtn('improve','↗ Improve')}</div>`;
+  const card = (item, type) => {
+    const bg = type === 'improve' ? '#fff8f0' : 'var(--accent2-bg)';
+    const bd = type === 'improve' ? '#f0d8b8' : '#b8d8c0';
+    const dc = type === 'improve' ? '#e65100' : 'var(--accent2)';
+    const tags = (item.tags && item.tags.length) ? '<div style="margin-top:6px">' + item.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : '';
+    return `<div class="reflection-card" style="background:${bg};border-color:${bd}">
+      <div class="reflection-date" style="color:${dc}">${item.date}</div>
+      <div class="reflection-text">${item.text}</div>${tags}
     </div>`;
-  }).join('');
+  };
+  let body = '';
+  if (reflectionFilter === 'all' || reflectionFilter === 'wins') {
+    body += `<div class="card-label" style="color:var(--accent2);margin:2px 0 8px">✅ Wins${wins.length ? ' · ' + wins.length : ''}</div>`;
+    body += wins.length ? wins.slice(0, 20).map(w => card(w, 'win')).join('') : '<div class="text-muted text-sm" style="padding:2px 0 12px">No wins logged yet</div>';
+  }
+  if (reflectionFilter === 'all' || reflectionFilter === 'improve') {
+    body += `<div class="card-label" style="color:#e65100;margin:16px 0 8px">↗ Improvements${improves.length ? ' · ' + improves.length : ''}</div>`;
+    body += improves.length ? improves.slice(0, 20).map(w => card(w, 'improve')).join('') : '<div class="text-muted text-sm" style="padding:2px 0 12px">No improvements logged yet</div>';
+  }
+  el.innerHTML = filters + body;
 }
 
 // ── Knowledge base ──
@@ -7555,7 +7573,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.66 · 02 Sep 2026 11:52 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.67 · 02 Sep 2026 11:59 AM AEST</div>
 
 </body>
 </html>
