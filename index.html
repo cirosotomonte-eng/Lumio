@@ -1505,7 +1505,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="card">
       <div class="flex-between mb-12">
-        <div class="card-label" style="margin-bottom:0">Work reflections & wins</div>
+        <div class="card-label" style="margin-bottom:0">Reflections & wins</div>
         <button class="btn btn-sm" onclick="openModal('modal-reflection')">+ Add</button>
       </div>
       <div id="reflections-list"></div>
@@ -1987,7 +1987,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 11:41 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 11:52 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2001,9 +2001,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.65 · 02 Sep 2026 11:41 AM AEST';
-const BUILD_VERSION = 'v5.65';
-const BUILD_DISPLAY = '02 Sep 2026 11:41 AM AEST';
+const BUILD = 'v5.66 · 02 Sep 2026 11:52 AM AEST';
+const BUILD_VERSION = 'v5.66';
+const BUILD_DISPLAY = '02 Sep 2026 11:52 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -3200,6 +3200,7 @@ function saveReflection() {
   document.getElementById('reflect-win').value = '';
   document.getElementById('reflect-improve').value = '';
   saveToSupabase();
+  renderWorkReflections();
   alert('Reflection saved!');
 }
 
@@ -3735,17 +3736,28 @@ function saveWorkReflection() {
 
 function renderWorkReflections() {
   const el = document.getElementById('reflections-list');
-  const manual = state.reflections.filter(r => r.source === 'manual');
-  if (!manual.length) {
+  if (!el) return;
+  const all = (state.reflections || []);
+  if (!all.length) {
     el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="text-muted text-sm">No reflections yet</div></div>';
     return;
   }
-  el.innerHTML = manual.slice(0,5).map(r => `
-    <div class="reflection-card">
+  el.innerHTML = all.slice(0, 12).map(r => {
+    const tags = (r.tags && r.tags.length) ? '<div style="margin-top:6px">' + r.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : '';
+    if (r.source === 'daily') {
+      const win     = r.win     ? `<div class="reflection-text" style="margin-top:2px"><span style="color:var(--accent2);font-weight:600">✅ Win — </span>${r.win}</div>` : '';
+      const improve = r.improve ? `<div class="reflection-text" style="margin-top:4px"><span style="color:#e65100;font-weight:600">↗ Improve — </span>${r.improve}</div>` : '';
+      return `<div class="reflection-card">
+        <div class="reflection-date">${r.dateLabel} · daily</div>
+        ${win}${improve}${tags}
+      </div>`;
+    }
+    return `<div class="reflection-card">
       <div class="reflection-date">${r.dateLabel}</div>
-      <div class="reflection-text">${r.text}</div>
-      ${r.tags.length ? '<div style="margin-top:6px">' + r.tags.map(t => `<span class="tag">${t}</span>`).join('') + '</div>' : ''}
-    </div>`).join('');
+      <div class="reflection-text">${r.text || ''}</div>
+      ${tags}
+    </div>`;
+  }).join('');
 }
 
 // ── Knowledge base ──
@@ -7543,7 +7555,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.65 · 02 Sep 2026 11:41 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.66 · 02 Sep 2026 11:52 AM AEST</div>
 
 </body>
 </html>
