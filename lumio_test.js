@@ -101,6 +101,7 @@ check('todo Add opens modal (no quick-add input)', /onclick="openTodoModal\('wor
 check('todo modal has due date + created date', /function _todoModal/.test(mainScript) && /id="td-detail-due" type="date"/.test(mainScript) && /Created \$\{_todoFmtDate\(item\.createdAt\)\}/.test(mainScript));
 check('todo save captures dueDate + createdAt', /function saveTodoModal/.test(mainScript) && /dueDate: due, createdAt: todayDateKey\(\)/.test(mainScript));
 check('todo due-date chip present', /function todoDueChip/.test(mainScript) && /Overdue · /.test(mainScript));
+check('focus items carry full info + are openable', /function openFocusDetail/.test(mainScript) && /function saveFocusDetail/.test(mainScript) && /taskCreatedAt: item\.createdAt/.test(mainScript));
 check('page-header centers (icon buttons dont push title down)', /\.page-header \{[\s\S]*?align-items: center;[\s\S]*?\}/.test(html) && !/\.page-header \{[\s\S]*?align-items: baseline/.test(html));
 check('tab switch scrolls to top', /function showPage/.test(mainScript) && /window\.scrollTo\(0, 0\); \/\/ anchor to the top/.test(mainScript));
 check('manual update applies immediately', /function checkForUpdateManual[\s\S]*?setTimeout\(\(\) => doUpdate\(\), 400\)/.test(mainScript));
