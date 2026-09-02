@@ -1987,7 +1987,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 10:31 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">02 Sep 2026 11:26 AM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2001,9 +2001,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.62 · 02 Sep 2026 10:31 AM AEST';
-const BUILD_VERSION = 'v5.62';
-const BUILD_DISPLAY = '02 Sep 2026 10:31 AM AEST';
+const BUILD = 'v5.63 · 02 Sep 2026 11:26 AM AEST';
+const BUILD_VERSION = 'v5.63';
+const BUILD_DISPLAY = '02 Sep 2026 11:26 AM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2525,6 +2525,7 @@ function renderToday() {
 
   const focusEl = document.getElementById('focus-text-display');
   if (focusEl) focusEl.textContent = state.focus || 'Tap to set your focus for today';
+  autoMoveDueTodos();   // surface any due-today/overdue tasks in Today's Focus
   renderFocusList();
   renderTodoList();
 
@@ -2950,8 +2951,10 @@ function saveTodoModal(id, category) {
     state.todos.push({ id: 'td' + Date.now(), text, category: category || 'personal', notes, url, dueDate: due, createdAt: todayDateKey() });
   }
   closeTodoDetail();
+  autoMoveDueTodos();   // if the due date is today/past, move it straight to focus
   saveToSupabase();
   renderTodoList();
+  renderFocusList();
 }
 
 function moveTodoToFocus(id) {
@@ -2974,6 +2977,35 @@ function moveTodoToFocus(id) {
   saveToSupabase();
   renderTodoList();
   renderFocusList();
+}
+
+// Auto-move any to-do that's due today (or overdue) into Today's Focus, so it can't be forgotten
+function autoMoveDueTodos() {
+  if (!state.todos || !state.todos.length) return 0;
+  const today = todayDateKey();
+  const due = state.todos.filter(t => t.dueDate && t.dueDate <= today);
+  if (!due.length) return 0;
+  if (!state.focusItems) state.focusItems = [];
+  let n = 0;
+  due.forEach(item => {
+    state.focusItems.push({
+      id: 'fi' + Date.now() + Math.random().toString(36).slice(2, 6),
+      text: item.text,
+      done: false,
+      createdDate: today,
+      category: item.category || 'personal',
+      notes: item.notes || '',
+      url: item.url || '',
+      dueDate: item.dueDate || '',
+      taskCreatedAt: item.createdAt || today,
+      autoMoved: true
+    });
+    n++;
+  });
+  const dueIds = new Set(due.map(t => t.id));
+  state.todos = state.todos.filter(t => !dueIds.has(t.id));
+  saveToSupabase();
+  return n;
 }
 
 function todoDueChip(due) {
@@ -7508,7 +7540,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.62 · 02 Sep 2026 10:31 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.63 · 02 Sep 2026 11:26 AM AEST</div>
 
 </body>
 </html>
