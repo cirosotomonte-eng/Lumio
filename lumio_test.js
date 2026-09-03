@@ -103,6 +103,7 @@ check('todo save captures dueDate + createdAt', /function saveTodoModal/.test(ma
 check('todo due-date chip present', /function todoDueChip/.test(mainScript) && /Overdue · /.test(mainScript));
 check('focus items carry full info + are openable', /function openFocusDetail/.test(mainScript) && /function saveFocusDetail/.test(mainScript) && /taskCreatedAt: item\.createdAt/.test(mainScript));
 check('due-today todos auto-move to focus', /function autoMoveDueTodos/.test(mainScript) && /t\.dueDate && t\.dueDate <= today/.test(mainScript) && /autoMoveDueTodos\(\);   \/\/ surface/.test(mainScript));
+check('3-column Today grid present', /@media \(min-width: 1200px\)/.test(html) && /grid-template-columns: 1fr 1fr 1fr/.test(html) && /id="today-left-top"/.test(html));
 check('desktop layout present', /@media \(min-width: 900px\)/.test(html) && /columns: 2/.test(html));
 check('daily routine block removed', !/id="routine-card"/.test(html) && !/id="routine-timeline"/.test(html));
 check('moveTodoToFocus still removes from todos', (mainScript.match(/state\.todos = state\.todos\.filter\(i => i\.id !== id\)/g) || []).length >= 1);
