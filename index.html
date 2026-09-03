@@ -1402,26 +1402,6 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       <div id="today-habits-list"></div>
     </div>
 
-    <!-- Routine timeline -->
-    <div class="card" id="routine-card">
-      <div class="routine-header">
-        <div class="card-label" style="margin-bottom:0">Daily routine</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn btn-sm" onclick="openModal('modal-routine-block')">+ Add block</button>
-        </div>
-      </div>
-      <div class="routine-day-pills" id="routine-day-pills">
-        <button class="day-pill" data-day="1" onclick="selectRoutineDay(1,this)">Mon</button>
-        <button class="day-pill" data-day="2" onclick="selectRoutineDay(2,this)">Tue</button>
-        <button class="day-pill" data-day="3" onclick="selectRoutineDay(3,this)">Wed</button>
-        <button class="day-pill" data-day="4" onclick="selectRoutineDay(4,this)">Thu</button>
-        <button class="day-pill" data-day="5" onclick="selectRoutineDay(5,this)">Fri</button>
-        <button class="day-pill" data-day="6" onclick="selectRoutineDay(6,this)">Sat</button>
-        <button class="day-pill" data-day="0" onclick="selectRoutineDay(0,this)">Sun</button>
-      </div>
-      <div style="margin-top:12px" id="routine-timeline"></div>
-    </div>
-
     <div class="card">
       <div class="flex-between mb-12">
         <div class="card-label" style="margin-bottom:0">Quick reflection</div>
@@ -1997,7 +1977,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:11 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:16 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2011,9 +1991,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.70 · 03 Sep 2026 3:11 PM AEST';
-const BUILD_VERSION = 'v5.70';
-const BUILD_DISPLAY = '03 Sep 2026 3:11 PM AEST';
+const BUILD = 'v5.71 · 03 Sep 2026 3:16 PM AEST';
+const BUILD_VERSION = 'v5.71';
+const BUILD_DISPLAY = '03 Sep 2026 3:16 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -7675,7 +7655,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.70 · 03 Sep 2026 3:11 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.71 · 03 Sep 2026 3:16 PM AEST</div>
 
 </body>
 </html>
