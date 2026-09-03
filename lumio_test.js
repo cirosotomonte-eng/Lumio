@@ -104,6 +104,8 @@ check('todo due-date chip present', /function todoDueChip/.test(mainScript) && /
 check('focus items carry full info + are openable', /function openFocusDetail/.test(mainScript) && /function saveFocusDetail/.test(mainScript) && /taskCreatedAt: item\.createdAt/.test(mainScript));
 check('due-today todos auto-move to focus', /function autoMoveDueTodos/.test(mainScript) && /t\.dueDate && t\.dueDate <= today/.test(mainScript) && /autoMoveDueTodos\(\);   \/\/ surface/.test(mainScript));
 check('moveTodoToFocus still removes from todos', (mainScript.match(/state\.todos = state\.todos\.filter\(i => i\.id !== id\)/g) || []).length >= 1);
+check('Focus/Upcoming toggle present', /id="today-focus-view"/.test(html) && /id="today-upcoming-view"/.test(html) && /function setTodayView/.test(mainScript));
+check('Upcoming agenda buckets present', /function renderUpcoming/.test(mainScript) && /overdue: \[\], today: \[\], tomorrow: \[\], week: \[\], month: \[\]/.test(mainScript));
 check('page-header centers (icon buttons dont push title down)', /\.page-header \{[\s\S]*?align-items: center;[\s\S]*?\}/.test(html) && !/\.page-header \{[\s\S]*?align-items: baseline/.test(html));
 check('tab switch scrolls to top', /function showPage/.test(mainScript) && /window\.scrollTo\(0, 0\); \/\/ anchor to the top/.test(mainScript));
 check('manual update applies immediately', /function checkForUpdateManual[\s\S]*?setTimeout\(\(\) => doUpdate\(\), 400\)/.test(mainScript));
