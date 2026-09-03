@@ -211,9 +211,12 @@ nav {
   #focus-card                     { grid-column: 2; grid-row: 2; }
   #todo-personal-card             { grid-column: 2; grid-row: 3; }
   #today-habits-card              { grid-column: 3; grid-row: 2 / 4; }
-  /* cells size to their content - no internal scrollbars */
+  /* cells size to their content - no internal scrollbars.
+     min-width: 0 is load-bearing: without it a grid item's automatic minimum
+     size is its min-content width, so one long unbreakable string (a pasted
+     URL) blows the column out and forces a page-level horizontal scrollbar. */
   #today-left-top, #todo-work-card, #focus-card, #todo-personal-card, #today-habits-card {
-    overflow: visible; min-height: 0;
+    overflow: visible; min-height: 0; min-width: 0;
   }
   #today-left-top { display: flex; flex-direction: column; }
   #today-left-top > .card { margin-bottom: 12px; }
@@ -382,7 +385,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .focus-check.done { background: var(--accent2); border-color: var(--accent2); }
 .focus-check svg { display: none; width: 11px; height: 11px; }
 .focus-check.done svg { display: block; }
-.focus-item-text { flex: 1; font-size: 14px; color: var(--text); line-height: 1.5; }
+.focus-item-text { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; color: var(--text); line-height: 1.5; }
 .focus-item-text.done { text-decoration: line-through; color: var(--text3); }
 .focus-delete {
   border: none; background: none; cursor: pointer; color: var(--text3);
@@ -2036,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.75</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.76</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2051,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.75 · 03 Sep 2026 4:24 PM AEST';
-const BUILD_VERSION = 'v5.75';
-const BUILD_DISPLAY = '03 Sep 2026 4:24 PM AEST';
+const BUILD = 'v5.76 · 03 Sep 2026 4:29 PM AEST';
+const BUILD_VERSION = 'v5.76';
+const BUILD_DISPLAY = '03 Sep 2026 4:29 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -7715,7 +7718,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.75 · 03 Sep 2026 4:24 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.76 · 03 Sep 2026 4:29 PM AEST</div>
 
 </body>
 </html>
