@@ -174,6 +174,9 @@ nav {
 .page > .page-header { padding-top: 4px; }
 
 /* ── Pages ── */
+.today-view-toggle { display: flex; gap: 4px; background: var(--surface2); border-radius: 100px; padding: 4px; margin-bottom: 16px; }
+.tv-btn { flex: 1; border: none; background: none; padding: 8px; border-radius: 100px; font-size: 13px; font-weight: 600; color: var(--text3); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.tv-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 .page { display: none; padding: 0 16px; }
 .page.active { display: block; }
 
@@ -1218,6 +1221,11 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
   <!-- ═══════════════════════════════ TODAY ═══════════════════════════════ -->
   <div id="page-today" class="page active">
+    <div class="today-view-toggle">
+      <button class="tv-btn active" id="tv-focus" onclick="setTodayView('focus')">Focus</button>
+      <button class="tv-btn" id="tv-upcoming" onclick="setTodayView('upcoming')">Upcoming</button>
+    </div>
+    <div id="today-focus-view">
     <div class="stats-row">
       <div class="stat-box">
         <div class="stat-num" id="stat-streak" style="color:var(--accent)">0</div>
@@ -1428,6 +1436,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
       </div>
       <button class="btn btn-accent" onclick="saveReflection()">Save reflection</button>
     </div>
+    </div><!-- /today-focus-view -->
+    <div id="today-upcoming-view" style="display:none"></div>
   </div>
 
   <!-- ═══════════════════════════════ HABITS ═══════════════════════════════ -->
@@ -1987,7 +1997,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 11:03 AM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:11 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2001,9 +2011,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.69 · 03 Sep 2026 11:03 AM AEST';
-const BUILD_VERSION = 'v5.69';
-const BUILD_DISPLAY = '03 Sep 2026 11:03 AM AEST';
+const BUILD = 'v5.70 · 03 Sep 2026 3:11 PM AEST';
+const BUILD_VERSION = 'v5.70';
+const BUILD_DISPLAY = '03 Sep 2026 3:11 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2503,6 +2513,82 @@ function closeModal(id) {
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
 
 // ── Today ──
+let todayView = 'focus';
+function setTodayView(v) {
+  todayView = v;
+  document.getElementById('tv-focus').classList.toggle('active', v === 'focus');
+  document.getElementById('tv-upcoming').classList.toggle('active', v === 'upcoming');
+  document.getElementById('today-focus-view').style.display = v === 'focus' ? 'block' : 'none';
+  document.getElementById('today-upcoming-view').style.display = v === 'upcoming' ? 'block' : 'none';
+  if (v === 'upcoming') renderUpcoming();
+}
+
+function upcomingRowHTML(task) {
+  const dot = task.category ? `<div class="focus-cat-dot ${task.category}" style="flex-shrink:0"></div>` : '';
+  const dueChip = task.dueDate ? todoDueChip(task.dueDate) : '';
+  const openFn = task._src === 'focus' ? `openFocusDetail('${task.id}')` : `openTodoDetail('${task.id}')`;
+  const inFocus = task._src === 'focus' ? '<span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent-bg,#eef2ff);padding:1px 6px;border-radius:100px;margin-left:6px">FOCUS</span>' : '';
+  return `<div onclick="${openFn}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rad);margin-bottom:6px;cursor:pointer">
+    ${dot}
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${task.text}${inFocus}</div>
+      ${dueChip}
+    </div>
+  </div>`;
+}
+
+function renderUpcoming() {
+  const el = document.getElementById('today-upcoming-view');
+  if (!el) return;
+  const today = todayDateKey();
+  const tasks = [
+    ...(state.todos || []).map(t => ({ id: t.id, text: t.text, category: t.category, dueDate: t.dueDate, createdAt: t.createdAt, _src: 'todo' })),
+    ...(state.focusItems || []).filter(f => !f.done).map(f => ({ id: f.id, text: f.text, category: f.category, dueDate: f.dueDate, createdAt: f.taskCreatedAt || f.createdDate, _src: 'focus' }))
+  ];
+  const t = new Date(today + 'T00:00:00');
+  const addDays = (n) => { const x = new Date(t); x.setDate(x.getDate() + n); return dateKey(x); };
+  const tomorrow = addDays(1);
+  const dow = t.getDay();                       // 0=Sun..6=Sat
+  const endOfWeek = addDays(dow === 0 ? 0 : 7 - dow);   // Sunday
+  const endOfMonth = dateKey(new Date(t.getFullYear(), t.getMonth() + 1, 0));
+
+  const buckets = { overdue: [], today: [], tomorrow: [], week: [], month: [], later: [], none: [] };
+  tasks.forEach(task => {
+    const d = task.dueDate;
+    if (!d) buckets.none.push(task);
+    else if (d < today) buckets.overdue.push(task);
+    else if (d === today) buckets.today.push(task);
+    else if (d === tomorrow) buckets.tomorrow.push(task);
+    else if (d <= endOfWeek) buckets.week.push(task);
+    else if (d <= endOfMonth) buckets.month.push(task);
+    else buckets.later.push(task);
+  });
+  const sortByDue = (a, b) => (a.dueDate || '').localeCompare(b.dueDate || '') || (a.createdAt || '').localeCompare(b.createdAt || '');
+  Object.values(buckets).forEach(b => b.sort(sortByDue));
+
+  const sections = [
+    ['overdue', '⚠ Overdue', 'var(--danger)'],
+    ['today', 'Today', 'var(--accent)'],
+    ['tomorrow', 'Tomorrow', 'var(--text)'],
+    ['week', 'This week', 'var(--text)'],
+    ['month', 'This month', 'var(--text)'],
+    ['later', 'Later', 'var(--text3)'],
+    ['none', 'No due date', 'var(--text3)']
+  ];
+  let html = '', total = 0;
+  sections.forEach(([key, label, col]) => {
+    const items = buckets[key];
+    if (!items.length) return;
+    total += items.length;
+    html += `<div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${col};margin-bottom:8px">${label} · ${items.length}</div>
+      ${items.map(upcomingRowHTML).join('')}
+    </div>`;
+  });
+  if (!total) html = '<div class="focus-empty" style="padding:28px 0;text-align:center">Nothing scheduled yet — add due dates to your tasks to see them here.</div>';
+  el.innerHTML = html;
+}
+
 function renderToday() {
   const now = new Date();
   const hour = now.getHours();
@@ -2528,6 +2614,7 @@ function renderToday() {
   autoMoveDueTodos();   // surface any due-today/overdue tasks in Today's Focus
   renderFocusList();
   renderTodoList();
+  if (todayView === 'upcoming') renderUpcoming();
 
   const listEl = document.getElementById('today-habits-list');
   patchHabits(); // ensure all habits have days field before filtering
@@ -7588,7 +7675,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.69 · 03 Sep 2026 11:03 AM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.70 · 03 Sep 2026 3:11 PM AEST</div>
 
 </body>
 </html>
