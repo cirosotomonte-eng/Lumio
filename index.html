@@ -183,8 +183,11 @@ nav {
   .nav-btn svg { width: 22px; height: 22px; }
   .nav-btn.active { color: var(--text); background: var(--surface2); }
 
-  #user-bar, #update-banner { margin-left: 240px; }
-  #app { margin-left: 240px; margin-right: auto; max-width: 1040px; padding-bottom: 40px; }
+  /* Centre the 1040px content column in the space right of the 240px sidebar.
+     max() keeps it clear of the sidebar on narrower desktops. */
+  :root { --shell-left: max(240px, calc(240px + (100% - 1280px) / 2)); }
+  #user-bar, #update-banner { margin-left: var(--shell-left); }
+  #app { margin-left: var(--shell-left); margin-right: auto; max-width: 1040px; padding-bottom: 40px; }
 
   /* Two-column Today (Focus view) */
   #today-focus-view { columns: 2; column-gap: 22px; }
@@ -2033,7 +2036,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.74</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.75</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2048,9 +2051,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.74 · 03 Sep 2026 4:09 PM AEST';
-const BUILD_VERSION = 'v5.74';
-const BUILD_DISPLAY = '03 Sep 2026 4:09 PM AEST';
+const BUILD = 'v5.75 · 03 Sep 2026 4:24 PM AEST';
+const BUILD_VERSION = 'v5.75';
+const BUILD_DISPLAY = '03 Sep 2026 4:24 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -7712,7 +7715,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.74 · 03 Sep 2026 4:09 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.75 · 03 Sep 2026 4:24 PM AEST</div>
 
 </body>
 </html>
