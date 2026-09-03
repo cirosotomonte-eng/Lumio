@@ -192,13 +192,12 @@ nav {
   #today-focus-view > .stats-row { column-span: all; }
 }
 
-/* ═══ Large desktop (≥1200px): 3-column, 2-row Today grid with fixed-height scrolling cells ═══ */
+/* ═══ Large desktop (≥1200px): 3-column Today grid, rows sized by content ═══ */
 @media (min-width: 1200px) {
   #today-focus-view {
-    --trh: 460px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto var(--trh) var(--trh);
+    grid-template-rows: auto auto auto;
     gap: 16px;
     align-items: stretch;
   }
@@ -209,10 +208,11 @@ nav {
   #focus-card                     { grid-column: 2; grid-row: 2; }
   #todo-personal-card             { grid-column: 2; grid-row: 3; }
   #today-habits-card              { grid-column: 3; grid-row: 2 / 4; }
-  /* fixed-height cells scroll internally when content overflows */
+  /* cells size to their content - no internal scrollbars */
   #today-left-top, #todo-work-card, #focus-card, #todo-personal-card, #today-habits-card {
-    overflow-y: auto; min-height: 0;
+    overflow: visible; min-height: 0;
   }
+  #today-left-top { display: flex; flex-direction: column; }
   #today-left-top > .card { margin-bottom: 12px; }
   #today-left-top > .card:last-child { margin-bottom: 0; }
 }
@@ -229,7 +229,7 @@ nav {
 .page > .page-header { padding-top: 4px; }
 
 /* ── Pages ── */
-.today-view-toggle { display: flex; gap: 4px; background: var(--surface2); border-radius: 100px; padding: 4px; margin-bottom: 16px; }
+.today-view-toggle { display: flex; gap: 4px; background: var(--surface2); border-radius: 100px; padding: 4px; margin-bottom: 16px; max-width: 340px; }
 .tv-btn { flex: 1; border: none; background: none; padding: 8px; border-radius: 100px; font-size: 13px; font-weight: 600; color: var(--text3); cursor: pointer; font-family: inherit; transition: all 0.15s; }
 .tv-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 .page { display: none; padding: 0 16px; }
@@ -927,10 +927,10 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 .signout-btn:hover { color: var(--danger); }
 /* ── Pomodoro ── */
 .pomo-card { overflow: hidden; }
-.pomo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.pomo-mode-pills { display: flex; gap: 4px; }
+.pomo-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.pomo-mode-pills { display: flex; gap: 4px; flex-wrap: wrap; }
 .pomo-mode-pill {
-  font-size: 11px; padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; padding: 3px 10px; border-radius: 100px; white-space: nowrap;
   border: 0.5px solid var(--border2); background: var(--surface2);
   color: var(--text3); cursor: pointer; font-family: inherit;
   transition: all 0.15s;
@@ -2033,7 +2033,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.74</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2048,9 +2048,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.73 · 03 Sep 2026 3:53 PM AEST';
-const BUILD_VERSION = 'v5.73';
-const BUILD_DISPLAY = '03 Sep 2026 3:53 PM AEST';
+const BUILD = 'v5.74 · 03 Sep 2026 4:09 PM AEST';
+const BUILD_VERSION = 'v5.74';
+const BUILD_DISPLAY = '03 Sep 2026 4:09 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -7712,7 +7712,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.73 · 03 Sep 2026 3:53 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.74 · 03 Sep 2026 4:09 PM AEST</div>
 
 </body>
 </html>
