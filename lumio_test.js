@@ -236,6 +236,67 @@ if (sandbox._normRecipeName) {
   check('normName lowercases + trims punctuation', N('6-ingredient Turkey Nourish Bowl!') === '6 ingredient turkey nourish bowl');
 }
 
+// ── Layer 5: desktop Today layout (added v5.74-v5.76) ──────────────────
+// Context: the >=1200px Today grid was rebuilt so cards size to their content
+// instead of scrolling inside fixed 460px rows. These checks pin the pieces
+// that broke, or nearly broke, during that rebuild.
+
+const desktopBlock = (html.match(/@media \(min-width: 1200px\)\s*\{[\s\S]*?\n\}/) || [''])[0];
+const gridCellRule = /#today-left-top, #todo-work-card, #focus-card, #todo-personal-card, #today-habits-card \{([^}]*)\}/;
+const gridCellDecls = (html.match(gridCellRule) || ['',''])[1];
+
+check('>=1200px Today block present', desktopBlock.length > 0);
+check('Today rows auto-sized, not fixed height', /grid-template-rows:\s*auto auto auto/.test(desktopBlock));
+check('no --trh fixed row variable remains', !/--trh/.test(html));
+check('Today cells do not scroll internally', !/overflow-y:\s*auto/.test(gridCellDecls));
+
+// THE v5.75 REGRESSION. Swapping overflow-y:auto for overflow:visible removed
+// the scroll container, so each grid item's automatic minimum size reverted to
+// its min-content width. One pasted URL then set the floor for a whole column,
+// pushed the grid past #app's 1040px cap, and produced a page-level horizontal
+// scrollbar. min-width:0 restores the zero floor. Do not remove it.
+check('grid cells declare min-width: 0 (horizontal overflow guard)', /min-width:\s*0/.test(gridCellDecls));
+
+// Second half of the same guard: min-width:0 lets the column shrink, but long
+// unbreakable text still needs somewhere to go.
+const focusTextRule = (html.match(/\.focus-item-text \{([^}]*)\}/) || ['',''])[1];
+check('focus item text breaks long strings', /overflow-wrap:\s*anywhere/.test(focusTextRule));
+check('focus item text can shrink', /min-width:\s*0/.test(focusTextRule));
+check('pasted URLs still truncate with ellipsis', (html.match(/white-space:nowrap;overflow:hidden;text-overflow:ellipsis/g) || []).length >= 2);
+
+// Grid placement must survive edits to the block above it.
+['#today-left-top', '#todo-work-card', '#focus-card', '#todo-personal-card', '#today-habits-card']
+  .forEach(id => check(`grid placement kept for ${id}`, new RegExp(id + '\\s+\\{?[^\\n]*grid-column').test(desktopBlock)));
+
+// Shell centring (v5.75) and the widths it depends on.
+check('shell offset variable defined', /--shell-left: max\(240px, calc\(240px \+ \(100% - 1280px\) \/ 2\)\)/.test(html));
+check('#app uses the shell offset, not a hardcoded left pin', /#app \{ margin-left: var\(--shell-left\)/.test(html) && !/#app \{ margin-left: 240px/.test(html));
+check('user bar tracks the same offset', /#user-bar, #update-banner \{ margin-left: var\(--shell-left\); \}/.test(html));
+check('1040px content cap retained', /#app \{ margin-left: var\(--shell-left\); margin-right: auto; max-width: 1040px/.test(html));
+check('view toggle width capped', /\.today-view-toggle \{[^}]*max-width: 340px/.test(html));
+
+// Pomodoro header collided with its mode pills in a ~336px column (v5.74).
+check('pomo header wraps instead of colliding', /\.pomo-header \{[^}]*flex-wrap: wrap/.test(html));
+check('pomo pills do not break mid-label', /\.pomo-mode-pill \{[^}]*white-space: nowrap/.test(html));
+
+// ── Layer 6: auth is sacred ────────────────────────────────────────────
+check('no auth bypass flag', !/(AUTH_DISABLED|SKIP_AUTH|BYPASS_AUTH)\s*=\s*true/.test(html));
+check('session token persistence retained', /localStorage/.test(html));
+
+// ── Layer 7: build stamp consistent across all three locations ─────────
+const _bv = (html.match(/const BUILD_VERSION = '([^']+)'/) || [])[1];
+const _bd = (html.match(/const BUILD_DISPLAY = '([^']+)'/) || [])[1];
+const _bb = (html.match(/const BUILD = '([^']+)'/) || [])[1];
+check('BUILD combines version + display', _bb === `${_bv} · ${_bd}`);
+check('footer stamp matches constants', html.includes(`Lumio ${_bv} · ${_bd}</div>`));
+check('settings stamp matches version', html.includes(`id="settings-version-num">Lumio ${_bv}<`));
+
+// ── Known ceiling ──────────────────────────────────────────────────────
+// These are static assertions against source text. They prove a declaration is
+// present; they cannot prove the page lays out. v5.75 passed every check in
+// this file and still shipped a horizontal scrollbar. Catching that class of
+// bug needs a headless browser measuring scrollWidth against clientWidth.
+
 // ── Report ─────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed (${pass+fail} total)\n`);
 if (fail) {
