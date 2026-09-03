@@ -192,6 +192,31 @@ nav {
   #today-focus-view > .stats-row { column-span: all; }
 }
 
+/* ═══ Large desktop (≥1200px): 3-column, 2-row Today grid with fixed-height scrolling cells ═══ */
+@media (min-width: 1200px) {
+  #today-focus-view {
+    --trh: 460px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto var(--trh) var(--trh);
+    gap: 16px;
+    align-items: stretch;
+  }
+  #today-focus-view > * { margin-bottom: 0 !important; }
+  #today-focus-view > .stats-row  { grid-column: 1 / -1; grid-row: 1; }
+  #today-left-top                 { grid-column: 1; grid-row: 2; }
+  #todo-work-card                 { grid-column: 1; grid-row: 3; }
+  #focus-card                     { grid-column: 2; grid-row: 2; }
+  #todo-personal-card             { grid-column: 2; grid-row: 3; }
+  #today-habits-card              { grid-column: 3; grid-row: 2 / 4; }
+  /* fixed-height cells scroll internally when content overflows */
+  #today-left-top, #todo-work-card, #focus-card, #todo-personal-card, #today-habits-card {
+    overflow-y: auto; min-height: 0;
+  }
+  #today-left-top > .card { margin-bottom: 12px; }
+  #today-left-top > .card:last-child { margin-bottom: 0; }
+}
+
 /* ── Global sticky header (all tabs) ── */
 #app-header {
   position: sticky; top: 0; z-index: 50;
@@ -1341,6 +1366,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div id="drag-ghost"></div>
 
+    <div id="today-left-top">
     <div class="card pomo-card">
       <div class="pomo-header">
         <div class="card-label" style="margin-bottom:0">Pomodoro</div>
@@ -1426,14 +1452,6 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="card">
       <div class="flex-between mb-12">
-        <div class="card-label" style="margin-bottom:0">Today's habits</div>
-        <button class="btn btn-sm" onclick="showPage('habits')">All habits</button>
-      </div>
-      <div id="today-habits-list"></div>
-    </div>
-
-    <div class="card">
-      <div class="flex-between mb-12">
         <div class="card-label" style="margin-bottom:0">Quick reflection</div>
       </div>
       <div class="form-group">
@@ -1445,6 +1463,15 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
         <textarea id="reflect-improve" rows="2" placeholder="e.g. Speak up earlier in the standup…"></textarea>
       </div>
       <button class="btn btn-accent" onclick="saveReflection()">Save reflection</button>
+    </div>
+    </div><!-- /today-left-top -->
+
+    <div class="card" id="today-habits-card">
+      <div class="flex-between mb-12">
+        <div class="card-label" style="margin-bottom:0">Today's habits</div>
+        <button class="btn btn-sm" onclick="showPage('habits')">All habits</button>
+      </div>
+      <div id="today-habits-list"></div>
     </div>
     </div><!-- /today-focus-view -->
     <div id="today-upcoming-view" style="display:none"></div>
@@ -2007,7 +2034,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 
     <div class="settings-version">
       <div class="settings-version-num" id="settings-version-num">Lumio v5.24</div>
-      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:23 PM AEST</div>
+      <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
       </button>
@@ -2021,9 +2048,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.72 · 03 Sep 2026 3:23 PM AEST';
-const BUILD_VERSION = 'v5.72';
-const BUILD_DISPLAY = '03 Sep 2026 3:23 PM AEST';
+const BUILD = 'v5.73 · 03 Sep 2026 3:53 PM AEST';
+const BUILD_VERSION = 'v5.73';
+const BUILD_DISPLAY = '03 Sep 2026 3:53 PM AEST';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -7685,7 +7712,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.72 · 03 Sep 2026 3:23 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.73 · 03 Sep 2026 3:53 PM AEST</div>
 
 </body>
 </html>
