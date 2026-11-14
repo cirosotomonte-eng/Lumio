@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.77</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.78</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.77 · 14 Nov 2026 9:24 PM AEDT';
-const BUILD_VERSION = 'v5.77';
-const BUILD_DISPLAY = '14 Nov 2026 9:24 PM AEDT';
+const BUILD = 'v5.78 · 14 Nov 2026 9:57 PM AEDT';
+const BUILD_VERSION = 'v5.78';
+const BUILD_DISPLAY = '14 Nov 2026 9:57 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -5578,7 +5578,7 @@ function buildShoppingListFromPlan() {
   });
   Object.keys(counts).forEach(rid => {
     const recipe = recipeById[rid];
-    const factor = counts[rid] / (recipe.baseServings || 1);
+    const factor = counts[rid] / recipeBase(recipe);
     const seen = new Set();
     (recipe.ingredients || []).forEach(ing => {
       const k = ing.trim().toLowerCase();
@@ -5796,6 +5796,26 @@ function migrateRecipeBaseServings() {
   return changed;
 }
 
+// A recipe exists in two places: state.food.savedRecipes, and a detached
+// snapshot inside state.food.weekPlan written when it is added to a day. Those
+// snapshots predate baseServings and never carry it, so reading the field
+// directly makes the plan and shopping list fall back to 1 and bill a whole
+// multi-serve recipe to a single day. Resolve the base at the point of use:
+// the stamped value if present, otherwise derived from the snapshot's own
+// method text, which every copy carries.
+function recipeBase(r) {
+  if (!r) return 1;
+  // The declared count in the method text is ground truth - it is Centr's own
+  // statement and travels with every copy. A stamped baseServings is only
+  // trusted when there is no method to read, because weekPlan snapshots carry
+  // stale stamps from the old self-heal era: in the 14 Nov export five
+  // snapshots were stamped and four disagreed with what the recipe declares,
+  // including the Turkey Nourish Bowl stamped 1 while its method says 2.
+  const method = r.method;
+  if (Array.isArray(method) && method.length) return deriveBaseServings(r);
+  return r.baseServings || 1;
+}
+
 function setRecipeMeal(idx, meal) {
   const r = (state.food.savedRecipes || [])[idx];
   if (!r) return;
@@ -5811,7 +5831,7 @@ function setRecipeMeal(idx, meal) {
 function setRecipeServings(idx, delta) {
   const r = (state.food.savedRecipes || [])[idx];
   if (!r) return;
-  const base = r.baseServings || 1;
+  const base = recipeBase(r);
   const cur = recipeServings[r.id] != null ? recipeServings[r.id] : base;
   const next = Math.max(1, Math.min(14, cur + delta));
   recipeServings[r.id] = next;
@@ -5932,7 +5952,7 @@ function renderSavedRecipes() {
   const savedCardHTML = (recipe, i) => {
     const bodyId = `saved-recipe-${i}`;
     const isNote = (recipe.suitableFor && recipe.suitableFor.length === 0) || (recipe.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE');
-    const base = recipe.baseServings || 1;
+    const base = recipeBase(recipe);
     const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
     const factor = servings / base;
     const tags = (recipe.tags || []).map(t => `<span class="meal-tag ${t.toLowerCase()}">${t}</span>`).join('');
@@ -6054,7 +6074,7 @@ function renderSavedRecipes() {
 function addRecipeToShopping(idx) {
   const recipe = (state.food.savedRecipes || [])[idx];
   if (!recipe) return;
-  const base = recipe.baseServings || 1;
+  const base = recipeBase(recipe);
   const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
   const factor = servings / base;
   if (!state.food.shoppingExtra) state.food.shoppingExtra = [];
@@ -7744,7 +7764,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.77 · 14 Nov 2026 9:24 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.78 · 14 Nov 2026 9:57 PM AEDT</div>
 
 </body>
 </html>

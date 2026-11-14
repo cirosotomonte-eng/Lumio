@@ -345,6 +345,50 @@ if (sandbox.formatIngredient) {
   check('single-serve recipe unscaled at default', F('3 large eggs', 1 / 1) === '3 large eggs');
 }
 
+// ── Layer 9: week-plan / shopping-list base resolution (added v5.78) ───
+// v5.77 stamped baseServings onto savedRecipes only. weekPlan holds a detached
+// snapshot of each recipe with no baseServings at all, so the shopping list fell
+// back to 1 and billed a whole multi-serve recipe to a single day.
+
+check('recipeBase() helper exists', /function recipeBase\s*\(/.test(html));
+// The single permitted fallback lives inside recipeBase() itself, for recipes
+// with no method text. Call sites must not reimplement it.
+check('only recipeBase() falls back to a raw baseServings', (html.match(/baseServings \|\| 1/g) || []).length === 1);
+check('shopping list resolves base via helper', /counts\[rid\] \/ recipeBase\(recipe\)/.test(html));
+check('saved card resolves base via helper', /const base = recipeBase\(recipe\);/.test(html));
+check('stepper resolves base via helper', /const base = recipeBase\(r\);/.test(html));
+
+const rb = extractFn('recipeBase', mainScript);
+const dv = extractFn('deriveBaseServings', mainScript);
+if (!rb || !dv) { check('recipeBase extractable', false); }
+else {
+  const B = new Function(dv + '\n' + rb + '\nreturn recipeBase;')();
+  // A weekPlan snapshot: carries method, never carries baseServings.
+  const snap = (...lines) => ({ name: 'snap', method: lines });
+  check('base: weekPlan snapshot derives 2 from its method', B(snap('based on 2 servings', 'Cook.')) === 2);
+  check('base: weekPlan snapshot derives 3 portions', B(snap('Makes 3 portions.')) === 3);
+  check('base: unmarked snapshot is 1', B(snap('Toast the bread.')) === 1);
+  // Precedence is deliberate: the declared marker beats a stamped value, because
+  // weekPlan snapshots carry stale stamps that contradict the recipe (four of
+  // five stamped snapshots in the 14 Nov export did). A stamp is only used when
+  // there is no method text to read.
+  check('base: declared marker beats a stale stamp', B({ baseServings: 1, method: ['based on 2 servings'] }) === 2);
+  check('base: unmarked method beats a stale stamp of 2', B({ baseServings: 2, method: ['Poach the eggs.'] }) === 1);
+  check('base: stamp used when there is no method', B({ baseServings: 3 }) === 3);
+  check('base: stamp used when method is empty', B({ baseServings: 4, method: [] }) === 4);
+  check('base: null recipe is 1', B(null) === 1);
+  check('base: no method and no stamp is 1', B({ name: 'bare' }) === 1);
+}
+
+// The arithmetic the shopping list performs: factor = days planned / base.
+if (sandbox.formatIngredient) {
+  const F = sandbox.formatIngredient;
+  const base = 2; // turkey bowl, declared "based on 2 servings"
+  check('plan: 2-serve recipe on 1 day buys half', F('16 oz ground turkey', 1 / base) === '230 g ground turkey');
+  check('plan: 2-serve recipe on 2 days buys the full amount', F('16 oz ground turkey', 2 / base) === '455 g ground turkey');
+  check('plan: 2-serve recipe on 4 days buys double', F('16 oz ground turkey', 4 / base) === '910 g ground turkey');
+}
+
 // ── Report ─────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed (${pass+fail} total)\n`);
 if (fail) {
