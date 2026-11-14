@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.76</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.77</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.76 · 03 Sep 2026 4:29 PM AEST';
-const BUILD_VERSION = 'v5.76';
-const BUILD_DISPLAY = '03 Sep 2026 4:29 PM AEST';
+const BUILD = 'v5.77 · 14 Nov 2026 9:24 PM AEDT';
+const BUILD_VERSION = 'v5.77';
+const BUILD_DISPLAY = '14 Nov 2026 9:24 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -5764,7 +5764,37 @@ function formatIngredient(raw, factor) { return scaleMetric(convertToMetric(raw)
 function scaleIngredient(str, factor) { return formatIngredient(str, factor); }
 
 let recipeServings = {}; // recipeId -> chosen servings for display
-const DEFAULT_RECIPE_SERVINGS = 2; // Centr recipes are shown for 2 servings by default (data is 1-serving, so ×2)
+
+// A recipe's ingredient quantities are written for a specific number of servings,
+// and Centr states that number as the first line of the method ("based on 2
+// servings", "makes 3 portions"). That count is per-recipe data, not a constant:
+// of 48 saved recipes, 25 are written for 2, one for 3, two for 4, one for 5,
+// and 19 (breakfasts, smoothies, snacks) for 1. Treating them all as 1-serving
+// doubled every 2-serving recipe's quantities.
+const RECIPE_BASE_MIGRATION = 1;
+
+function deriveBaseServings(recipe) {
+  const text = ((recipe && recipe.method) || []).join(' ');
+  const m = text.match(/based on (\d+) servings?|makes (\d+) portions?|serves (\d+)/i);
+  if (!m) return 1;
+  const n = parseInt(m[1] || m[2] || m[3], 10);
+  return (n >= 1 && n <= 14) ? n : 1;
+}
+
+// One-time: stamp each saved recipe with the base it declares. Guarded by a
+// version flag so it does not rewrite state on every render.
+function migrateRecipeBaseServings() {
+  if (!state.food) return false;
+  if ((state.food.recipeBaseMigration || 0) >= RECIPE_BASE_MIGRATION) return false;
+  let changed = false;
+  (state.food.savedRecipes || []).forEach(r => {
+    const derived = deriveBaseServings(r);
+    if (r.baseServings !== derived) { r.baseServings = derived; changed = true; }
+  });
+  state.food.recipeBaseMigration = RECIPE_BASE_MIGRATION;
+  saveToSupabase();
+  return changed;
+}
 
 function setRecipeMeal(idx, meal) {
   const r = (state.food.savedRecipes || [])[idx];
@@ -5890,14 +5920,10 @@ function renderSavedRecipes() {
   if (!state.food) return;
   backfillRecipeImages();
   const saved = state.food.savedRecipes || [];
-  // Centr recipe pages list ingredients "based on 1 serving", so every recipe's
-  // base is 1 serving. (The old hardcoded 2/3 map treated 1-serving amounts as
-  // 2- or 3-serving, which halved/thirded the displayed quantities.)
-  let _healed = false;
-  saved.forEach(r => {
-    if (r.baseServings !== 1) { r.baseServings = 1; _healed = true; }
-  });
-  if (_healed) saveToSupabase();
+  // Each recipe keeps the base it declares - see migrateRecipeBaseServings().
+  // Do NOT reintroduce a blanket baseServings = 1 here: it overwrites the real
+  // per-recipe value and silently doubles every 2-serving recipe.
+  migrateRecipeBaseServings();
   const el = document.getElementById('food-saved-recipes');
   if (!saved.length) {
     el.innerHTML = '<div class="meal-empty">No saved recipes yet — save one from Suggestions.</div>';
@@ -5907,7 +5933,7 @@ function renderSavedRecipes() {
     const bodyId = `saved-recipe-${i}`;
     const isNote = (recipe.suitableFor && recipe.suitableFor.length === 0) || (recipe.tags||[]).map(t=>t.toUpperCase()).includes('REFERENCE');
     const base = recipe.baseServings || 1;
-    const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : DEFAULT_RECIPE_SERVINGS;
+    const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
     const factor = servings / base;
     const tags = (recipe.tags || []).map(t => `<span class="meal-tag ${t.toLowerCase()}">${t}</span>`).join('');
     const isNew = recipe.savedAt && (Date.now() - recipe.savedAt) < 5*86400000;
@@ -6029,7 +6055,7 @@ function addRecipeToShopping(idx) {
   const recipe = (state.food.savedRecipes || [])[idx];
   if (!recipe) return;
   const base = recipe.baseServings || 1;
-  const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : DEFAULT_RECIPE_SERVINGS;
+  const servings = recipeServings[recipe.id] != null ? recipeServings[recipe.id] : base;
   const factor = servings / base;
   if (!state.food.shoppingExtra) state.food.shoppingExtra = [];
   const mealEmoji = { breakfast:'🌅', lunch:'☀️', snack:'🥤', dinner:'🌙', dessert:'🍨' };
@@ -7718,7 +7744,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.76 · 03 Sep 2026 4:29 PM AEST</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.77 · 14 Nov 2026 9:24 PM AEDT</div>
 
 </body>
 </html>

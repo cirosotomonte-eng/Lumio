@@ -86,10 +86,14 @@ check('single-slot skip logic present', /if \(list\.length > 0\) continue/.test(
 check('complete delete removes from planned days', /function removeSavedRecipe/.test(mainScript) && /Remove from every planned day/.test(mainScript));
 check('adding to a day auto-adds to shopping', /recipe\.addedToShop = true; \/\/ adding to a day/.test(mainScript));
 check('servings adjustable from day card', /function spreadRecipeAdjust/.test(mainScript) && /function countRecipeSpread/.test(mainScript));
-check('recipes base to 1 serving (Centr pages are 1-serving)', /if \(r\.baseServings !== 1\) \{ r\.baseServings = 1;/.test(mainScript) && !/'saved-cottage-pie':3/.test(mainScript));
+// Superseded at v5.77: this asserted the blanket baseServings = 1 self-heal,
+// which was the bug. Per-recipe bases are covered in Layer 8.
+check('no hardcoded per-recipe servings map', !/'saved-cottage-pie':3/.test(mainScript));
 check('fraction formatter present', /function _fmtNum/.test(mainScript));
 check('day card shows recipe image', /const imgSrc = recipeImage\(recipe\);/.test(mainScript) && /meal-card-banner/.test(mainScript));
-check('recipes default to 2-serving display', /const DEFAULT_RECIPE_SERVINGS = 2/.test(mainScript) && /: DEFAULT_RECIPE_SERVINGS;/.test(mainScript));
+// Superseded at v5.77: the display default is now each recipe's own base, not a
+// global 2. See Layer 8.
+check('recipe servings stepper present', /function setRecipeServings/.test(mainScript));
 check('suggestions show 2-serving ingredients', /formatIngredient\(ing,2\)/.test(mainScript));
 check('shopping combines shared ingredients', /function combineIngredientParts/.test(mainScript) && /function normalizeIngredientName/.test(mainScript));
 check('pomodoro alarm volume 0.5 + vibration', /linearRampToValueAtTime\(0\.5,/.test(mainScript) && /navigator\.vibrate\(\[250, 120, 250\]\)/.test(mainScript));
@@ -296,6 +300,50 @@ check('settings stamp matches version', html.includes(`id="settings-version-num"
 // present; they cannot prove the page lays out. v5.75 passed every check in
 // this file and still shipped a horizontal scrollbar. Catching that class of
 // bug needs a headless browser measuring scrollWidth against clientWidth.
+
+// ── Layer 8: per-recipe baseServings (added v5.77) ─────────────────────
+// Bug: a self-heal forced every saved recipe's baseServings to 1, on the
+// assumption that Centr lists ingredients per single serving. It doesn't — the
+// count is stated as the first method line ("based on 2 servings"). Of 48 saved
+// recipes, 25 declare 2, one 3, two 4, one 5, and 19 declare nothing (1).
+// Forcing 1 doubled every 2-serving recipe's displayed quantities.
+
+check('blanket baseServings self-heal removed', !/baseServings !== 1/.test(html));
+check('DEFAULT_RECIPE_SERVINGS constant removed', !/DEFAULT_RECIPE_SERVINGS/.test(html));
+check('deriveBaseServings() exists', /function deriveBaseServings\s*\(/.test(html));
+check('migrateRecipeBaseServings() exists', /function migrateRecipeBaseServings\s*\(/.test(html));
+check('migration is version-guarded', /recipeBaseMigration \|\| 0\) >= RECIPE_BASE_MIGRATION/.test(html));
+check('migration runs from renderSavedRecipes', /migrateRecipeBaseServings\(\);/.test(html));
+check('stepper defaults to the recipe base', !/recipeServings\[recipe\.id\] != null \? recipeServings\[recipe\.id\] : \d/.test(html));
+
+const derive = extractFn('deriveBaseServings', mainScript);
+if (!derive) { check('deriveBaseServings extractable', false); }
+else {
+  const D = new Function(derive + '\nreturn deriveBaseServings;')();
+  const m = (...lines) => ({ method: lines });
+  // Real markers taken verbatim from the 14 Nov export.
+  check('derive: "based on 2 servings" -> 2', D(m('based on 2 servings', 'Heat a skillet.')) === 2);
+  check('derive: "Makes 3 portions." -> 3', D(m('Makes 3 portions.')) === 3);
+  check('derive: "based on 4 servings" -> 4', D(m('based on 4 servings')) === 4);
+  check('derive: "based on 5 servings" -> 5', D(m('based on 5 servings')) === 5);
+  check('derive: unmarked breakfast -> 1', D(m('Toast the bread.', 'Poach the eggs.')) === 1);
+  check('derive: no method at all -> 1', D({}) === 1);
+  check('derive: empty method -> 1', D(m()) === 1);
+  check('derive: case-insensitive', D(m('BASED ON 2 SERVINGS')) === 2);
+  check('derive: absurd count clamped to 1', D(m('based on 99 servings')) === 1);
+  check('derive: ignores unrelated numbers', D(m('Cook for 2 minutes, then rest 3 minutes.')) === 1);
+}
+
+// End-to-end: the turkey bowl is written for 2 servings. At the stepper's
+// default the quantity must equal what Centr printed, not double it.
+if (sandbox.formatIngredient) {
+  const F = sandbox.formatIngredient;
+  const base = 2, servings = 2;                 // default stepper === base
+  check('turkey at default servings stays 455 g', F('16 oz ground turkey', servings / base) === '455 g ground turkey');
+  check('turkey halved for one serving', F('16 oz ground turkey', 1 / base) === '230 g ground turkey');
+  check('turkey doubled for four servings', F('16 oz ground turkey', 4 / base) === '910 g ground turkey');
+  check('single-serve recipe unscaled at default', F('3 large eggs', 1 / 1) === '3 large eggs');
+}
 
 // ── Report ─────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed (${pass+fail} total)\n`);
