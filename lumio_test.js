@@ -389,6 +389,24 @@ if (sandbox.formatIngredient) {
   check('plan: 2-serve recipe on 4 days buys double', F('16 oz ground turkey', 4 / base) === '910 g ground turkey');
 }
 
+// ── Layer 10: day-card servings (added v5.79) ──────────────────────────
+// The week-plan day card rendered ingredients with a hardcoded factor of 1, so
+// it printed the full multi-serve quantities under a "Per serving" heading.
+// A day card is one serving of the recipe.
+
+check('day card scales by 1/recipeBase', /const dayFactor = 1 \/ recipeBase\(recipe\);/.test(html));
+check('day card uses dayFactor, not a hardcoded 1', /formatIngredient\(ing, dayFactor\)/.test(html));
+check('no hardcoded formatIngredient(ing,1) remains', !/formatIngredient\(ing,\s*1\)/.test(html));
+check('day card labels its serving count', /Ingredients \(1 serving\)/.test(html));
+
+if (sandbox.formatIngredient) {
+  const F = sandbox.formatIngredient;
+  // Turkey bowl declares 2 servings; one day card must show half.
+  check('day card: 2-serve turkey shows 230 g', F('16 oz ground turkey', 1 / 2) === '230 g ground turkey');
+  check('day card: 3-serve recipe shows a third', F('15 oz beef', 1 / 3) === '140 g beef');
+  check('day card: 1-serve recipe is unchanged', F('3 large eggs', 1 / 1) === '3 large eggs');
+}
+
 // ── Report ─────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed (${pass+fail} total)\n`);
 if (fail) {

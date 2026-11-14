@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.78</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.79</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.78 · 14 Nov 2026 9:57 PM AEDT';
-const BUILD_VERSION = 'v5.78';
-const BUILD_DISPLAY = '14 Nov 2026 9:57 PM AEDT';
+const BUILD = 'v5.79 · 14 Nov 2026 10:07 PM AEDT';
+const BUILD_VERSION = 'v5.79';
+const BUILD_DISPLAY = '14 Nov 2026 10:07 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -5366,8 +5366,12 @@ function foodMealCardHTML(recipe, m, dk) {
 
   // Highlight ingredients
   const lactoKw = ['milk','cream','butter','cheese','yogh','whey','ricotta','custard','condensed'];
+  // One day card is one serving, but recipe.ingredients is written for
+  // recipeBase(recipe) servings. Scaling by a hardcoded 1 printed the full
+  // multi-serve quantities under a "Per serving" heading.
+  const dayFactor = 1 / recipeBase(recipe);
   const ingredients = (recipe.ingredients || []).map(ing => {
-    const shown = formatIngredient(ing,1);
+    const shown = formatIngredient(ing, dayFactor);
     const il = ing.toLowerCase();
     const isAvoid = avoidList.some(a => il.includes(a));
     const isLactose = hasLactose && foodContainsAny(il, lactoKw);
@@ -5437,7 +5441,7 @@ function foodMealCardHTML(recipe, m, dk) {
         </div>
       </div>
       ${nutritionHtml}
-      ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients</div>${ingredients}</div>` : ''}
+      ${ingredients ? `<div class="meal-ingredients"><div class="meal-ingredients-title">Ingredients (1 serving)</div>${ingredients}</div>` : ''}
       ${method ? `<div style="margin-top:12px"><div class="meal-method-title">Method</div>${method}</div>` : ''}
       ${shopBtnHtml}
     </div>
@@ -7764,7 +7768,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.78 · 14 Nov 2026 9:57 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.79 · 14 Nov 2026 10:07 PM AEDT</div>
 
 </body>
 </html>
