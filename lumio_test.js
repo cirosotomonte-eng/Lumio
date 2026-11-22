@@ -448,7 +448,8 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
   check('sweet chilli pork present', !!pork);
   if (pork) {
     check('pork: written for 2 servings', derive(pork) === 2);
-    check('pork: 727 kcal (3040 kJ), 35.9 g protein per serving', pork.calories === 727 && pork.protein === 35.9);
+    check('pork: 726 kcal, 35.9 g protein per serving', pork.calories === 726 && pork.protein === 35.9);
+    check('pork: 2 tsp soy sauce, 3 tbsp water (card close-up)', pork.ingredients.includes('2 tsp soy sauce') && pork.ingredients.includes('3 tbsp water'));
     check('pork: 250 g pork mince for 2', pork.ingredients.includes('250 g pork mince'));
     check('pork: has its photo', pork.scrapedImageUrl === 'img/hf-sweet-chilli-pork-stir-fry.jpg');
   }
