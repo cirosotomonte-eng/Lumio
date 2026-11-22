@@ -457,7 +457,8 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
   check('pesto-Parmesan chicken present', !!chick);
   if (chick) {
     check('chicken: written for 2 servings', derive(chick) === 2);
-    check('chicken: 684 kcal (2860 kJ), 50.1 g protein per serving', chick.calories === 684 && chick.protein === 50.1);
+    check('chicken: 683 kcal, 50.1 g protein per serving', chick.calories === 683 && chick.protein === 50.1);
+    check('chicken: ½ tsp honey (card close-up)', chick.ingredients.includes('½ tsp honey'));
     check('chicken: 330 g chicken breast for 2', chick.ingredients.includes('330 g chicken breast'));
     check('chicken: has its photo', chick.scrapedImageUrl === 'img/hf-pesto-parmesan-chicken.jpg');
   }
