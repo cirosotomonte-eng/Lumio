@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.82</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.83</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.82 · 22 Nov 2026 8:44 PM AEDT';
-const BUILD_VERSION = 'v5.82';
-const BUILD_DISPLAY = '22 Nov 2026 8:44 PM AEDT';
+const BUILD = 'v5.83 · 22 Nov 2026 8:50 PM AEDT';
+const BUILD_VERSION = 'v5.83';
+const BUILD_DISPLAY = '22 Nov 2026 8:50 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4598,6 +4598,38 @@ const MANUAL_SUGGESTIONS = [
       '<strong>Make the garlic croutons:</strong> Slice the bake-at-home ciabatta in half lengthways, then toast or grill it to your liking. In a medium microwave-safe bowl, microwave the garlic paste and butter in 10-second bursts until melted and fragrant. Season with salt and pepper. Roughly chop the toasted ciabatta, add it to the garlic butter and toss to coat.',
       '<strong>Bring it all together:</strong> Meanwhile, slice the kernels off the corn cob. In a large frying pan, heat a drizzle of olive oil over high heat. When hot, cook the beef strips in batches, tossing, until browned and cooked through, 1–2 minutes (cooking in batches over high heat keeps the meat tender). Transfer to a plate. Return the pan to high heat and cook the corn kernels until lightly browned, 4–5 minutes. Cover with a lid if the kernels start popping out.',
       '<strong>Finish & serve:</strong> In a large bowl, combine the dill & parsley mayonnaise and a drizzle of vinegar. Add the gourmet leaf mix, cucumber, snacking tomatoes, charred corn and garlic croutons, and toss to combine. Season with salt and pepper. Divide the herby mayo salad between bowls and top with the peri-peri beef.'
+    ]
+  },
+  {
+    id: 'hf-sweet-chilli-pork-stir-fry',
+    manual: true,
+    name: 'Sweet Chilli Pork Stir-Fry with Veggies & Peanut Rice',
+    meal: 'dinner',
+    calories: 727, protein: 35.9, carbs: 84, fat: 25.9, fiber: 7.6,
+    tags: ['HelloFresh', 'Taste of Thailand', 'Kid friendly', '20–30 mins'],
+    scrapedImageUrl: 'img/hf-sweet-chilli-pork-stir-fry.jpg',
+    ingredients: [
+      '250 g pork mince',
+      '1 packet basmati rice',
+      '1 zucchini',
+      '1 packet Asian greens',
+      '1 capsicum',
+      '1 packet mint',
+      '1 medium packet oyster sauce',
+      '1 packet sweet chilli sauce',
+      '2 tbsp soy sauce',
+      '3 tbsp water',
+      '1 packet ginger paste',
+      '1 packet crushed peanuts',
+      'olive oil, for cooking',
+      'salt, a pinch'
+    ],
+    method: [
+      'Based on 2 servings. Prep 20–30 mins · ready in 20–30 mins.',
+      '<strong>Cook the rice:</strong> Boil the kettle. Half-fill a medium saucepan with the boiling water. Add the basmati rice and a pinch of salt and cook, uncovered, over high heat until tender, 12 minutes. Drain.',
+      '<strong>Get prepped:</strong> Meanwhile, thinly slice the zucchini into half-moons. Roughly chop the Asian greens. Thinly slice the capsicum. Pick and thinly slice the mint leaves. In a small bowl, combine the oyster sauce, sweet chilli sauce, soy sauce and water. Set aside.',
+      '<strong>Cook the veggies & pork:</strong> In a large frying pan, heat a drizzle of olive oil over high heat. Cook the zucchini and capsicum, tossing, until tender, 3–4 minutes. Add the ginger paste and Asian greens and cook until fragrant and wilted, 1 minute. Transfer to a bowl and cover to keep warm. Return the pan to high heat with a drizzle of olive oil. Cook the pork mince, breaking it up with a spoon, until just browned, 4–5 minutes. Remove from the heat. Return the veggies to the pan, add the sweet chilli mixture and toss to combine.',
+      '<strong>Finish & serve:</strong> Stir the crushed peanuts through the rice. Divide the peanut rice between bowls, top with the sweet chilli pork stir-fry and garnish with mint.'
     ]
   }
 ];
@@ -7845,7 +7877,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.82 · 22 Nov 2026 8:44 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.83 · 22 Nov 2026 8:50 PM AEDT</div>
 
 </body>
 </html>

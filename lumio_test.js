@@ -444,6 +444,14 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
     check('peri-peri: 250 g beef strips for 2', peri.ingredients.includes('250 g beef strips'));
     check('peri-peri: has its photo', peri.scrapedImageUrl === 'img/hf-peri-peri-beef-salad.jpg');
   }
+  const pork = list.find(r => r.id === 'hf-sweet-chilli-pork-stir-fry');
+  check('sweet chilli pork present', !!pork);
+  if (pork) {
+    check('pork: written for 2 servings', derive(pork) === 2);
+    check('pork: 727 kcal (3040 kJ), 35.9 g protein per serving', pork.calories === 727 && pork.protein === 35.9);
+    check('pork: 250 g pork mince for 2', pork.ingredients.includes('250 g pork mince'));
+    check('pork: has its photo', pork.scrapedImageUrl === 'img/hf-sweet-chilli-pork-stir-fry.jpg');
+  }
 } catch (e) { fails.push('manual suggestions extraction: ' + e.message); fail++; }
 
 // ── Report ─────────────────────────────────────────────────────────────
