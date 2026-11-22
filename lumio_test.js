@@ -94,7 +94,9 @@ check('day card shows recipe image', /const imgSrc = recipeImage\(recipe\);/.tes
 // Superseded at v5.77: the display default is now each recipe's own base, not a
 // global 2. See Layer 8.
 check('recipe servings stepper present', /function setRecipeServings/.test(mainScript));
-check('suggestions show 2-serving ingredients', /formatIngredient\(ing,2\)/.test(mainScript));
+// Superseded at v5.80: scraped Centr suggestions still show at 2 servings, but
+// hand-added recipes show as written. See Layer 11.
+check('suggestions show 2-serving ingredients', /const sugFactor = r\.manual \? 1 : 2;/.test(mainScript) && /formatIngredient\(ing,sugFactor\)/.test(mainScript));
 check('shopping combines shared ingredients', /function combineIngredientParts/.test(mainScript) && /function normalizeIngredientName/.test(mainScript));
 check('pomodoro alarm volume 0.5 + vibration', /linearRampToValueAtTime\(0\.5,/.test(mainScript) && /navigator\.vibrate\(\[250, 120, 250\]\)/.test(mainScript));
 check('pomodoro cycle persists across reloads, resets on new day', /pomoCycle/.test(mainScript) && /state\.pomoCycle = \{ round: pomoState\.round, date: todayDateKey\(\) \}/.test(mainScript) && /state\.pomoCycle\.date === today/.test(mainScript));
@@ -406,6 +408,32 @@ if (sandbox.formatIngredient) {
   check('day card: 3-serve recipe shows a third', F('15 oz beef', 1 / 3) === '140 g beef');
   check('day card: 1-serve recipe is unchanged', F('3 large eggs', 1 / 1) === '3 large eggs');
 }
+
+// ── Layer 11: hand-added recipe suggestions (added v5.80) ──────────────
+// The Centr scraper stopped, so recipes transcribed from recipe cards live in
+// MANUAL_SUGGESTIONS and must appear in Suggestions even with no scraped pool.
+
+check('MANUAL_SUGGESTIONS list present', /const MANUAL_SUGGESTIONS = \[/.test(mainScript));
+check('suggestions render with no scraped pool', /if \(!hasPool && MANUAL_SUGGESTIONS\.length === 0\)/.test(mainScript) && /MANUAL_SUGGESTIONS\.forEach\(r =>/.test(mainScript));
+check('scraped pool only read when present', /if \(hasPool\) Object\.values\(pool\.weekPlan\)/.test(mainScript) && /hasPool && pool\.scrapedAt/.test(mainScript));
+try {
+  const block = mainScript.match(/const MANUAL_SUGGESTIONS = \[[\s\S]*?\n\];/);
+  const list = new Function(block[0] + '\nreturn MANUAL_SUGGESTIONS;')();
+  const derive = new Function(extractFn('deriveBaseServings', mainScript) + '\nreturn deriveBaseServings;')();
+  const ids = list.map(r => r.id);
+  check('manual suggestions: ids unique', new Set(ids).size === ids.length);
+  check('manual suggestions: all flagged manual', list.every(r => r.manual === true));
+  check('manual suggestions: every recipe complete', list.every(r => r.name && r.meal && r.calories > 0 && r.protein > 0 && r.ingredients.length > 0 && r.method.length > 1));
+  check('manual suggestions: every recipe declares its servings', list.every(r => /based on \d+ servings?|makes \d+ portions?|serves \d+/i.test(r.method[0])));
+  const beef = list.find(r => r.id === 'hf-seared-beef-rump-mexican-black-beans');
+  check('beef rump recipe present', !!beef);
+  if (beef) {
+    check('beef rump: written for 2 servings', derive(beef) === 2);
+    check('beef rump: 437 kcal, 49.4 g protein per serving', beef.calories === 437 && beef.protein === 49.4);
+    check('beef rump: 300 g beef for 2', beef.ingredients.includes('300 g beef rump'));
+    if (sandbox.formatIngredient) check('beef rump: card shows 300 g as written', sandbox.formatIngredient('300 g beef rump', 1) === '300 g beef rump');
+  }
+} catch (e) { fails.push('manual suggestions extraction: ' + e.message); fail++; }
 
 // ── Report ─────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed (${pass+fail} total)\n`);

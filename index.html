@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.79</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.80</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.79 · 14 Nov 2026 10:07 PM AEDT';
-const BUILD_VERSION = 'v5.79';
-const BUILD_DISPLAY = '14 Nov 2026 10:07 PM AEDT';
+const BUILD = 'v5.80 · 22 Nov 2026 8:34 PM AEDT';
+const BUILD_VERSION = 'v5.80';
+const BUILD_DISPLAY = '22 Nov 2026 8:34 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4534,18 +4534,58 @@ function switchFoodTab(tab, btn) {
   if (tab === 'suggest') renderSuggestions();
 }
 
+// Recipes transcribed by hand from recipe cards (HelloFresh, Centr screenshots).
+// The Centr scraper no longer runs, so these are the main source of Suggestions.
+// Each one is written for the servings its first method line states; the card
+// shows them as written (factor 1), unlike scraped Centr recipes (factor 2).
+// Tapping "Save to My Recipes" copies one into state.food.savedRecipes.
+const MANUAL_SUGGESTIONS = [
+  {
+    id: 'hf-seared-beef-rump-mexican-black-beans',
+    manual: true,
+    name: 'Seared Beef Rump & Mexican Black Beans with Zesty Tomato & Cucumber Salad',
+    meal: 'dinner',
+    calories: 437, protein: 49.4, carbs: 30.4, fat: 10.5, fiber: 13.4,
+    tags: ['HelloFresh', 'Protein rich', 'High fibre', '20–30 mins'],
+    ingredients: [
+      '300 g beef rump',
+      '1 tomato',
+      '1 cucumber',
+      '½ brown onion',
+      '2 garlic cloves',
+      '½ lemon',
+      '1 packet black beans',
+      '1 sachet Mexican Fiesta spice blend',
+      '1 packet mixed salad leaves',
+      'olive oil, for cooking and dressing',
+      'salt and pepper, to taste'
+    ],
+    method: [
+      'Based on 2 servings. Prep 10–20 mins · ready in 20–30 mins.',
+      '<strong>Cook the beef:</strong> Take the beef out of its packaging 15 minutes before cooking, then pat it dry with paper towel. Season with salt and pepper. Heat a drizzle of olive oil in a large frying pan over medium-high heat. When hot, cook the beef for 3–4 minutes each side for medium-rare, or until done to your liking (press it with tongs: soft is rare, springy is medium, firm is well-done). Transfer to a plate and rest for 5 minutes before slicing.',
+      '<strong>Get prepped:</strong> Meanwhile, roughly chop the tomato, cucumber and brown onion. Finely chop the garlic. Zest the lemon to get a pinch, then slice it into wedges. Drain and rinse the black beans.',
+      '<strong>Cook the beans:</strong> While the beef rests, wipe out the frying pan and return it to medium-high heat with a drizzle of olive oil. Cook the onion and black beans until tender, 4–5 minutes. Add the garlic and Mexican Fiesta spice blend (it is hot, so use less if you prefer) and cook until fragrant, 1 minute. Remove from the heat, add a splash of water and gently crush the beans with a potato masher or fork. Add another splash of water if they look dry.',
+      '<strong>Finish & serve:</strong> In a large bowl, combine the lemon zest, tomato, cucumber and mixed salad leaves with a generous squeeze of lemon juice and a drizzle of olive oil. Toss to coat and season with salt and pepper. Slice the beef. Divide the black beans, salad and beef between plates and serve with the remaining lemon wedges.'
+    ]
+  }
+];
+
 function renderSuggestions() {
   const el = document.getElementById('food-suggestions');
   if (!el) return;
   const pool = state.food && state.food.scrapedPool;
-  if (!pool || !pool.weekPlan || Object.keys(pool.weekPlan).length === 0) {
-    el.innerHTML = `<div class="food-no-plan"><div class="food-no-plan-emoji">🍽️</div><div class="food-no-plan-title">No suggestions yet</div><div class="food-no-plan-sub">The Centr scraper runs Thursday mornings and drops the week's recipes here for review.</div></div>`;
+  const hasPool = !!(pool && pool.weekPlan && Object.keys(pool.weekPlan).length > 0);
+  if (!hasPool && MANUAL_SUGGESTIONS.length === 0) {
+    el.innerHTML = `<div class="food-no-plan"><div class="food-no-plan-emoji">🍽️</div><div class="food-no-plan-title">No suggestions yet</div><div class="food-no-plan-sub">Recipes added from recipe cards show up here for review.</div></div>`;
     return;
   }
-  // Gather unique recipes from the pool
+  // Gather unique recipes: hand-added ones first, then the scraped pool
   const seen = {};
   const recipes = [];
-  Object.values(pool.weekPlan).forEach(meals => {
+  MANUAL_SUGGESTIONS.forEach(r => {
+    if (r && r.name && !seen[r.name]) { seen[r.name] = true; recipes.push({ ...r }); }
+  });
+  if (hasPool) Object.values(pool.weekPlan).forEach(meals => {
     Object.entries(meals).forEach(([mealType, r]) => {
       if (r && r.name && !seen[r.name]) {
         seen[r.name] = true;
@@ -4553,7 +4593,7 @@ function renderSuggestions() {
       }
     });
   });
-  const scrapedDate = pool.scrapedAt ? new Date(pool.scrapedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) : '';
+  const scrapedDate = hasPool && pool.scrapedAt ? new Date(pool.scrapedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) : '';
   window._currentSuggestions = recipes;
 
   const cardHTML = (r, idx) => {
@@ -4564,9 +4604,11 @@ function renderSuggestions() {
       const tags = (r.tags || []).join(' · ');
       const img = r.scrapedImageUrl || r.imageUrlFallback || '';
       const alreadySaved = isSuggestionSaved(r);
+      // Hand-added recipes are shown as written; scraped Centr ones at 2 servings.
+      const sugFactor = r.manual ? 1 : 2;
       const ingredients = (r.ingredients || []).map(ing => {
         const dairy = isDairyIngredient(ing);
-        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${formatIngredient(ing,2)}</div>`;
+        return `<div class="meal-ingredient" style="${dairy ? 'color:#856404' : ''}">${dairy ? '🥛 ' : ''}${formatIngredient(ing,sugFactor)}</div>`;
       }).join('');
       const method = (r.method || []).map((s, j) => `<div class="meal-method-step"><strong>${j+1}.</strong> ${s}</div>`).join('');
       const bodyId = `suggest-body-${idx}`;
@@ -4607,7 +4649,7 @@ function renderSuggestions() {
     const m = (r.meal || 'other').toLowerCase();
     (grouped[m] = grouped[m] || []).push(idx);
   });
-  let html = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${recipes.length} recipes · scraped ${scrapedDate}</div>`;
+  let html = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${recipes.length} recipe${recipes.length === 1 ? '' : 's'}${scrapedDate ? ` · scraped ${scrapedDate}` : ''}</div>`;
   sections.forEach(sec => {
     const idxs = grouped[sec.key];
     if (!idxs || !idxs.length) return;
@@ -7768,7 +7810,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.79 · 14 Nov 2026 10:07 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.80 · 22 Nov 2026 8:34 PM AEDT</div>
 
 </body>
 </html>
