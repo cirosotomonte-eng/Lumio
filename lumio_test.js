@@ -452,6 +452,14 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
     check('pork: 250 g pork mince for 2', pork.ingredients.includes('250 g pork mince'));
     check('pork: has its photo', pork.scrapedImageUrl === 'img/hf-sweet-chilli-pork-stir-fry.jpg');
   }
+  const chick = list.find(r => r.id === 'hf-baked-pesto-parmesan-crusted-chicken');
+  check('pesto-Parmesan chicken present', !!chick);
+  if (chick) {
+    check('chicken: written for 2 servings', derive(chick) === 2);
+    check('chicken: 684 kcal (2860 kJ), 50.1 g protein per serving', chick.calories === 684 && chick.protein === 50.1);
+    check('chicken: 330 g chicken breast for 2', chick.ingredients.includes('330 g chicken breast'));
+    check('chicken: has its photo', chick.scrapedImageUrl === 'img/hf-pesto-parmesan-chicken.jpg');
+  }
 } catch (e) { fails.push('manual suggestions extraction: ' + e.message); fail++; }
 
 // ── Report ─────────────────────────────────────────────────────────────

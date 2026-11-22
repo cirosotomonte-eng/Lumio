@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.83</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.84</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,8 +2054,8 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.83 · 22 Nov 2026 8:50 PM AEDT';
-const BUILD_VERSION = 'v5.83';
+const BUILD = 'v5.84 · 22 Nov 2026 8:50 PM AEDT';
+const BUILD_VERSION = 'v5.84';
 const BUILD_DISPLAY = '22 Nov 2026 8:50 PM AEDT';
 
 const PROXIES = [
@@ -4630,6 +4630,37 @@ const MANUAL_SUGGESTIONS = [
       '<strong>Get prepped:</strong> Meanwhile, thinly slice the zucchini into half-moons. Roughly chop the Asian greens. Thinly slice the capsicum. Pick and thinly slice the mint leaves. In a small bowl, combine the oyster sauce, sweet chilli sauce, soy sauce and water. Set aside.',
       '<strong>Cook the veggies & pork:</strong> In a large frying pan, heat a drizzle of olive oil over high heat. Cook the zucchini and capsicum, tossing, until tender, 3–4 minutes. Add the ginger paste and Asian greens and cook until fragrant and wilted, 1 minute. Transfer to a bowl and cover to keep warm. Return the pan to high heat with a drizzle of olive oil. Cook the pork mince, breaking it up with a spoon, until just browned, 4–5 minutes. Remove from the heat. Return the veggies to the pan, add the sweet chilli mixture and toss to combine.',
       '<strong>Finish & serve:</strong> Stir the crushed peanuts through the rice. Divide the peanut rice between bowls, top with the sweet chilli pork stir-fry and garnish with mint.'
+    ]
+  },
+  {
+    id: 'hf-baked-pesto-parmesan-crusted-chicken',
+    manual: true,
+    name: 'Baked Pesto-Parmesan Crusted Chicken with Roast Potato Chunks & Slaw',
+    meal: 'dinner',
+    calories: 684, protein: 50.1, carbs: 56.3, fat: 27.4, fiber: 11.8,
+    tags: ['HelloFresh', 'Highest rated', 'Kid friendly', 'Protein rich', 'Eat me early'],
+    scrapedImageUrl: 'img/hf-pesto-parmesan-chicken.jpg',
+    ingredients: [
+      '330 g chicken breast',
+      '1 packet Parmesan cheese',
+      '½ packet panko breadcrumbs',
+      '1 packet creamy pesto dressing',
+      '2 potatoes',
+      '1 carrot',
+      '½ red apple',
+      '½ tsp honey',
+      '1 packet mixed salad leaves',
+      '1 small packet slaw mix',
+      'vinegar (balsamic or white wine), a drizzle',
+      'olive oil, for cooking and dressing',
+      'salt and pepper, to taste'
+    ],
+    method: [
+      'Based on 2 servings. You will need two oven trays lined with baking paper.',
+      '<strong>Bake the chicken:</strong> Preheat the oven to 240°C (220°C fan-forced). In a medium bowl, combine the Parmesan, panko breadcrumbs and a pinch of salt. Set aside. Place the chicken breast on a lined oven tray, drizzle with olive oil and season generously with salt, turning to coat. Squeeze half the creamy pesto dressing onto the chicken and sprinkle over the panko-Parmesan mixture, gently pressing so it sticks. Drizzle with a little more olive oil. Bake until the crumb is golden and the chicken is cooked through (no longer pink inside), 14–18 minutes.',
+      '<strong>Roast the potato:</strong> Meanwhile, cut the potatoes into bite-sized chunks. Spread over a large microwave-safe plate, cover with a damp paper towel and microwave on high for 3 minutes. Drain any excess liquid, then place the potatoes on the second lined oven tray. Drizzle with olive oil, season with salt and toss to coat. Spread out evenly and roast until golden and tender, 10–15 minutes.',
+      '<strong>Make the salad:</strong> Meanwhile, grate the carrot and roughly chop the red apple. In a large bowl, combine the honey with a drizzle of vinegar and olive oil. Add the carrot, apple, mixed salad leaves and slaw mix and toss to combine. Season with salt and pepper.',
+      '<strong>Finish & serve:</strong> Slice the chicken. Divide the pesto-Parmesan crusted chicken, roast potato chunks and slaw between plates. Serve with the remaining creamy pesto dressing.'
     ]
   }
 ];
@@ -7877,7 +7908,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.83 · 22 Nov 2026 8:50 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.84 · 22 Nov 2026 8:50 PM AEDT</div>
 
 </body>
 </html>
