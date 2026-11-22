@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.81</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.82</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.81 · 22 Nov 2026 8:41 PM AEDT';
-const BUILD_VERSION = 'v5.81';
-const BUILD_DISPLAY = '22 Nov 2026 8:41 PM AEDT';
+const BUILD = 'v5.82 · 22 Nov 2026 8:44 PM AEDT';
+const BUILD_VERSION = 'v5.82';
+const BUILD_DISPLAY = '22 Nov 2026 8:44 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4567,6 +4567,37 @@ const MANUAL_SUGGESTIONS = [
       '<strong>Get prepped:</strong> Meanwhile, roughly chop the tomato, cucumber and brown onion. Finely chop the garlic. Zest the lemon to get a pinch, then slice it into wedges. Drain and rinse the black beans.',
       '<strong>Cook the beans:</strong> While the beef rests, wipe out the frying pan and return it to medium-high heat with a drizzle of olive oil. Cook the onion and black beans until tender, 4–5 minutes. Add the garlic and Mexican Fiesta spice blend (it is hot, so use less if you prefer) and cook until fragrant, 1 minute. Remove from the heat, add a splash of water and gently crush the beans with a potato masher or fork. Add another splash of water if they look dry.',
       '<strong>Finish & serve:</strong> In a large bowl, combine the lemon zest, tomato, cucumber and mixed salad leaves with a generous squeeze of lemon juice and a drizzle of olive oil. Toss to coat and season with salt and pepper. Slice the beef. Divide the black beans, salad and beef between plates and serve with the remaining lemon wedges.'
+    ]
+  },
+  {
+    id: 'hf-peri-peri-beef-herby-mayo-salad',
+    manual: true,
+    name: 'Peri-Peri Beef & Herby Mayo Salad with Ciabatta Croutons & Cherry Tomatoes',
+    meal: 'dinner',
+    calories: 784, protein: 45.9, carbs: 49.3, fat: 44.6, fiber: 9.9,
+    tags: ['HelloFresh', 'Highest rated', 'Salad'],
+    scrapedImageUrl: 'img/hf-peri-peri-beef-salad.jpg',
+    ingredients: [
+      '250 g beef strips',
+      '1 sachet peri-peri seasoning',
+      '1 cucumber',
+      '1 packet snacking tomatoes',
+      '1 bake-at-home ciabatta',
+      '1 packet garlic paste',
+      '20 g butter',
+      '½ corn cob',
+      '1 packet dill & parsley mayonnaise',
+      '1 packet gourmet leaf mix',
+      'vinegar (balsamic or white wine), a drizzle',
+      'olive oil, for cooking',
+      'salt and pepper, to taste'
+    ],
+    method: [
+      'Based on 2 servings.',
+      '<strong>Get prepped:</strong> Thinly slice the cucumber into half-moons. Halve the snacking tomatoes. In a medium bowl, combine the beef strips, peri-peri seasoning and a drizzle of olive oil.',
+      '<strong>Make the garlic croutons:</strong> Slice the bake-at-home ciabatta in half lengthways, then toast or grill it to your liking. In a medium microwave-safe bowl, microwave the garlic paste and butter in 10-second bursts until melted and fragrant. Season with salt and pepper. Roughly chop the toasted ciabatta, add it to the garlic butter and toss to coat.',
+      '<strong>Bring it all together:</strong> Meanwhile, slice the kernels off the corn cob. In a large frying pan, heat a drizzle of olive oil over high heat. When hot, cook the beef strips in batches, tossing, until browned and cooked through, 1–2 minutes (cooking in batches over high heat keeps the meat tender). Transfer to a plate. Return the pan to high heat and cook the corn kernels until lightly browned, 4–5 minutes. Cover with a lid if the kernels start popping out.',
+      '<strong>Finish & serve:</strong> In a large bowl, combine the dill & parsley mayonnaise and a drizzle of vinegar. Add the gourmet leaf mix, cucumber, snacking tomatoes, charred corn and garlic croutons, and toss to combine. Season with salt and pepper. Divide the herby mayo salad between bowls and top with the peri-peri beef.'
     ]
   }
 ];
@@ -7814,7 +7845,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.81 · 22 Nov 2026 8:41 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.82 · 22 Nov 2026 8:44 PM AEDT</div>
 
 </body>
 </html>
