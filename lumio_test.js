@@ -460,6 +460,15 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
     check('chicken: 330 g chicken breast for 2', chick.ingredients.includes('330 g chicken breast'));
     check('chicken: has its photo', chick.scrapedImageUrl === 'img/hf-pesto-parmesan-chicken.jpg');
   }
+  const moro = list.find(r => r.id === 'hf-moroccan-honey-glazed-chicken');
+  check('Moroccan honey chicken present', !!moro);
+  if (moro) {
+    check('Moroccan: written for 2 servings', derive(moro) === 2);
+    check('Moroccan: 645 kcal, 49.6 g protein per serving', moro.calories === 645 && moro.protein === 49.6);
+    check('Moroccan: 330 g chicken breast for 2', moro.ingredients.includes('330 g chicken breast'));
+    check('Moroccan: has its photo', moro.scrapedImageUrl === 'img/hf-moroccan-honey-chicken.jpg');
+    if (sandbox.formatIngredient) check('Moroccan: ¾ cup water shows in ml', sandbox.formatIngredient('¾ cup water', 1) === '175 ml water');
+  }
 } catch (e) { fails.push('manual suggestions extraction: ' + e.message); fail++; }
 
 // ── Report ─────────────────────────────────────────────────────────────

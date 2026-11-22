@@ -2039,7 +2039,7 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
     </div>
 
     <div class="settings-version">
-      <div class="settings-version-num" id="settings-version-num">Lumio v5.84</div>
+      <div class="settings-version-num" id="settings-version-num">Lumio v5.85</div>
       <div class="settings-version-time" id="settings-version-time">03 Sep 2026 3:53 PM AEST</div>
       <button id="settings-update-btn" onclick="checkForUpdateManual()" style="margin-top:10px;font-size:12px;color:var(--text3);border:0.5px solid var(--border);background:var(--surface2);border-radius:100px;padding:5px 14px;cursor:pointer;font-family:inherit;transition:all 0.15s">
         Check for update
@@ -2054,9 +2054,9 @@ label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px
 const SUPABASE_URL = 'https://ioholexvctxandkzcjbu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvaG9sZXh2Y3R4YW5ka3pjamJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDEyMDYsImV4cCI6MjA5MTgxNzIwNn0.9aXQQRJ5RVnTFxyyPGj9obEWWPGJppb9k_AXN31mrz8';
 const TABLE = 'lumio_data';
-const BUILD = 'v5.84 · 22 Nov 2026 8:50 PM AEDT';
-const BUILD_VERSION = 'v5.84';
-const BUILD_DISPLAY = '22 Nov 2026 8:50 PM AEDT';
+const BUILD = 'v5.85 · 22 Nov 2026 8:57 PM AEDT';
+const BUILD_VERSION = 'v5.85';
+const BUILD_DISPLAY = '22 Nov 2026 8:57 PM AEDT';
 
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -4661,6 +4661,42 @@ const MANUAL_SUGGESTIONS = [
       '<strong>Roast the potato:</strong> Meanwhile, cut the potatoes into bite-sized chunks. Spread over a large microwave-safe plate, cover with a damp paper towel and microwave on high for 3 minutes. Drain any excess liquid, then place the potatoes on the second lined oven tray. Drizzle with olive oil, season with salt and toss to coat. Spread out evenly and roast until golden and tender, 10–15 minutes.',
       '<strong>Make the salad:</strong> Meanwhile, grate the carrot and roughly chop the red apple. In a large bowl, combine the honey with a drizzle of vinegar and olive oil. Add the carrot, apple, mixed salad leaves and slaw mix and toss to combine. Season with salt and pepper.',
       '<strong>Finish & serve:</strong> Slice the chicken. Divide the pesto-Parmesan crusted chicken, roast potato chunks and slaw between plates. Serve with the remaining creamy pesto dressing.'
+    ]
+  },
+  {
+    id: 'hf-moroccan-honey-glazed-chicken',
+    manual: true,
+    name: 'Moroccan Honey-Glazed Chicken with Roast Veggie Couscous Salad & Mint Yoghurt',
+    meal: 'dinner',
+    calories: 645, protein: 49.6, carbs: 67, fat: 19.3, fiber: 8.3,
+    tags: ['HelloFresh', 'Popular pick', 'Calorie smart', 'Protein rich', 'Eat me early', '30–40 mins'],
+    scrapedImageUrl: 'img/hf-moroccan-honey-chicken.jpg',
+    ingredients: [
+      '330 g chicken breast',
+      '1 sweet potato',
+      '1 capsicum',
+      '1 tsp plain flour',
+      '1 packet chermoula spice blend',
+      '1 tsp honey',
+      '2 garlic cloves',
+      '20 g butter',
+      '¾ cup water',
+      '1 packet stock concentrate',
+      '1 packet couscous',
+      '1 packet baby spinach leaves',
+      '½ packet mint',
+      '1 packet Greek-style yoghurt',
+      'olive oil, for cooking',
+      'salt and pepper, to taste'
+    ],
+    method: [
+      'Based on 2 servings. Prep 30–40 mins · ready in 30–40 mins. You will need an oven tray lined with baking paper, a large frying pan and a medium saucepan with a lid.',
+      '<strong>Roast the sweet potato & capsicum:</strong> Preheat the oven to 240°C (220°C fan-forced). Cut the sweet potato and capsicum into bite-sized chunks. Place on the lined oven tray, drizzle with olive oil, season with salt and pepper and toss to coat. Spread out in a single layer, then roast until tender, 20–25 minutes. Set aside to cool slightly. If the tray is crowded, divide the sweet potato between two trays.',
+      '<strong>Cook the chicken:</strong> Meanwhile, place your hand flat on top of each chicken breast and slice through horizontally to make two thin steaks. In a large bowl, combine the plain flour and chermoula spice blend. Add the chicken steaks and toss to coat. In a large frying pan, heat a drizzle of olive oil over medium-high heat. Cook the chicken until cooked through (no longer pink inside), 3–6 minutes each side, in batches if the pan is crowded. In the last minute, add the honey, turning the chicken to coat.',
+      '<strong>Make the garlic couscous:</strong> While the chicken is cooking, finely chop the garlic. In a medium saucepan, heat the butter with a drizzle of olive oil over medium-high heat. Cook the garlic until fragrant, 1 minute. Add the water and stock concentrate and bring to the boil, then add the couscous. Stir to combine, cover with a lid and remove from the heat. Set aside until the water is absorbed, 5 minutes, then fluff up with a fork.',
+      '<strong>Prep the yoghurt:</strong> While the couscous is cooking, roughly chop the baby spinach leaves. Pick and thinly slice the mint leaves. In a small bowl, combine the Greek-style yoghurt and mint. Season with salt and pepper and set aside.',
+      '<strong>Finish the couscous:</strong> Stir the roasted veggies and baby spinach through the garlic couscous in the saucepan.',
+      '<strong>Finish & serve:</strong> Slice the chicken. Divide the roast veggie couscous salad and Moroccan honey-glazed chicken between bowls. Top with a dollop of mint yoghurt to serve.'
     ]
   }
 ];
@@ -7908,7 +7944,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- Build info -->
-<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.84 · 22 Nov 2026 8:50 PM AEDT</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);opacity:0.6">Lumio v5.85 · 22 Nov 2026 8:57 PM AEDT</div>
 
 </body>
 </html>
