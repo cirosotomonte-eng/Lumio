@@ -425,12 +425,15 @@ try {
   check('manual suggestions: all flagged manual', list.every(r => r.manual === true));
   check('manual suggestions: every recipe complete', list.every(r => r.name && r.meal && r.calories > 0 && r.protein > 0 && r.ingredients.length > 0 && r.method.length > 1));
   check('manual suggestions: every recipe declares its servings', list.every(r => /based on \d+ servings?|makes \d+ portions?|serves \d+/i.test(r.method[0])));
+check('manual suggestions: every photo path exists in the repo', list.every(r => !r.scrapedImageUrl || require('fs').existsSync(require('path').join(require('path').dirname(path), r.scrapedImageUrl))));
+  check('manual photos backfill onto already-saved copies', /MANUAL_SUGGESTIONS\.forEach\(r => \{ if \(r\.name && r\.scrapedImageUrl\) lookup/.test(mainScript));
   const beef = list.find(r => r.id === 'hf-seared-beef-rump-mexican-black-beans');
   check('beef rump recipe present', !!beef);
   if (beef) {
     check('beef rump: written for 2 servings', derive(beef) === 2);
     check('beef rump: 437 kcal, 49.4 g protein per serving', beef.calories === 437 && beef.protein === 49.4);
     check('beef rump: 300 g beef for 2', beef.ingredients.includes('300 g beef rump'));
+    check('beef rump: has its photo', beef.scrapedImageUrl === 'img/hf-seared-beef-rump.jpg');
     if (sandbox.formatIngredient) check('beef rump: card shows 300 g as written', sandbox.formatIngredient('300 g beef rump', 1) === '300 g beef rump');
   }
 } catch (e) { fails.push('manual suggestions extraction: ' + e.message); fail++; }
