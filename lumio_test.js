@@ -440,7 +440,8 @@ check('manual suggestions: every photo path exists in the repo', list.every(r =>
   check('peri-peri beef salad present', !!peri);
   if (peri) {
     check('peri-peri: written for 2 servings', derive(peri) === 2);
-    check('peri-peri: 784 kcal (3280 kJ), 45.9 g protein per serving', peri.calories === 784 && peri.protein === 45.9);
+    check('peri-peri: 785 kcal, 45.9 g protein per serving', peri.calories === 785 && peri.protein === 45.9);
+    check('peri-peri: 15–25 min time from card close-up', /Prep 15–25 mins/.test(peri.method[0]));
     check('peri-peri: 250 g beef strips for 2', peri.ingredients.includes('250 g beef strips'));
     check('peri-peri: has its photo', peri.scrapedImageUrl === 'img/hf-peri-peri-beef-salad.jpg');
   }
